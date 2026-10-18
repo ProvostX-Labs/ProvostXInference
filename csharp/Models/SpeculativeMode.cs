@@ -13,4 +13,16 @@ public enum SpeculativeMode
     /// <summary>Second draft model (upstream draft-simple) — requires a
     /// draft_simple capability plus a user-provided DraftModelPath.</summary>
     Draft = 2,
+    /// <summary>ABI v6 — n-gram drafting from the committed stream: no draft
+    /// model. History-pattern lookup (upstream ngram-simple).</summary>
+    NgramSimple = 3,
+    /// <summary>ABI v6 — n-gram -> m-gram map with per-value accept statistics
+    /// (upstream ngram-map-k).</summary>
+    NgramMapK = 4,
+    /// <summary>ABI v6 — MOD: hashed (n-1)-suffix match, one deviation
+    /// (upstream ngram-mod).</summary>
+    NgramMod = 5,
+    /// <summary>ABI v6 — static (file) + dynamic token-probability caches
+    /// (upstream ngram-cache).</summary>
+    NgramCache = 6,
 }

@@ -20,6 +20,13 @@ public enum SpeculativeType
     Eagle3 = 0x4,
     Dflash = 0x8,
     Dspark = 0x10,
-    /// <summary>NGram-based drafting — not wired in this slice.</summary>
+    /// <summary>ABI v6 — n-gram simple: history-pattern lookup. Reported for
+    /// every standard-vocab target (model-independent drafter).</summary>
     Ngram = 0x20,
+    /// <summary>ABI v6 — n-gram map-k: n-gram -> m-gram map with accept stats.</summary>
+    NgramMapK = 0x40,
+    /// <summary>ABI v6 — n-gram MOD: hashed (n-1)-suffix match, one deviation.</summary>
+    NgramMod = 0x80,
+    /// <summary>ABI v6 — n-gram cache: static + dynamic token-probability caches.</summary>
+    NgramCache = 0x100,
 }

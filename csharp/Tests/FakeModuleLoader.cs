@@ -20,7 +20,7 @@ internal sealed class FakeModuleLoader : IPvxModuleLoader
     internal sealed class FakeImage
     {
         public string Id = "";
-        public int AbiVersionValue = 5;
+        public int AbiVersionValue = 6;
         public bool HasAbiVersion = true;
         public IntPtr Handle;
         internal int ScriptedAbi;
@@ -35,7 +35,7 @@ internal sealed class FakeModuleLoader : IPvxModuleLoader
 
     public IReadOnlyList<FakeImage> Images => _images;
 
-    public FakeImage AddImage(string id, int abiVersion = 5, bool hasAbiVersion = true, string? loadPath = null)
+    public FakeImage AddImage(string id, int abiVersion = 6, bool hasAbiVersion = true, string? loadPath = null)
     {
         var image = new FakeImage
         {

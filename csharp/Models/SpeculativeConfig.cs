@@ -14,4 +14,7 @@ public sealed record SpeculativeConfig
     public int DraftMin { get; init; } = 0;
     public float PMin { get; init; } = 0.0f;
     public int DraftGpuLayers { get; init; } = -1;
+    /// <summary>ABI v6: n-gram knobs — active iff Mode is an n-gram mode
+    /// (Simple/MapK/Mod/Cache). Null = all native defaults.</summary>
+    public NgramConfig? Ngram { get; init; }
 }

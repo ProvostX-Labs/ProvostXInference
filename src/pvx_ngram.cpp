@@ -655,6 +655,11 @@ bool ngram_cache_load(const std::string& filename, ngram_cache& out_cache) {
         }
         cache.emplace(ngram, std::move(token_counts));
     }
+    // A short/garbage file dies mid-record: the last read failed but pulled
+    // a partial record — that is corruption, not a valid empty cache.
+    if (hashmap_file.gcount() != 0) {
+        return false;
+    }
 
     out_cache = std::move(cache);
     return true;

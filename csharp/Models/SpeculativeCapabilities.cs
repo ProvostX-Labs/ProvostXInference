@@ -7,7 +7,11 @@ namespace ProvostXInference.Models;
 /// A report of None means the model supports no native speculative type — the
 /// second draft model (SpeculativeMode.Draft with a user-provided draft model)
 /// remains the available option whenever DraftSimple is reported.</summary>
-public sealed record SpeculativeCapabilities(SpeculativeType Types)
+/// <param name="SpecVision">ABI v6: the spec session can continue drafting after
+/// multimodal (image) inputs — the embd-aware mirror replays projected
+/// embedding rows onto the draft side. Model-independent property of the
+/// spec engine; a typed refusal names this boundary when absent.</param>
+public sealed record SpeculativeCapabilities(SpeculativeType Types, bool SpecVision = false)
 {
     public static readonly SpeculativeCapabilities None = new(SpeculativeType.None);
 
@@ -28,7 +32,9 @@ public sealed record SpeculativeCapabilities(SpeculativeType Types)
             var names = new List<string>();
             foreach (var t in new[] { SpeculativeType.DraftSimple, SpeculativeType.Mtp,
                                       SpeculativeType.Eagle3, SpeculativeType.Dflash,
-                                      SpeculativeType.Dspark, SpeculativeType.Ngram })
+                                      SpeculativeType.Dspark, SpeculativeType.Ngram,
+                                      SpeculativeType.NgramMapK, SpeculativeType.NgramMod,
+                                      SpeculativeType.NgramCache })
             {
                 if (Supports(t)) names.Add(TypeName(t));
             }
@@ -44,7 +50,10 @@ public sealed record SpeculativeCapabilities(SpeculativeType Types)
         SpeculativeType.Eagle3 => "eagle3",
         SpeculativeType.Dflash => "dflash",
         SpeculativeType.Dspark => "dspark",
-        SpeculativeType.Ngram => "ngram",
+        SpeculativeType.Ngram => "ngram-simple",
+        SpeculativeType.NgramMapK => "ngram-map-k",
+        SpeculativeType.NgramMod => "ngram-mod",
+        SpeculativeType.NgramCache => "ngram-cache",
         _ => "none",
     };
 }

@@ -144,7 +144,8 @@ public sealed class NativeInferenceModel : IInferenceModel
             ObjectDisposedException.ThrowIf(_disposed, this);
             EntryPoints.ModelSpecCapabilities(_handle.DangerousGetHandle(), out var caps)
                 .ThrowIfError(EntryPoints, _handle.DangerousGetHandle()); // F16
-            return new SpeculativeCapabilities((SpeculativeType) caps.Types);
+            return new SpeculativeCapabilities((SpeculativeType) caps.Types,
+                                                caps.SpecVision != 0); // ABI v6
         }
     }
 
@@ -155,13 +156,18 @@ public sealed class NativeInferenceModel : IInferenceModel
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var pathPtr = config.DraftModelPath is null ? IntPtr.Zero : PvxNative.AllocUTF8(config.DraftModelPath);
+        var cachePtr = config.Ngram?.CachePath is null ? IntPtr.Zero : PvxNative.AllocUTF8(config.Ngram.CachePath);
         try
         {
-            var nativeParams = new PvxSpecParams(config, pathPtr);
+            var nativeParams = new PvxSpecParams(config, pathPtr, cachePtr);
             EntryPoints.ModelSpecValidate(_handle.DangerousGetHandle(), in nativeParams)
-                .ThrowIfModelError(EntryPoints, _handle.DangerousGetHandle()); // F16 + ABI v5 model-scoped reason
+                .ThrowIfModelError(EntryPoints, _handle.DangerousGetHandle()); // F16 + model-scoped reason
         }
-        finally { if (pathPtr != IntPtr.Zero) Marshal.FreeHGlobal(pathPtr); }
+        finally
+        {
+            if (pathPtr != IntPtr.Zero) Marshal.FreeHGlobal(pathPtr);
+            if (cachePtr != IntPtr.Zero) Marshal.FreeHGlobal(cachePtr);
+        }
     }
     internal ModelConfig Config => _config;
 

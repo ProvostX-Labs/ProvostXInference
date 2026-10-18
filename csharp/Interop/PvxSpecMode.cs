@@ -1,5 +1,3 @@
-using System.Runtime.InteropServices;
-
 namespace ProvostXInference.Interop;
 
 /// <summary>Mirrors pvx_spec_mode_t. C enums are int-sized; values in lockstep
@@ -13,4 +11,10 @@ internal enum PvxSpecMode : int
     /// <summary>Second draft model (upstream draft-simple); requires a
     /// draft_model_path and a draft_simple capability.</summary>
     Draft = 2,
+    // ABI v6 appends — n-gram drafting (no draft model; drafts from the
+    // committed stream + online caches).
+    NgramSimple = 3,
+    NgramMapK = 4,
+    NgramMod = 5,
+    NgramCache = 6,
 }

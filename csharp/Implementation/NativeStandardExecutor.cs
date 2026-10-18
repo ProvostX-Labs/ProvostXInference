@@ -156,14 +156,19 @@ public sealed class NativeStandardExecutor : IStandardExecutor
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var pathPtr = config.DraftModelPath is null ? IntPtr.Zero : PvxNative.AllocUTF8(config.DraftModelPath);
+        var cachePtr = config.Ngram?.CachePath is null ? IntPtr.Zero : PvxNative.AllocUTF8(config.Ngram.CachePath);
         try
         {
-            var nativeParams = new PvxSpecParams(config, pathPtr);
+            var nativeParams = new PvxSpecParams(config, pathPtr, cachePtr);
             EP.ExecutorSpecInit(_handle.DangerousGetHandle(), in nativeParams)
                 .ThrowIfError(EP, _context.RawHandle); // F16
             _activeSpeculation = config; // set only after native success
         }
-        finally { if (pathPtr != IntPtr.Zero) System.Runtime.InteropServices.Marshal.FreeHGlobal(pathPtr); }
+        finally
+        {
+            if (pathPtr != IntPtr.Zero) System.Runtime.InteropServices.Marshal.FreeHGlobal(pathPtr);
+            if (cachePtr != IntPtr.Zero) System.Runtime.InteropServices.Marshal.FreeHGlobal(cachePtr);
+        }
     }
 
     public void DisableSpeculation()

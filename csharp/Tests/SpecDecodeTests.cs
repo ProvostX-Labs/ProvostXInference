@@ -56,12 +56,20 @@ public class SpecDecodeTests
         var caps = model.SpeculativeCapabilities;
 
         // Dense llama-family target: draft_simple reported; no nextn tensors in
-        // this GGUF → no mtp bit; eagle3/dflash/dspark/ngram not reported.
+        // this GGUF -> no mtp bit; eagle3/dflash/dspark not reported. ABI v6:
+        // the n-gram drafters are model-independent (standard vocab suffices)
+        // and the spec engine's mirror is embd-aware (spec+vision).
         Assert.True(caps.Draft);
         Assert.False(caps.Mtp);
-        Assert.Equal(new List<string> { "draft_simple" }, caps.SupportedTypeNames);
+        Assert.Equal(new List<string> { "draft_simple", "ngram-simple", "ngram-map-k",
+                                       "ngram-mod", "ngram-cache" }, caps.SupportedTypeNames);
         Assert.True(caps.Supports(SpeculativeType.DraftSimple));
+        Assert.True(caps.Supports(SpeculativeType.Ngram));
+        Assert.True(caps.Supports(SpeculativeType.NgramMapK));
+        Assert.True(caps.Supports(SpeculativeType.NgramMod));
+        Assert.True(caps.Supports(SpeculativeType.NgramCache));
         Assert.False(caps.Supports(SpeculativeType.Mtp));
+        Assert.True(caps.SpecVision); // ABI v6 embd-aware mirror
     }
 
     // ═══════════════════════════════════════════════════
@@ -202,6 +210,103 @@ public class SpecDecodeTests
             var offEx = Assert.Throws<InferenceException>(() =>
                 exec.GenerateSpeculative(greedy, 4));
             Assert.Equal(7, offEx.ErrorCode);
+        }
+    }
+
+    // ═════════════════════════════════════════════════
+    // 3b. ABI v6: n-gram modes — typed boundaries + token-exactness
+    // ═════════════════════════════════════════════════
+
+    [Fact]
+    public void Ngram_FailClosed_TypedErrors_NeverSilentFallback()
+    {
+        if (!HasModel()) return; // skip when no test model
+        using var model = LoadTarget();
+        using var ctx = NewContext(model);
+        using var exec = (NativeStandardExecutor) ctx.CreateExecutor();
+
+        // n_min > n_max: typed invalid arg (validate + enable agree).
+        var bad = new SpeculativeConfig
+        {
+            Mode = SpeculativeMode.NgramSimple,
+            Ngram = new NgramConfig { NMin = 8, NMax = 2 },
+        };
+        var badEx = Assert.Throws<InferenceException>(() => model.ValidateSpeculation(bad));
+        Assert.Equal(1, badEx.ErrorCode); // PVX_ERR_INVALID_ARG
+        Assert.Contains("ngram-config", badEx.Message);
+        Assert.Throws<InferenceException>(() => exec.EnableSpeculation(bad));
+
+        // Corrupt cache file: typed LOAD_FAILED naming the path — never a
+        // silently empty cache.
+        var dir = Path.Combine(Path.GetTempPath(), $"pvx-ngram-test-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(dir);
+        var cachePath = Path.Combine(dir, "corrupt.bin");
+        File.WriteAllBytes(cachePath, new byte[] { 1, 2, 3, 4, 5 });
+        try
+        {
+            var cacheEx = Assert.Throws<InferenceException>(() =>
+                exec.EnableSpeculation(new SpeculativeConfig
+                {
+                    Mode = SpeculativeMode.NgramCache,
+                    Ngram = new NgramConfig { CachePath = cachePath },
+                }));
+            Assert.Equal(3, cacheEx.ErrorCode); // PVX_ERR_LOAD_FAILED
+            Assert.Contains("ngram-cache", cacheEx.Message);
+        }
+        finally { Directory.Delete(dir, recursive: true); }
+    }
+
+    public static TheoryData<SpeculativeMode> NgramModes => new()
+    {
+        SpeculativeMode.NgramSimple,
+        SpeculativeMode.NgramMapK,
+        SpeculativeMode.NgramMod,
+        SpeculativeMode.NgramCache,
+    };
+
+    [Theory]
+    [MemberData(nameof(NgramModes))]
+    public void Ngram_TokenExact_Vs_PlainLoop(SpeculativeMode mode)
+    {
+        if (!HasModel()) return; // skip without a test model
+        var greedy = Greedy();
+        const string prompt = "The colors of the rainbow, in order, are: red, orange, yellow, green, blue, indigo and";
+        const int nGen = 16;
+
+        // ── Plain reference loop ──
+        IReadOnlyList<int> plainTokens;
+        using (var model = LoadTarget())
+        using (var ctx = NewContext(model))
+        using (var exec = ctx.CreateExecutor())
+        {
+            exec.Prompt(prompt);
+            Assert.Equal(InferResult.Ok, exec.Infer());
+            var acc = new List<int>();
+            for (int i = 0; i < nGen; i++)
+            {
+                var t = exec.Sample(greedy);
+                if (ctx.IsEos(t)) break;
+                acc.Add(t);
+                exec.PromptTokens(new[] { t });
+                Assert.Equal(InferResult.Ok, exec.Infer());
+            }
+            plainTokens = acc;
+        }
+
+        // ── n-gram spec on a fresh executor: same prompt, same params ──
+        using (var model = LoadTarget())
+        using (var ctx = NewContext(model))
+        using (var exec = (NativeStandardExecutor) ctx.CreateExecutor())
+        {
+            exec.EnableSpeculation(new SpeculativeConfig { Mode = mode });
+            exec.Prompt(prompt);
+            Assert.Equal(InferResult.Ok, exec.Infer());
+
+            var specTokens = exec.GenerateSpeculative(greedy, nGen);
+            Assert.True(specTokens.Count >= 1);
+            Assert.True(exec.TokenCount > 0);
+            // TOKEN-EXACT vs the plain loop (identical params, greedy).
+            Assert.Equal(plainTokens.Take(specTokens.Count).ToList(), specTokens.ToList());
         }
     }
 }
