@@ -641,13 +641,11 @@ pvx_decode_result_t pvx_executor_infer(pvx_executor_t* exec) {
 
         if (rc != 0) {
             // Decode failed — keep REMAINING pending tokens so caller can retry.
-            // Already-decoded slices were committed inside the loop (n_tokens/
-            // n_kv_pos/recent_tokens updated per slice — do NOT re-add here).
-            exec->recent_tokens.insert(exec->recent_tokens.end(),
-                                       exec->pending_tokens.begin(),
-                                       exec->pending_tokens.begin() + decoded);
-            for (int i = 0; i < decoded; i++)
-                pvx_mirror_push_token(exec, exec->pending_tokens[i], kv_base + i);
+            // Already-decoded slices were committed inside the loop above
+            // (recent_tokens/mirror/n_tokens/n_kv_pos updated per slice) —
+            // do NOT re-add here: re-adding would double-commit the committed
+            // prefix (mirror.size() != n_tokens breaks the spec substrate's
+            // mirror-consistency invariant and duplicates penalty history).
             exec->pending_tokens.erase(exec->pending_tokens.begin(),
                                        exec->pending_tokens.begin() + decoded);
             exec->ctx_ref->last_error = "llama_decode failed (rc=" + std::to_string(rc) + ")";
@@ -725,6 +723,14 @@ pvx_result_t pvx_executor_rewind(pvx_executor_t* exec, int n_tokens) {
     reset_grammar_state(&exec->grammar_state);  // generation restarts after rewind
     exec->n_tokens -= n_tokens;
     exec->n_kv_pos -= n_tokens;
+    // ABI v7 (feature 4): a live EAGLE3 session's g rows are per-committed-
+    // position — the shrunken stream's rows must drop with the rewind (the
+    // capture-order invariant would otherwise fail typed INTERNAL forever
+    // and the infer capture hook would refuse). Draft/n-gram modes need no
+    // hook (mirror_prefix/lookup streams derive from the shrunken ring).
+    if (exec->spec && exec->spec->is_eagle()) {
+        exec->spec->eagle_on_stream_shrunk(exec->n_tokens);
+    }
     // Rewound tokens include the sampled row's token — snapshot is stale.
     exec->last_batch_idx = -1;
     exec->last_logits.clear();
@@ -754,6 +760,11 @@ pvx_result_t pvx_executor_reset(pvx_executor_t* exec) {
     exec->mirror.clear();
     exec->last_batch_idx = -1;
     exec->last_logits.clear();
+    // ABI v7 (feature 4): a full stream clear empties the EAGLE3 g rows —
+    // same shrunken-stream discipline as pvx_executor_rewind.
+    if (exec->spec && exec->spec->is_eagle()) {
+        exec->spec->eagle_on_stream_shrunk(0);
+    }
     return PVX_OK;
 }
 
@@ -1267,6 +1278,7 @@ pvx_result_t pvx_pool_return(pvx_pool_t* pool, pvx_conversation_t* conv) {
     }
     conv->has_pending_prompt = false;
     conv->pending_tokens.clear();
+    conv->recent_tokens.clear();  // fresh lease = fresh penalty history
     conv->last_batch_idx = -1;
     conv->last_logits.clear();
     pool->available.push(conv);
@@ -1847,6 +1859,11 @@ pvx_result_t pvx_load_mmproj(pvx_model_t* model, const char* mmproj_path,
     // Fail closed instead; after all wrappers are freed a replacement load is
     // allowed (old context freed first — zero live references then).
     if (model->mtmd_shared_refs > 0) {
+        // Refusal path owns the wrapper struct ONLY — its just-created mtmd
+        // context is NOT shared with anyone yet and must die here (the struct
+        // has no destructor for it: leaving it set would leak the context).
+        mtmd_free(mmproj_model->mtmd_ctx);
+        mmproj_model->mtmd_ctx = nullptr;
         delete mmproj_model;
         model->last_error = "a vision encoder is already loaded on this model; "
                             "free it before loading another (mtmd context is shared)";
@@ -1970,7 +1987,7 @@ pvx_result_t pvx_conversation_prompt_with_images(pvx_conversation_t* conv,
                 const uint32_t vflush_n_batch = llama_n_batch(conv->ctx);
                 if (vflush_n_batch == 0) {
                     mtmd_input_chunks_free(chunks);
-                    set_error(nullptr, "n_batch is 0");
+                    set_error(conv->ctx_ref, "n_batch is 0");
                     return PVX_ERR_DECODE_FAILED;
                 }
                 const int vflush_base = conv->n_kv_pos;  // capture once — advance per slice
@@ -1991,7 +2008,7 @@ pvx_result_t pvx_conversation_prompt_with_images(pvx_conversation_t* conv,
                     llama_batch_free(tbatch);
                     if (rc2 != 0) {
                         mtmd_input_chunks_free(chunks);
-                        set_error(nullptr, std::string("text flush before image decode failed: ") + std::to_string(rc2));
+                        set_error(conv->ctx_ref, std::string("text flush before image decode failed: ") + std::to_string(rc2));
                         return PVX_ERR_DECODE_FAILED;
                     }
                     conv->n_tokens += n_slice; conv->n_kv_pos += n_slice;
@@ -2020,6 +2037,8 @@ pvx_result_t pvx_conversation_prompt_with_images(pvx_conversation_t* conv,
             if (enc_rc != 0) {
                 if (need_non_causal) llama_set_causal_attn(conv->ctx, true);
                 mtmd_input_chunks_free(chunks);
+                set_error(conv->ctx_ref, std::string("image chunk encode failed (rc=") +
+                          std::to_string(enc_rc) + ") (boundary: vision/encode)");
                 return PVX_ERR_DECODE_FAILED;
             }
 
@@ -2057,6 +2076,8 @@ pvx_result_t pvx_conversation_prompt_with_images(pvx_conversation_t* conv,
 
                 if (rc3 != 0) {
                     mtmd_input_chunks_free(chunks);
+                    set_error(conv->ctx_ref, std::string("image embd decode failed (rc=") +
+                              std::to_string(rc3) + ") (boundary: vision/decode)");
                     return PVX_ERR_DECODE_FAILED;
                 }
 
@@ -2081,6 +2102,17 @@ pvx_result_t pvx_conversation_prompt_with_images(pvx_conversation_t* conv,
                 // Snapshot now — the row is only valid until the next decode
                 // on this shared context.
                 snapshot_logits_row(conv->ctx, conv->last_logits, n_tokens - 1);
+            } else {
+                if (need_non_causal) {
+                    llama_set_causal_attn(conv->ctx, true);
+                }
+                // Fail closed (executor-lane twin discipline): a projector that
+                // produced no usable rows must not silently advance nothing
+                // while the caller believes the image landed.
+                set_error(conv->ctx_ref, "image chunk produced no usable embeddings "
+                           "(boundary: vision/encode)");
+                mtmd_input_chunks_free(chunks);
+                return PVX_ERR_DECODE_FAILED;
             }
         }
     }
@@ -2182,8 +2214,22 @@ pvx_result_t pvx_executor_shift_left(pvx_executor_t* exec, int n_tokens) {
     if (n_tokens >= exec->n_tokens) {
         return pvx_executor_reset(exec);
     }
+    // ABI v7 (feature 4): EAGLE3 g rows are indexed by committed position
+    // (capture-order invariant); a front-drop rebases the window so the
+    // rows can no longer be re-indexed faithfully. Fail closed: free the
+    // spec session first (rewind/reset remain supported via the shrunk-
+    // stream hook — shift_left cannot).
+    if (exec->spec && exec->spec->is_eagle()) {
+        std::lock_guard<std::mutex> lock(exec->ctx_ref->infer_mtx);
+        exec->ctx_ref->last_error =
+            "eagle3 spec session cannot survive a front-shift (kv shift_left): "
+            "free the session first (boundary: spec-engine/eagle3-shift-left)";
+        return PVX_ERR_NOT_SUPPORTED;
+    }
 
     std::lock_guard<std::mutex> lock(exec->ctx_ref->infer_mtx);
+    reset_grammar_state(&exec->grammar_state);  // context shift → grammar desyncs
+                                             // (conversation-lane twin does the same)
     llama_memory_seq_rm(exec->ctx_ref->mem, 0, 0, n_tokens);
     exec->n_tokens -= n_tokens;  // logical count shrinks
     // n_kv_pos stays the same — KV positions are absolute, not relative
@@ -3497,7 +3543,14 @@ pvx_result_t pvx_rerank(pvx_context_t* ctx, const char* query,
     if (!scores) return PVX_ERR_INTERNAL;
     *out_scores = scores;
 
+    // Leave the embeddings flag balanced on EVERY exit path (pvx_get_embeddings
+    // discipline): a leaked embeddings=true changes the context's compute path
+    // for every subsequent decode on this shared context.
     llama_set_embeddings(lctx, true);
+    struct EmbdGuard {
+        llama_context* c;
+        ~EmbdGuard() { llama_set_embeddings(c, false); }
+    } embd_guard{ lctx };
 
     for (int d = 0; d < n_documents; d++) {
         if (!documents[d]) { free(scores); *out_scores = nullptr; return PVX_ERR_INVALID_ARG; }
