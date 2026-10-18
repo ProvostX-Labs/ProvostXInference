@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>latest</LangVersion>
+
+    <!-- NuGet metadata -->
+    <PackageId>ProvostXInference</PackageId>
+    <Version>0.0.0</Version>
+    <Authors>ProvostX-Labs</Authors>
+    <Description>C/C++ inference engine + C# bindings for ProvostX. Links llama.cpp directly.</Description>
+    <RepositoryUrl>https://github.com/ProvostX-Labs/ProvostXInference</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <LicenseExpression>MIT</LicenseExpression>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Tests/**" />
+  </ItemGroup>
+
+  <!-- Unit tests exercise the internal dispatch seams (entry-point tables,
+       selector, resolver, registry) via constructor-injected fakes. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="ProvostXInference.Tests" />
+  </ItemGroup>
+
+  <!-- ONNX Runtime (CPU bundle) + GPU EP packages side-by-side (decision judge execution,
+       moved from ProvostXLLM — LLM-10): CoreML/DirectML/CUDA/ROCm/OpenVINO EPs load from the
+       CPU bundle where bundled; the GPU packages add CUDA/DirectML/ROCm EPs on their platforms.
+       An unavailable EP degrades down the configured chain (cpu terminal) — never a silent
+       fallback. -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.30.0" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.Gpu" Version="1.30.0" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.Gpu.Linux" Version="1.30.0" />
+  </ItemGroup>
+
+  <!-- Native runtime libraries (bundled in NuGet package) -->
+  <!-- 5-specialist matrix (owner 2026-10-06): every native under runtimes/ is a
+       specialist (libpvx-metal / pvx-cuda / pvx-vulkan ...), packaged as-is. -->
+  <ItemGroup>
+    <None Include="runtimes/**/native/*" Pack="true" PackagePath="runtimes/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,38 @@
+# Build artifacts
+build-*/
+bin/
+obj/
+
+# IDE
+.vscode/
+.idea/
+*.user
+*.suo
+.DS_Store
+
+# Native build
+*.o
+*.a
+*.dylib
+*.so
+*.dll
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+
+# Test models (never commit)
+*.gguf
+*.bin
+csharp/Tests/models
+*.png
+
+# Secrets
+*.key
+.env
+build-metal-rel/
+build/*
+
+.tmp/

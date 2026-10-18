@@ -1,0 +1,16 @@
+{
+  "project": "csharp",
+  "timestamp": "2026-10-18T07:53:52.391279+00:00",
+  "total_violations": 1,
+  "errors": 0,
+  "warnings": 1,
+  "violations": [
+    {
+      "rule": "interface-first",
+      "severity": "warning",
+      "file": "Implementation/ChunkedStallSafePrefillRunner.cs",
+      "message": "Public class ChunkedStallSafePrefillRunner in csharp implements no interface \u2014 may be a boundary leak"
+    }
+  ],
+  "passed": true
+}

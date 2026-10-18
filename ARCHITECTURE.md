@@ -1,0 +1,191 @@
+# ProvostXInference — Architecture (as-is)
+
+C/C++ inference engine + C# bindings for ProvostX. A **llama.cpp-only, GGUF-only** execution
+substrate: the vendored llama.cpp tree is linked directly behind a flat C API, P/Invoked from a
+strict-OOP C# layer. Replaces LLamaSharp entirely — full control over batching, KV cache,
+vision, speculative decoding, and backend safety. ProvostXLLM consumes this library in-process
+and knows **only** this API — never llama.cpp, ONNX, or any engine internals.
+
+## Layers
+
+```
+┌─────────────────────────────────────────────┐
+│ ProvostXLLM (C# — HTTP server)               │
+│  OpenAI API, sessions, orchestration only    │
+├─────────────────────────────────────────────┤
+│ ProvostXInference C# (this repo)             │
+│  Engines facade → Abstractions → Interop     │
+│  Decision (ONNX judge), Encoder, watchdog     │
+├─────────────────────────────────────────────┤
+│ libpvxinference (C++ — this repo)            │
+│  Model, context, pool, batched decode,        │
+│  sampling, embeddings, vision, spec decode,   │
+│  KV ops, backend safety                       │
+├─────────────────────────────────────────────┤
+│ llama.cpp (vendored submodule — FROZEN)       │
+│  Native inference, Metal/CUDA/Vulkan/CPU     │
+└─────────────────────────────────────────────┘
+```
+
+Dependency flow is strictly one-directional: callers touch only the Engines facade; the facade
+composes backend adapters into one uniform engine object; nothing below leaks upward.
+
+## Native core (src/, include/)
+
+### C API (pvxinference.h) — ABI v5
+Flat C API, 70+ exports. Opaque handles: `pvx_model_t`, `pvx_context_t`, `pvx_pool_t`,
+`pvx_conversation_t`, `pvx_executor_t`, `pvx_state_t`, `pvx_grammar_t`, mmproj wrapper.
+The ABI version is handshake-checked against the C# binding's `ExpectedAbiVersion` at
+engine open — mismatch refuses to load (fail-closed, never best-effort).
+
+- **`pvxinference.cpp`** — core: model load, tokenize, chat template, context, conversation
+  pool, batched + executor inference, sampling, KV ops (save/restore/copy/rewind/shift),
+  embeddings, speculative decode, chunked decode (all decode paths split pending tokens into
+  ≤ `n_batch` slices with per-slice position advance — `llama_decode` ABORTS beyond one batch).
+- **`pvx_backend.cpp`** — backend safety layer (below).
+- **`pvx_spec_engine.*`** — speculative decoding (draft-simple / MTP per vendored llama.cpp
+  support); capability discovery on load inspects GGUF metadata (arch + nextn/MTP tensors)
+  and self-reports a SUPPORTED-TYPES LIST, not booleans; unwired types answer typed
+  NOT_SUPPORTED with the boundary named. A second draft model is required for draft-simple —
+  missing draft = typed error, no silent fallback.
+
+### Embeddings — architecture-routed
+Routing is by the model's own architecture (`llama_model_has_encoder/has_decoder`); typed
+NOT_SUPPORTED when a model exposes neither. Encoder models (MiniLM) use `llama_encode`;
+causal models decode and mean-pool. Decoder-only models whose output head differs from the
+hidden state (merged multi-token heads, e.g. n_embd_out ≠ n_embd) fail closed with a typed
+NOT_SUPPORTED before any decode. The extraction path fails closed if no embedding source
+produces data — never zeros dressed as an embedding.
+
+### Grammar (GBNF)
+Persistent grammar chain on executor/conversation; grammar FIRST in the sampler chain;
+sampled token accepted once at commit (EOG/control skipped). Prompt tokens are NOT
+grammar-accepted (a per-token accept hook desyncs the stateless feedback loop — removed).
+Known upstream llama.cpp issue: `llama_grammar_accept` crashes on multi-character tokens
+spanning rules with optional whitespace; try/catch fallback yields unconstrained output;
+callers bound array repetition in their grammars as mitigation.
+
+### Rewind / hybrid-memory guard
+All partial rewinds check `llama_memory_seq_rm`'s return and answer `PVX_ERR_REWIND_UNSUPPORTED`
+on refusal (hybrid/recurrent archs cannot take partial erasure) — counters untouched, no
+corruption. Full-range rewind still works everywhere. `pvx_model_partial_rewind_supported`
+surfaces the capability (C#: `IInferenceModel.PartialRewindSupported`).
+
+### Backend probe & safety (pvx_backend.cpp)
+Per-CONTEXT probe state (`pvx_context_s::backend` — never process-global). Detection skips
+CPU-class devices and matches stable vendor-tag device ids (`MTL`/`Metal`, `CUDA`, `Vulkan`);
+an unrecognized accelerator reports its raw device name instead of lying "CPU". All seven
+`pvx_backend_*` queries take `pvx_context_t*` (null-safe) and are re-run by `pvx_probe_backend`.
+GPU-layer profile fields (Effective/Original/ReducedGpuLayers) are filled on every facade path.
+
+Safety layer intervenes only on probe failure: minimal 1-token decode probe validates config;
+progressive fallback gpu_layers N → N/2 → 0 (`pvx_create_context_safe`); Vulkan stale-KV
+flush after pool return (upstream #26744). On total fallback failure the caller's original
+gpu_layers is reloaded; if even that fails, `*model` is null and is not freed.
+
+### Concurrency & lifetime
+- `infer_mtx` on every context serializes all `llama_*` work; KV-mutating conversation ops
+  (rewind/reset/shift/export) and pool-return hold the SAME lock in a fixed order
+  (pool → infer) as lease — no inverted lock pairs.
+- `pvx_state_save` clears the backup seq before copying (seq_cp MERGES).
+- Model destruction ordering: per-model `active_context_count` + condition variable;
+  `pvx_free_model` blocks until all its contexts are freed (prevents Metal device-before-buffers
+  aborts); contexts of different models free concurrently.
+- Vision: a second mmproj load is refused while a wrapper is alive (refcounted shared mtmd
+  context — the model waits for wrapper release before freeing it). A failed pre-image text
+  flush in `pvx_executor_prompt_with_images` is a typed decode failure with pending tokens
+  kept for retry — image embeddings never land at wrong positions.
+
+### Errors & logging
+Every failure path sets a typed result + reason string: context-scoped `pvx_last_error`,
+model-scoped `pvx_model_last_error` (ABI v5 — model-level calls must NOT pass a model handle
+to the context-scoped function). `PVX_LOG` structured logging: zero-overhead when disabled
+(null callback check), levels DEBUG/INFO/WARN/ERROR/NONE, set via `pvx_set_log_callback` +
+`pvx_set_log_level`; C# bridge pins the delegate.
+
+## C# layer (csharp/) — one type per file, constructor injection, no statics, no env vars
+
+### Namespace map
+| Namespace | Purpose |
+|-----------|---------|
+| `Interop` | P/Invoke + per-handle dispatch: `PvxNative`, `PvxAbiDelegates`, `PvxEngineHandle`, `PvxDispatchRouter`/`Registry`, `NativeModuleLoader`; injected seams `IPvxModuleLoader`, `IPvxEntryPoints`, `IPvxFileExistence`, `IOSProbe` |
+| `SafeHandles` | One SafeHandle per native resource — guaranteed `pvx_free_*` cleanup |
+| `Abstractions` | `IInferenceModel/Context/State`, `IConversation(Pool)`, `IStandardExecutor`, `IGrammar`, `IVisionEncoder`, `IInferenceBackend`, watchdog seams `IPrefillStallDetector`/`IChunkWallClock`/`ISpeculationSuspender` |
+| `Implementation` | Native* wrappers; `StandardEngineActivator`, `PvxDefaultEngineSelector`, stall-safe prefill classes |
+| `Engines` | Caller-facing facade: `IInferenceEngine`, `InferenceEngine(Builder/Factory)`, request records + ops views |
+| `Decision` | ONNX judge execution — `DecisionSession`, `IDecisionSessionFactory`, `JudgeTokenizer`, `JudgeSequenceEncoder`, `JudgeNumericsGate`, `ExecutionProviderChain` |
+| `Models` | Config records: `ModelConfig`, `ContextConfig`, `SamplingConfig`, `SpeculativeConfig`, `StallWatchdogConfig`, `BackendInfo`, engine selection types |
+| `Exceptions` | `InferenceException`, `InvalidEngineRequestException`, `EngineKindMismatchException`, `PrefillStallUnrecoveredException`, `PvxResultExtensions` |
+| `Logging` | `IInferenceLogger`, `NativeLogBridge` (pinned delegate, UTF-8) |
+
+### Engine object model (the ONLY caller-facing surface)
+```
+InferenceEngineBuilder.Gguf(path) / .Decision(path) / .Encoder(path)
+  → validated EngineRequest (fail-closed) → InferenceEngineFactory.Create(request)
+  → InferenceEngine (unloaded) → Initialize()
+  → three typed views: IGgufEngineOps / IDecisionEngineOps / IEncoderEngineOps
+```
+- Kind routing is exhaustive + fail-closed; a view for the wrong kind throws
+  `EngineKindMismatchException`. Views WRAP the underlying graph, never duplicate it.
+- `IGgufEngineOps` exposes the model/context/pool graph: chat template, tokenize, sampling
+  knobs, live context rebuild, KV copy/clear, checkpoints, rewind, speculation
+  (validate/enable/disable, `ActiveSpeculation` mirror), live `Backend` probe.
+- `IDecisionEngineOps` exposes the judge session; `IEncoderEngineOps` the vision/image
+  embedding route.
+- Load failure leaves the engine unloaded and disposable — no partial state leaks.
+
+### Per-handle backend dispatch (engine selection)
+`ModelConfig.Engine` picks the specialist (`metal` = macOS only; `cuda`/`vulkan` =
+Windows/Linux only). `PvxEngineSelector` + `PvxEngineFileResolver` validate fail-closed —
+unknown/empty/wrong-OS pairs refuse, never fall back. `PvxEngineHandle.Open`: resolve file →
+load image → resolve per-image entry-point tables → ABI handshake → router bundle; the
+process-wide `PvxDispatchRegistry` routes only the activation-window DllImports (steady-state
+calls go through per-handle tables). Ownership chain is constructor-injected:
+Model → Context → Pool/Executor → Conversation.
+
+### Stall-safe chunked prefill layer
+Engine-level, backend-independent, above the native seam (no ABI surface):
+`ChunkedStallSafePrefillRunner` commits PromptTokens in chunks over `IConversationPool`,
+timing each with `IChunkWallClock` (wall-clock is the sole mechanism — no backend hooks).
+`RollingPrefillStallDetector`: stall = chunk wall > GapMultiplier × rolling median of the
+baseline window; stalled walls never enter the baseline. `StallRecoveryLadder`: FreshSlotRetry
+(smaller-chunk retry halves to the floor) → SmallerChunkRetry → DraftDisabledRetry (via
+injected `ISpeculationSuspender`, idempotent native teardown) → FailLoud. Budget exhausted =
+typed `PrefillStallUnrecoveredException` carrying chunk index, walls, baseline, steps.
+Watchdog disabled = single plain commit, zero overhead. Config: `stall_watchdog` section
+(fail-closed Validate).
+
+## Test coverage & evidence
+
+- **Native:** basic + stress C++ suites (`tests/`), Release metal build, `ctest` green —
+  stress covers NULL args, empty inputs, pool exhaustion, double-return, KV boundaries,
+  sampling extremes, race stress (grammar mutex, pool churn).
+- **C#:** full suite green (189/189 at last run), one test class per type, all native seams
+  faked (`FakeModuleLoader`, fakes) — no test touches a real dylib except env-guarded
+  live smoke/journey tests. Decision tests run on tiny real ONNX fixtures.
+- **Live capability matrix:** `TEST-MATRIX-2026-10-18.md` — 6 models (dense, hybrid-GDN,
+  MoE/Flash-Next, 3B, MiniLM encoder, judge-ONNX) × all lanes (load, sequential gen,
+  continuous batching, KV ops, rewind, speculative, grammar, tool calls, vision, embeddings),
+  executed on the Release metal build.
+- **LDC:** API-INDEX.md + RELATIONSHIP-GRAPH.md regenerated + enforcement PASS in the same
+  commit as any public-surface change.
+
+## CI / NuGet policy
+
+- CI workflow builds native + C# (Debug + Release, 0 warnings) + runs tests; does NOT
+  publish or tag. Planned 5-specialist matrix: osx-arm64 metal/cpu, linux-x64 cpu/cuda/vulkan,
+  win-x64 cpu/cuda/vulkan.
+- Package `ProvostXInference` prepared (native binaries as `runtimes/{RID}/native/`), not
+  shipped. All work stays local — no push, no tags without explicit owner order.
+
+## Files
+- `include/pvxinference.h`, `include/pvx_internal.h` — public C API + internal structs
+- `src/pvxinference.cpp`, `src/pvx_backend.cpp`, `src/pvx_spec_engine.{cpp,h}` — native core
+- `csharp/` — bindings, facade, Decision domain, tests
+- `assets/models/judge/` — ONNX judge assets (tokenizer.json, judge specs)
+- `docs/CAPABILITY.md` — capability matrix; `TEST-EVIDENCE-spec.md` — evidence policy
+- `CMakeLists.txt`, `.github/workflows/` — build + CI
+
+**Status:** native ctest green (Release metal), C# 189/189, LDC PASS. Repo history starts at
+the 2026-10-18 as-is state.
+**Updated:** 2026-10-18

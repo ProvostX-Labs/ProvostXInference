@@ -1,0 +1,39 @@
+{
+  "kind": "process",
+  "max_len": 1024,
+  "head_max_len": 256,
+  "temperature": [1.1317189931869507, 1.2615084648132324, 1.2964768409729004],
+  "questions": [
+    {
+      "id": "action",
+      "type": "choice",
+      "instructions": "Is this OS process tree benign, suspicious, or malicious?",
+      "options": [
+        { "label": "allow", "description": "benign normal software" },
+        { "label": "sandbox", "description": "suspicious needs observation" },
+        { "label": "deny", "description": "malicious" }
+      ]
+    },
+    {
+      "id": "needs_sandbox",
+      "type": "noul",
+      "instructions": "Does this process need isolation?",
+      "options": [
+        { "label": "false" },
+        { "label": "true" }
+      ]
+    },
+    {
+      "id": "risk_level",
+      "type": "score",
+      "instructions": "How risky is this process?",
+      "options": [
+        { "label": "harmless" },
+        { "label": "low" },
+        { "label": "moderate" },
+        { "label": "high" },
+        { "label": "severe" }
+      ]
+    }
+  ]
+}

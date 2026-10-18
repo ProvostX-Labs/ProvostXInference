@@ -1,0 +1,152 @@
+# RELATIONSHIP-GRAPH.md — ProvostXInference
+
+Generated: 2026-10-18T07:53:52.298827+00:00
+Edges: 33  |  Packages: 2
+
+---
+
+## Tests
+
+## csharp
+
+- ChunkedStallSafePrefillRunner ──uses──► IChunkWallClock (csharp)
+- ChunkedStallSafePrefillRunner ──uses──► IConversationPool (csharp)
+- ChunkedStallSafePrefillRunner ──uses──► IPrefillStallDetector (csharp)
+- DecisionEngineOps ──implements──► IDecisionEngineOps (csharp)
+- DecisionHeaderReader ──implements──► IDecisionHeaderReader (csharp)
+- DecisionSessionFactory ──implements──► IDecisionSessionFactory (csharp)
+- EncoderEngineOps ──implements──► IEncoderEngineOps (csharp)
+- EncoderEngineOps ──uses──► IInferenceModel (csharp)
+- EncoderEngineOps ──uses──► IVisionEncoder (csharp)
+- EngineKindMismatchException ──implements──► InferenceException (csharp)
+- ExecutorSpeculationSuspender ──implements──► ISpeculationSuspender (csharp)
+- ExecutorSpeculationSuspender ──uses──► IStandardExecutor (csharp)
+- GgufEngineOps ──implements──► IGgufEngineOps (csharp)
+- GgufEngineOps ──uses──► IInferenceBackend (csharp)
+- GgufEngineOps ──uses──► IInferenceModel (csharp)
+- GgufModelLoader ──implements──► IGgufModelLoader (csharp)
+- InferenceEngine ──implements──► IInferenceEngine (csharp)
+- InferenceEngineFactory ──implements──► IInferenceEngineFactory (csharp)
+- InvalidEngineRequestException ──implements──► InferenceException (csharp)
+- NativeConversation ──implements──► IConversation (csharp)
+- NativeConversationPool ──implements──► IConversationPool (csharp)
+- NativeConversationState ──implements──► IConversationState (csharp)
+- NativeGrammar ──implements──► IGrammar (csharp)
+- NativeInferenceBackend ──implements──► IInferenceBackend (csharp)
+- NativeInferenceContext ──implements──► IInferenceContext (csharp)
+- NativeInferenceModel ──implements──► IInferenceModel (csharp)
+- NativeInferenceState ──implements──► IInferenceState (csharp)
+- NativeStandardExecutor ──implements──► IStandardExecutor (csharp)
+- NativeVisionEncoder ──implements──► IVisionEncoder (csharp)
+- OsExecutionProviderDefaultSource ──implements──► IExecutionProviderDefaultSource (csharp)
+- QuietInferenceLogger ──implements──► IInferenceLogger (csharp)
+- RollingPrefillStallDetector ──implements──► IPrefillStallDetector (csharp)
+- SystemChunkWallClock ──implements──► IChunkWallClock (csharp)
+## ProvostXInference (native C++ — header include edges)
+
+- add-id.hpp ──include──► common.hpp
+- backend.hpp ──include──► binbcast.hpp
+- backend.hpp ──include──► col2im-1d.hpp
+- backend.hpp ──include──► common.hpp
+- backend.hpp ──include──► concat.hpp
+- backend.hpp ──include──► conv.hpp
+- backend.hpp ──include──► conv3d.hpp
+- backend.hpp ──include──► convert.hpp
+- backend.hpp ──include──► count-equal.hpp
+- backend.hpp ──include──► cpy.hpp
+- backend.hpp ──include──► dequantize.hpp
+- backend.hpp ──include──► dmmv.hpp
+- backend.hpp ──include──► element_wise.hpp
+- backend.hpp ──include──► fattn.hpp
+- backend.hpp ──include──► fusion.hpp
+- backend.hpp ──include──► gated_delta_net.hpp
+- backend.hpp ──include──► gla.hpp
+- backend.hpp ──include──► im2col.hpp
+- backend.hpp ──include──► mmq.hpp
+- backend.hpp ──include──► mmvq.hpp
+- backend.hpp ──include──► norm.hpp
+- backend.hpp ──include──► outprod.hpp
+- backend.hpp ──include──► pad.hpp
+- backend.hpp ──include──► pad_reflect_1d.hpp
+- backend.hpp ──include──► quantize.hpp
+- backend.hpp ──include──► quants.hpp
+- backend.hpp ──include──► roll.hpp
+- backend.hpp ──include──► rope.hpp
+- backend.hpp ──include──► set_rows.hpp
+- backend.hpp ──include──► softmax.hpp
+- backend.hpp ──include──► ssm_conv.hpp
+- backend.hpp ──include──► topk-moe.hpp
+- backend.hpp ──include──► topk-radix.hpp
+- backend.hpp ──include──► tsembd.hpp
+- backend.hpp ──include──► upscale.hpp
+- backend.hpp ──include──► wkv.hpp
+- binbcast.hpp ──include──► common.hpp
+- col2im-1d.hpp ──include──► common.hpp
+- concat.hpp ──include──► common.hpp
+- conv.hpp ──include──► common.hpp
+- conv2d-dw.hpp ──include──► common.hpp
+- conv2d-transpose.hpp ──include──► common.hpp
+- conv2d.hpp ──include──► common.hpp
+- conv3d.hpp ──include──► common.hpp
+- convert.hpp ──include──► common.hpp
+- count-equal.hpp ──include──► common.hpp
+- cpy.hpp ──include──► common.hpp
+- cross_entropy_loss.hpp ──include──► common.hpp
+- cumsum.hpp ──include──► common.hpp
+- dequantize.hpp ──include──► common.hpp
+- dequantize.hpp ──include──► convert.hpp
+- diag.hpp ──include──► common.hpp
+- dmmv.hpp ──include──► common.hpp
+- dsv4-hc.hpp ──include──► common.hpp
+- element_wise.hpp ──include──► common.hpp
+- esimd.hpp ──include──► common.hpp
+- fattn-common.hpp ──include──► common.hpp
+- fattn-common.hpp ──include──► convert.hpp
+- fattn-common.hpp ──include──► fattn.hpp
+- fattn-common.hpp ──include──► vecdotq.hpp
+- fattn-onednn.hpp ──include──► common.hpp
+- fattn-sparse.hpp ──include──► common.hpp
+- fattn-tile.hpp ──include──► common.hpp
+- fattn-tile.hpp ──include──► fattn-common.hpp
+- fattn-vec.hpp ──include──► common.hpp
+- fattn-vec.hpp ──include──► fattn-common.hpp
+- fattn.hpp ──include──► common.hpp
+- fill.hpp ──include──► common.hpp
+- fused-gemm.hpp ──include──► common.hpp
+- fusion.hpp ──include──► common.hpp
+- fwht.hpp ──include──► common.hpp
+- gated_delta_net.hpp ──include──► common.hpp
+- getrows.hpp ──include──► common.hpp
+- ggml-webgpu-shader-lib.hpp ──include──► pre_wgsl.hpp
+- gla.hpp ──include──► common.hpp
+- im2col.hpp ──include──► common.hpp
+- lightning-indexer.hpp ──include──► common.hpp
+- mmf.hpp ──include──► common.hpp
+- mmq.hpp ──include──► common.hpp
+- mmvq.hpp ──include──► common.hpp
+- norm.hpp ──include──► common.hpp
+- opt-step.hpp ──include──► common.hpp
+- outprod.hpp ──include──► common.hpp
+- pad.hpp ──include──► common.hpp
+- pad_reflect_1d.hpp ──include──► common.hpp
+- pool.hpp ──include──► common.hpp
+- pool.hpp ──include──► presets.hpp
+- quantize.hpp ──include──► common.hpp
+- repeat_back.hpp ──include──► common.hpp
+- roll.hpp ──include──► common.hpp
+- rope.hpp ──include──► common.hpp
+- set.hpp ──include──► backend.hpp
+- set_rows.hpp ──include──► common.hpp
+- softmax.hpp ──include──► common.hpp
+- solve_tri.hpp ──include──► common.hpp
+- ssm_conv.hpp ──include──► common.hpp
+- ssm_scan.hpp ──include──► common.hpp
+- topk-moe.hpp ──include──► common.hpp
+- topk-radix.hpp ──include──► common.hpp
+- tsembd.hpp ──include──► common.hpp
+- upscale.hpp ──include──► common.hpp
+- utils.hpp ──include──► common.hpp
+- vecdotq.hpp ──include──► quants.hpp
+- vecdotq.hpp ──include──► type.hpp
+- wkv.hpp ──include──► common.hpp
+

@@ -1,0 +1,116 @@
+# API-INDEX.md — csharp
+
+Generated: 2026-10-18T07:53:52.388311+00:00
+Packages: 2  |  Types: 104
+
+---
+
+## Tests (25 types, ~2925 LOC)
+
+- 🟡 DecisionEngineOpsTests  (Tests)
+- 🟡 DecisionEngineRequestTests  (Tests)
+- 🟡 DecisionSessionFactoryTests  (Tests)
+- 🟡 DecisionTestAssets  (Tests)
+- 🟡 EncoderEngineOpsTests  (Tests)
+- 🟡 EncoderEngineRequestTests  (Tests)
+- 🟡 EngineFacadeSmokeTests  (Tests)
+- 🟡 EngineRequestTests  (Tests)
+- 🟡 ErrorMaskingSweepTests  (Tests)
+- 🟡 GgufEngineOpsTests  (Tests)
+- 🟡 GgufEngineRequestTests  (Tests)
+- 🟡 InferenceEngineBuilderTests  (Tests)
+- 🟡 InferenceEngineFactoryTests  (Tests)
+- 🟡 InferenceEngineTests  (Tests)
+- 🟡 JudgeSequenceEncoderTests  (Tests)
+- 🟡 JudgeTokenizerTests  (Tests)
+- 🟡 ModelEngineSelectionTests  (Tests)
+- 🟡 PvxDispatchRegistryTests : IDisposable  (Tests)
+- 🟡 PvxDispatchRouterTests  (Tests)
+- 🟡 PvxEngineFileResolverTests  (Tests)
+- 🟡 PvxEngineSelectorTests  (Tests)
+- 🟡 SmokeTests  (Tests)
+- 🟡 SpecDecodeTests  (Tests)
+- 🟡 StallSafePrefillLiveJourneyTests  (Tests)
+- 🟡 StallWatchdogTests  (Tests)
+
+## csharp (79 types, ~4668 LOC)
+
+- 🔵 IChunkWallClock  (csharp)
+- 🔵 IConversation : IDisposable  (csharp)
+- 🔵 IConversationPool : IDisposable  (csharp)
+- 🔵 IConversationState : IDisposable  (csharp)
+- 🔵 IDecisionEngineOps  (csharp)
+- 🔵 IDecisionHeaderReader  (csharp)
+- 🔵 IDecisionSessionFactory  (csharp)
+- 🔵 IEncoderEngineOps  (csharp)
+- 🔵 IExecutionProviderDefaultSource  (csharp)
+- 🔵 IGgufEngineOps  (csharp)
+- 🔵 IGgufModelLoader  (csharp)
+- 🔵 IGrammar : IDisposable  (csharp)
+- 🔵 IInferenceBackend  (csharp)
+- 🔵 IInferenceContext : IDisposable  (csharp)
+- 🔵 IInferenceEngine : IDisposable  (csharp)
+- 🔵 IInferenceEngineFactory  (csharp)
+- 🔵 IInferenceLogger  (csharp)
+- 🔵 IInferenceModel : IDisposable  (csharp)
+- 🔵 IInferenceState : IDisposable  (csharp)
+- 🔵 IPrefillStallDetector  (csharp)
+- 🔵 ISpeculationSuspender  (csharp)
+- 🔵 IStandardExecutor : IDisposable  (csharp)
+- 🔵 IVisionEncoder : IDisposable  (csharp)
+- 🟡 ChunkedStallSafePrefillRunner  (csharp)  deps: [IConversationPool, StallWatchdogConfig, IChunkWallClock, IPrefillStallDetector, ISpeculationSuspender? draftSuspender =]
+- 🟡 DecisionAssetCatalog  (csharp)  deps: [string]
+- 🟡 DecisionEngineOps : IDecisionEngineOps, IDisposable  (csharp)  deps: [DecisionSession]
+- 🟡 DecisionEngineRequestBuilder  (csharp)  deps: [string]
+- 🟡 DecisionHeaderReader : IDecisionHeaderReader  (csharp)
+- 🟡 DecisionRecord  (csharp)
+- 🟡 DecisionSession : IDisposable  (csharp)  deps: [JudgeTokenizer, JudgeSequenceSpec, InferenceSession, string]
+- 🟡 DecisionSessionFactory : IDecisionSessionFactory  (csharp)  deps: [ExecutionProviderOptionsApplier? optionsApplier =, IInferenceLogger? logger =]
+- 🟡 DecisionTestSupport  (csharp)
+- 🟡 EncoderEngineOps : IEncoderEngineOps, IDisposable  (csharp)  deps: [IInferenceModel, IVisionEncoder]
+- 🟡 EncoderEngineRequestBuilder  (csharp)  deps: [string]
+- 🟡 EngineKindMismatchException : InferenceException  (csharp)  deps: [string]
+- 🟣 EpAttempt  (csharp)  deps: [string, Action]
+- 🟡 ExecutionProviderChain  (csharp)
+- 🟡 ExecutionProviderOptionsApplier  (csharp)
+- 🟡 ExecutorSpeculationSuspender : ISpeculationSuspender  (csharp)  deps: [IStandardExecutor]
+- 🟡 GgufEngineOps : IGgufEngineOps, IDisposable  (csharp)  deps: [IInferenceModel, ContextConfig, SamplingConfig, IInferenceBackend]
+- 🟡 GgufEngineRequestBuilder  (csharp)  deps: [string]
+- 🟡 GgufMetadataRepair  (csharp)
+- 🟡 GgufModelLoader : IGgufModelLoader  (csharp)
+- 🟡 InferenceEngine : IInferenceEngine  (csharp)
+- 🟡 InferenceEngineBuilder  (csharp)
+- 🟡 InferenceEngineFactory : IInferenceEngineFactory  (csharp)  deps: [IGgufModelLoader? ggufLoader =, IDecisionSessionFactory? decisionFactory =, IExecutionProviderDefaultSource? epDefaultSource =, IInferenceBackend? backend =]
+- 🟡 InferenceException : Exception  (csharp)
+- 🟡 InvalidEngineRequestException : InferenceException  (csharp)  deps: [string]
+- 🟡 JudgeModelNotReadyException : Exception  (csharp)  deps: [string, string]
+- 🟣 JudgeOption  (csharp)  deps: [string, string]
+- 🟣 JudgeQuestionAnswer  (csharp)  deps: [string, JudgeQuestionType, string? Choice =, double? Score =, double? Confidence =, double? Noul =, IReadOnlyDictionary, IReadOnlyDictionary]
+- 🟣 JudgeQuestionAnswerSet  (csharp)  deps: [IReadOnlyList, int]
+- 🟣 JudgeQuestionDef  (csharp)  deps: [string, JudgeQuestionType, string, IReadOnlyList]
+- 🟣 JudgeQuestionRowSet  (csharp)  deps: [IReadOnlyList, int]
+- 🟣 JudgeRowEncoding  (csharp)  deps: [JudgeQuestionType, int, int]
+- 🟣 JudgeScore  (csharp)  deps: [JudgeAction, double, double, double, string]
+- 🟡 JudgeSequenceEncoder  (csharp)  deps: [JudgeTokenizer, JudgeSequenceSpec]
+- 🟣 JudgeSequenceSpec  (csharp)  deps: [JudgeRecordKind, int, int, IReadOnlyList, IReadOnlyList]
+- 🟣 JudgeStateQuestions  (csharp)  deps: [string, IReadOnlyList]
+- 🟡 JudgeTokenizer  (csharp)  deps: [string]
+- 🟡 NativeConversation : IConversation  (csharp)
+- 🟡 NativeConversationPool : IConversationPool  (csharp)
+- 🟡 NativeConversationState : IConversationState  (csharp)
+- 🟡 NativeGrammar : IGrammar  (csharp)
+- 🟡 NativeInferenceBackend : IInferenceBackend  (csharp)
+- 🟡 NativeInferenceContext : IInferenceContext  (csharp)
+- 🟡 NativeInferenceModel : IInferenceModel  (csharp)
+- 🟡 NativeInferenceState : IInferenceState  (csharp)
+- 🟡 NativeLogBridge  (csharp)
+- 🟡 NativeStandardExecutor : IStandardExecutor  (csharp)
+- 🟡 NativeVisionEncoder : IVisionEncoder  (csharp)
+- 🟡 OsExecutionProviderDefaultSource : IExecutionProviderDefaultSource  (csharp)  deps: [string? osOverride =]
+- 🟡 PrefillStallUnrecoveredException : Exception  (csharp)  deps: [int, int, double, double, IReadOnlyList, string? reason =]
+- 🟡 PvxDefaultEngineSelector  (csharp)
+- 🟡 PvxEngineSelector  (csharp)
+- 🟡 QuietInferenceLogger : IInferenceLogger  (csharp)
+- 🟡 RollingPrefillStallDetector : IPrefillStallDetector  (csharp)  deps: [StallWatchdogConfig]
+- 🟡 StallRecoveryLadder  (csharp)  deps: [StallWatchdogConfig]
+- 🟡 SystemChunkWallClock : IChunkWallClock  (csharp)  deps: [TimeProvider]

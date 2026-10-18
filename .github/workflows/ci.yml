@@ -1,0 +1,168 @@
+name: CI
+
+# Specialist matrix CI (BL-02 stage 1): one matrix job builds EACH of the five
+# specialists (macOS metal; Linux cuda + vulkan; Windows cuda + vulkan) from the
+# same sources with exactly one backend enabled. No machine/env-dependent build
+# logic — every fact is a literal in this file. CUDA/Vulkan toolkits come from
+# pinned public actions. Artifacts are named by (rid, specialist) so the NuGet
+# pack job maps them into the runtimes/<rid>/native slices the managed resolver
+# loads (metal .dylib / cuda+cuda .so|.dll / vulkan .so|.dll).
+on:
+  workflow_dispatch:
+
+env:
+  CMAKE_BUILD_TYPE: Release
+
+jobs:
+  # ── 5-specialist build matrix ──
+  specialist-build:
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: osx-arm64-metal
+            os: macos-14
+            backend: METAL
+            rid: osx-arm64
+            specialist: metal
+            artifact: native-osx-arm64-metal
+          - name: linux-x64-cuda
+            os: ubuntu-22.04
+            backend: CUDA
+            rid: linux-x64
+            specialist: cuda
+            artifact: native-linux-x64-cuda
+          - name: linux-x64-vulkan
+            os: ubuntu-22.04
+            backend: VULKAN
+            rid: linux-x64
+            specialist: vulkan
+            artifact: native-linux-x64-vulkan
+          - name: win-x64-cuda
+            os: windows-2022
+            backend: CUDA
+            rid: win-x64
+            specialist: cuda
+            artifact: native-win-x64-cuda
+          - name: win-x64-vulkan
+            os: windows-2022
+            backend: VULKAN
+            rid: win-x64
+            specialist: vulkan
+            artifact: native-win-x64-vulkan
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install CUDA toolkit (cuda specialists)
+        if: matrix.backend == 'CUDA'
+        uses: Jimver/cuda-toolkit@v0.2.21
+        with:
+          cuda: '12.4.0'
+
+      - name: Install Vulkan SDK (vulkan specialists)
+        if: matrix.backend == 'VULKAN'
+        uses: lukka/get-cmake@latest
+      - name: Install Vulkan dev packages (Linux vulkan)
+        if: matrix.backend == 'VULKAN' && matrix.os == 'ubuntu-22.04'
+        run: sudo apt-get update && sudo apt-get install -y libvulkan-dev vulkan-tools
+      - name: Install Vulkan SDK (Windows vulkan)
+        if: matrix.backend == 'VULKAN' && matrix.os == 'windows-2022'
+        uses: humbletim/install-vulkan-sdk@v1.2
+        with:
+          version: 1.3.283.0
+          cache: true
+
+      - name: Install build deps (Linux)
+        if: matrix.os == 'ubuntu-22.04'
+        run: sudo apt-get update && sudo apt-get install -y cmake build-essential
+
+      - name: Configure + build specialist (${{ matrix.specialist }}, ${{ matrix.rid }})
+        shell: bash
+        run: |
+          cmake -B build-${{ matrix.specialist }} \
+            -DPVX_BACKEND_${{ matrix.backend }}=ON \
+            -DPVX_BACKEND_CPU=OFF \
+            -DCMAKE_BUILD_TYPE=Release
+          cmake --build build-${{ matrix.specialist }} --config Release -j
+
+      - name: Locate specialist module
+        shell: bash
+        id: module
+        run: |
+          set -e
+          if [ "${{ matrix.os }}" = "windows-2022" ]; then
+            FILE="build-${{ matrix.specialist }}/Release/pvx-${{ matrix.specialist }}.dll"
+          elif [ "${{ matrix.os }}" = "macos-14" ]; then
+            FILE="build-${{ matrix.specialist }}/libpvx-metal.dylib"
+          else
+            FILE="build-${{ matrix.specialist }}/libpvx-${{ matrix.specialist }}.so"
+          fi
+          ls -l "$FILE"
+          echo "path=$FILE" >> "$GITHUB_OUTPUT"
+
+      - name: Upload specialist artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ steps.module.outputs.path }}
+          if-no-files-found: error
+
+  # ── C# binding build (managed layer compiles cross-platform, no native needed) ──
+  csharp-build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Build managed layer (product + tests, no native resolution at build)
+        run: |
+          cd csharp
+          dotnet build ProvostXInference.csproj -c Release
+          dotnet build Tests/ProvostXInference.Tests.csproj -c Release
+
+  # ── NuGet pack (NO publish) — maps every specialist into its runtimes slice ──
+  nuget-pack:
+    needs: specialist-build
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Download all specialist artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: native-libs
+
+      - name: Map specialists into runtimes slices
+        run: |
+          mkdir -p csharp/runtimes/osx-arm64/native
+          mkdir -p csharp/runtimes/linux-x64/native
+          mkdir -p csharp/runtimes/win-x64/native
+          cp native-libs/native-osx-arm64-metal/libpvx-metal.dylib   csharp/runtimes/osx-arm64/native/
+          cp native-libs/native-linux-x64-cuda/libpvx-cuda.so        csharp/runtimes/linux-x64/native/
+          cp native-libs/native-linux-x64-vulkan/libpvx-vulkan.so    csharp/runtimes/linux-x64/native/
+          cp native-libs/native-win-x64-cuda/pvx-cuda.dll            csharp/runtimes/win-x64/native/
+          cp native-libs/native-win-x64-vulkan/pvx-vulkan.dll        csharp/runtimes/win-x64/native/
+
+      - name: Pack NuGet
+        run: |
+          cd csharp
+          dotnet pack ProvostXInference.csproj -c Release -o ../nupkg /p:Version=0.1.0
+
+      - name: Upload NuGet package
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-package
+          path: nupkg/*.nupkg

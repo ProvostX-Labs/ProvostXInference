@@ -1,0 +1,16 @@
+using System.Runtime.InteropServices;
+
+namespace ProvostXInference.Interop;
+
+/// <summary>Mirrors pvx_spec_mode_t. C enums are int-sized; values in lockstep
+/// with include/pvxinference.h.</summary>
+internal enum PvxSpecMode : int
+{
+    Off = 0,
+    /// <summary>Model-native MTP drafting — capability is reported per model,
+    /// enabling fails typed NOT_SUPPORTED while the MTP wiring boundary stands.</summary>
+    MtpAuto = 1,
+    /// <summary>Second draft model (upstream draft-simple); requires a
+    /// draft_model_path and a draft_simple capability.</summary>
+    Draft = 2,
+}

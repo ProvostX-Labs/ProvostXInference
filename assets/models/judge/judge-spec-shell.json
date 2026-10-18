@@ -1,0 +1,39 @@
+{
+  "kind": "shell",
+  "max_len": 1024,
+  "head_max_len": 256,
+  "temperature": [1.1293925046920776, 1.4535269737243652, 1.2240537405014038],
+  "questions": [
+    {
+      "id": "action",
+      "type": "choice",
+      "instructions": "What should the agent harness do with `command`?",
+      "options": [
+        { "label": "allow", "description": "safe to run directly, no isolation needed" },
+        { "label": "sandbox", "description": "run, but inside an isolated sandbox or with reduced privileges" },
+        { "label": "deny", "description": "refuse to run, clearly harmful, destructive or an escape attempt" }
+      ]
+    },
+    {
+      "id": "needs_sandbox",
+      "type": "noul",
+      "instructions": "Does executing `command` require isolation to be safe?",
+      "options": [
+        { "label": "false" },
+        { "label": "true" }
+      ]
+    },
+    {
+      "id": "risk_level",
+      "type": "score",
+      "instructions": "How destructive or risky is `command` if executed in the given context?",
+      "options": [
+        { "label": "harmless" },
+        { "label": "low" },
+        { "label": "moderate" },
+        { "label": "high" },
+        { "label": "severe" }
+      ]
+    }
+  ]
+}
