@@ -89,6 +89,16 @@
   contract working). ProvostXLLM flip: spec/session tests 60/62 (2 pre-existing live-
   server-fixture failures, no loaded model). LDC PASS both roots.
 
+- Audit evidence (2026-10-18 comprehensive audit, branch wave1-upstream-parity): mirror
+  bookkeeping verified on all mutation paths (prompt commit per-slice, rewind, shift_left,
+  kv_copy, checkpoint save/restore/import, pool return/lease); ONE regression found+fixed:
+  pvx_executor_infer's mid-chunk decode-failure path re-added recent_tokens + mirror entries
+  for already-committed slices (double-commit, breaks mirror.size()==n_tokens invariant;
+  commit 2c521e2). NEW permanent leg: conversation_checkpoint_import_phantom_prefix_guard —
+  checkpoint import restores KV+counters but NOT the ring → spec init must refuse typed
+  naming mirror-consistency (fresh-lease control OK, imported stream continues after a fresh
+  decode). Native suite 44/44 with standard fixtures (was 43/43), 0 skipped.
+
 ### BL-36 · Upstream parity wave 2 (ABI v7): EAGLE3/DFlash companion modes, batched-lane spec, JSON-schema→GBNF
 - Source: owner order 2026-10-18 17:43 (upstream-parity plan wave 2, docs/plans/UPSTREAM-PARITY-PLAN.md)
 - Spec: companion-draft modes behind `pvx_spec_mode_t` appends (PVX_SPEC_EAGLE3 /
@@ -168,6 +178,16 @@
   fixtures (Llama-3.2-3B, Qwen3.5-4B hybrid + mmproj, Llama-1B draft, MiniLM embed) +
   ngram 14/14 + stress; C# build 0/0 + full suite 208/208 (206 baseline + 2 new)
   default-env + targeted live 2/2 env-set; LDC both roots regenerated + PASS.
+
+- Audit evidence (2026-10-18 comprehensive audit): EAGLE3 session lifecycle gap found+fixed
+  (2c521e2): the graceful eagle_on_stream_shrunk hook existed but was never invoked — a live
+  EAGLE3 session died permanently (capture-order invariant typed INTERNAL) after ANY executor
+  rewind/reset; now wired into rewind + reset under infer_mtx, and executor shift_left refuses
+  typed NOT_SUPPORTED (front-drop cannot re-index g rows) while preserving the conversation-lane
+  refusal symmetry; executor shift_left additionally now resets grammar state (conversation twin
+  did). DFlash metadata-precheck vs draft-tensor contract re-verified fail-closed (no change).
+  Batched-lane round lock verified: nothing inside a spec round re-enters infer_mtx (typed
+  refusal paths are pre-round). Re-test: eagle3/dflash live pairs green, ngram 23/23, stress 31/31.
 
 ### BL-37 · Upstream parity wave 3 (ABI v8): audio in/out, rerank, LoRA, control vectors, stats
 - Source: owner order 2026-10-18 20:16 (upstream-parity plan wave 3, docs/plans/UPSTREAM-PARITY-PLAN.md)
@@ -254,6 +274,24 @@
   exports instead of the generalized `pvx_media_chunk_t` union — the vision path stays
   ABI-stable untouched (additive-only wave constraint); EncoderEngineOps untouched (images-only,
   audio rides the Gguf ops view) per plan.
+
+- Audit evidence (2026-10-18 comprehensive audit): wave-3 surfaces fixed in the same audit
+  batch (commits 2c521e2 + 356a366): (1) pvx_rerank leaked llama_set_embeddings(true) into every
+  subsequent decode on the shared context on ALL exit paths incl. success — RAII-balanced now
+  (pvx_get_embeddings discipline); (2) conversation-lane vision errors were swallowed
+  (set_error(nullptr)) — routed to the conversation's context scope; the lane also lacked the
+  executor twin's fail-closed on a projector that yields no usable embd rows (silently advanced
+  nothing) — now typed DECODE_FAILED; (3) pvx_load_mmproj's second-encoder refusal path leaked
+  the freshly created mtmd context (no dtor) — freed explicitly; (4) pvx_pool_return kept
+  stale recent_tokens across leases (cross-lease penalty contamination) — cleared (fresh lease =
+  fresh penalty history); (5) pvx_tts raw stderr diagnostics routed through pvx_log. C# wrapper
+  audit: interop delegate/signature table verified 1:1 vs native ABI v8 (PvxStats field order,
+  PvxTtsParams layout, rerank/audio HGlobal pinning freed on every path, SafeHandle releases
+  match frees, reverse-pinvoke GC.KeepAlive pattern present); engine facade verified
+  fail-closed (builder→request validation, factory kind routing, mismatch views, disposal
+  chain); no facade changes needed. Full regression: native 44/44 + ngram 23/23 + stress 31/31,
+  C# build 0/0 Debug+Release, C# suite green (see run log), live eagle3/dflash pairs green,
+  LDC enforcement unaffected (internal fixes only — public surface unchanged).
 
 ### Ongoing verification duty
 - Every repo state keeps: native Release build 0 errors, ctest green, C# suite green, LDC regenerated + enforcement PASS. Any public-surface change regenerates LDC artifacts in the SAME commit.
