@@ -32,22 +32,37 @@ composes backend adapters into one uniform engine object; nothing below leaks up
 
 ## Native core (src/, include/)
 
-### C API (pvxinference.h) — ABI v5
+### C API (pvxinference.h) — ABI v6
 Flat C API, 70+ exports. Opaque handles: `pvx_model_t`, `pvx_context_t`, `pvx_pool_t`,
 `pvx_conversation_t`, `pvx_executor_t`, `pvx_state_t`, `pvx_grammar_t`, mmproj wrapper.
 The ABI version is handshake-checked against the C# binding's `ExpectedAbiVersion` at
-engine open — mismatch refuses to load (fail-closed, never best-effort).
+engine open — mismatch refuses to load (fail-closed, never best-effort). v6 (wave 1) is
+append-only: `pvx_spec_mode_t` gains the n-gram modes, `pvx_spec_params_t` appends
+`pvx_ngram_params_t`, `pvx_spec_capabilities_t` appends `spec_vision`.
 
 - **`pvxinference.cpp`** — core: model load, tokenize, chat template, context, conversation
   pool, batched + executor inference, sampling, KV ops (save/restore/copy/rewind/shift),
   embeddings, speculative decode, chunked decode (all decode paths split pending tokens into
   ≤ `n_batch` slices with per-slice position advance — `llama_decode` ABORTS beyond one batch).
 - **`pvx_backend.cpp`** — backend safety layer (below).
-- **`pvx_spec_engine.*`** — speculative decoding (draft-simple / MTP per vendored llama.cpp
-  support); capability discovery on load inspects GGUF metadata (arch + nextn/MTP tensors)
-  and self-reports a SUPPORTED-TYPES LIST, not booleans; unwired types answer typed
-  NOT_SUPPORTED with the boundary named. A second draft model is required for draft-simple —
-  missing draft = typed error, no silent fallback.
+- **`pvx_spec_engine.*`** — speculative decoding: draft model (draft-simple / MTP per
+  vendored llama.cpp support) AND n-gram modes (simple / map-k / mod / cache — no draft
+  model, drafts from the committed stream). The draft-context mirror is EMBD-AWARE
+  (ABI v6): the executor's committed-stream ring (`pvx_mirror_entry_t`) replays token
+  rows by id and multimodal rows by projected embedding at pinned positions (draft-width
+  mismatch zero-pads with a one-time warn — upstream pattern); the ring's invariant is
+  enforced fail-closed by a consistency guard on every round. Image prompts land embd
+  rows in the ring via the stable `llama_batch_ext` surface (helper semantics ported
+  exactly, M-RoPE decoder positions included). Capability discovery on load inspects
+  GGUF metadata (arch + nextn/MTP tensors) and self-reports a SUPPORTED-TYPES LIST
+  (draft_simple + the n-gram types for every standard-vocab target), not booleans, plus
+  the model-independent `spec_vision` bit; unwired types answer typed NOT_SUPPORTED with
+  the boundary named. A second draft model is required for draft-simple — missing draft
+  = typed error, no silent fallback. A corrupt n-gram cache file is a typed LOAD_FAILED
+  naming the path — never a silently empty cache.
+- **`pvx_ngram.*`** — pattern-port of the vendored n-gram drafters (simple, map-k with
+  accept statistics, mod hashed-suffix table, static+dynamic token-prob caches with
+  save/load/merge) against stable llama.h types only; the frozen tree is never included.
 
 ### Embeddings — architecture-routed
 Routing is by the model's own architecture (`llama_model_has_encoder/has_decoder`); typed
@@ -180,7 +195,8 @@ Watchdog disabled = single plain commit, zero overhead. Config: `stall_watchdog`
 
 ## Files
 - `include/pvxinference.h`, `include/pvx_internal.h` — public C API + internal structs
-- `src/pvxinference.cpp`, `src/pvx_backend.cpp`, `src/pvx_spec_engine.{cpp,h}` — native core
+- `src/pvxinference.cpp`, `src/pvx_backend.cpp`, `src/pvx_spec_engine.{cpp,h}`,
+  `src/pvx_ngram.{cpp,h}` — native core
 - `csharp/` — bindings, facade, Decision domain, tests
 - `assets/models/judge/` — ONNX judge assets (tokenizer.json, judge specs)
 - `docs/CAPABILITY.md` — capability matrix; `TEST-EVIDENCE-spec.md` — evidence policy

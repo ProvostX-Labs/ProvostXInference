@@ -59,6 +59,36 @@
 - Spec: `stall_watchdog` config + `ChunkedStallSafePrefillRunner` over `IConversationPool` — wall-clock stall detection, recovery ladder (fresh-slot retry / smaller-chunk retry / draft-disable retry via `ISpeculationSuspender`), terminal FailLoud with typed `PrefillStallUnrecoveredException`. Backend-independent by construction.
 - Status: **done** 2026-10-17 — full unit + runner integration coverage; wired into ProvostXLLM per-model config (see LLM-side evidence there). Remaining increment: live ~224k-token journey with watchdog active (large-memory host, RAM-gated); optional finer-granularity backend timing hook (wall-clock fallback mandatory, never a dependency).
 
+### BL-35 · Upstream parity wave 1 (ABI v6): embd-aware spec mirror, spec+vision, n-gram modes
+- Source: owner order 2026-10-18 15:04 (upstream-parity plan, docs/plans/UPSTREAM-PARITY-PLAN.md)
+- Spec: embd-aware mirror ring in the standard executor (token id OR projected
+  embedding, pinned positions — the vendored draft-simple batch-builder pattern, zero-pad
+  + one-time warn on draft-width mismatch) so spec sessions draft after image prompts;
+  fail-closed mirror-consistency guard per round. Spec+vision capability bit
+  (`spec_vision`); the consumer's blanket image refusal flips to a capability check with
+  sticky per-session auto-off until KV reset. n-gram speculative modes (simple / map-k /
+  mod / cache) ported from the vendored common/ngram-* implementation behind
+  `PVX_SPEC_*` params + knobs via ABI + SpeculativeConfig + the ops/facade speculation
+  surface; capability self-report lists the n-gram types. ABI v6 append-only with C#
+  lockstep in the same commit.
+- Scope: src/pvx_spec_engine.{h,cpp}, src/pvx_ngram.{h,cpp} (new), src/pvxinference.cpp,
+  include/pvxinference.h, include/pvx_internal.h, tests/, csharp/ (interop + models +
+  implementation + tests), docs; consumer flip in ProvostXLLM Engine/SessionContext.
+- Acceptance: native ctest green incl. new unit tests (ngram map/mod/cache logic, mirror
+  embd entries, mirror guard) + n-gram & spec-vision token-exactness (spec ON == OFF);
+  C# build 0/0 (Debug+Release) + full suite green incl. new n-gram exactness/fail-closed
+  tests; live gates env-gated; LDC both roots PASS; docs as-is.
+- Status: **done** 2026-10-18 — branch wave1-upstream-parity. Native ctest 3/3
+  (basic 24/24 incl. new spec_ngram_token_exactness ×4 modes, spec_ngram_fail_closed,
+  spec_vision_exactness; ngram unit suite 14/14; stress). C# 194/194 (Debug+Release,
+  0 errors/0 warnings) incl. n-gram fail-closed + 4-mode token-exactness vs plain loop.
+  Live evidence: n-gram ON == OFF byte-identical (Llama-3.2-3B native + Qwen3.5-4B C#);
+  image-prompt spec ON == OFF prefix-identical (Qwen3.5-4B + mmproj, ngram mode).
+  NOT verified live: draft-model spec after images (no vocab-compatible draft GGUF on
+  this host — every candidate is rejected typed at spec_init, which is the fail-closed
+  contract working). ProvostXLLM flip: spec/session tests 60/62 (2 pre-existing live-
+  server-fixture failures, no loaded model). LDC PASS both roots.
+
 ### Ongoing verification duty
 - Every repo state keeps: native Release build 0 errors, ctest green, C# suite green, LDC regenerated + enforcement PASS. Any public-surface change regenerates LDC artifacts in the SAME commit.
 

@@ -1,6 +1,6 @@
 # csharp.API.md
 
-Types: 79  |  LOC: 4668  |  ~5433 tokens
+Types: 79  |  LOC: 4719  |  ~5433 tokens
 
 ---
 

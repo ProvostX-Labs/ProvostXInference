@@ -36,6 +36,7 @@ Implementation/   NativeInferenceModel, NativeInferenceContext, NativeConversati
                  StallRecoveryLadder, ExecutorSpeculationSuspender, SystemChunkWallClock
    │
 Models/           ModelConfig, ContextConfig, SamplingConfig, SpeculativeConfig,
+                 NgramConfig, SpeculativeMode/Type, SpeculativeCapabilities,
                  StallWatchdogConfig, BackendInfo, PvxEngineSelector/Spec/Validation/Error,
                  PvxEngineFileResolver, PvxEngineSelection
    │
@@ -106,6 +107,16 @@ env-guarded live smoke/journey tests): engine request/builder/factory/ops/facade
 selector + resolver + router + registry fail-closed matrices, error-masking sweep, spec
 decode, stall watchdog (detector/ladder/runner over synthetic timing + fakes), decision
 domain (tokenizer, sequence encoder, session factory on real tiny ONNX fixtures), dispatch
-tests, model-gated live journey tests. Full suite green (189/189 at last run), build
+tests, model-gated live journey tests. Full suite green (194/194 at last run), build
 0 errors/0 warnings (Debug + Release), LDC artifacts regenerated + enforcement PASS with
 every public-surface change.
+
+## Speculative decoding surface (ABI v6)
+`SpeculativeConfig` carries the mode (Off / Mtp / Draft / NgramSimple / NgramMapK /
+NgramMod / NgramCache), the draft-model knobs, and the n-gram knobs (`NgramConfig`:
+lookup sizes, map-k min hits, mod window, optional cache file — pinned with the same
+HGlobal rule as the draft path at the native boundary). The engine self-report
+(`SpeculativeCapabilities`) is a types list (`draft_simple`, `mtp`, `ngram-simple/-map-k/
+-mod/-cache`) plus `SpecVision` — spec sessions draft after multimodal inputs through the
+embd-aware mirror. Fail-closed everywhere: missing/unloadable draft, bad n-gram params,
+and corrupt cache files are typed errors naming the boundary; never silent fallbacks.
