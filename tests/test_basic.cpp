@@ -1874,6 +1874,69 @@ static void test_control_vector() {
     pvx_control_vector_free(cv); pvx_free_model(m);
 }
 
+// Checkpoint import → spec init: the phantom-prefix guard (ABI v6 feature 5f).
+// A restored KV stream WITHOUT its mirror ring must NEVER feed the spec
+// engine — the ring does not cover the committed stream, so drafting would
+// replay a phantom prefix. spec_init must refuse typed NOT_SUPPORTED with the
+// mirror-consistency boundary (never silently degrade to plain drafting).
+static void test_conversation_checkpoint_import_phantom_prefix_guard() {
+    if (!file_exists(MODEL_PATH)) SKIP("model file not found");
+    pvx_model_params_t mp = {}; mp.model_path = MODEL_PATH; mp.gpu_layers = 99; mp.flash_attn = true;
+    pvx_model_t* m = nullptr; ASSERT(pvx_load_model(&mp, &m) == PVX_OK);
+    pvx_context_params_t cp = {}; cp.context_size = 2048; cp.batch_size = 512; cp.seq_max = 4;
+    pvx_context_t* ctx = nullptr; ASSERT(pvx_create_context(m, &cp, &ctx) == PVX_OK);
+    pvx_pool_t* pool = nullptr; ASSERT(pvx_pool_create(ctx, &pool) == PVX_OK);
+
+    // Conversation A: commit a real stream, export its checkpoint.
+    pvx_conversation_t* ca = nullptr; ASSERT(pvx_pool_lease(pool, &ca) == PVX_OK);
+    ASSERT(pvx_conversation_prompt(ca, "The capital of France is") == PVX_OK);
+    ASSERT(pvx_infer(ctx) == PVX_DECODE_OK);
+    pvx_sampling_params_t sp = {}; sp.temperature = 0.0f; sp.top_k = 1; sp.max_tokens = 1;
+    int32_t t = 0;
+    ASSERT(pvx_conversation_sample(ca, &sp, &t) == PVX_OK);
+    const int committed = pvx_conversation_token_count(ca);
+    ASSERT(committed > 0);
+    uint8_t* blob = nullptr; size_t blob_size = 0;
+    ASSERT(pvx_conversation_export(ca, &blob, &blob_size) == PVX_OK);
+    ASSERT(blob && blob_size > 0);
+    ASSERT(pvx_pool_return(pool, ca) == PVX_OK);  // pool return clears mirror/counters
+
+    // Same slot re-leased, blob imported: KV + counters restored, mirror ring EMPTY.
+    pvx_conversation_t* cb = nullptr; ASSERT(pvx_pool_lease(pool, &cb) == PVX_OK);
+    ASSERT(pvx_conversation_import(cb, blob, blob_size) == PVX_OK);
+    pvx_conversation_export_free(blob);
+    ASSERT(pvx_conversation_token_count(cb) == committed);
+
+    // The guard: spec init against a phantom prefix must refuse typed
+    // (ngram-simple needs no draft sidecar; the ONLY failing boundary here is
+    // mirror-consistency).
+    pvx_spec_params_t s = {}; s.mode = PVX_SPEC_NGRAM_SIMPLE;
+    ASSERT(pvx_conversation_spec_init(cb, &s) == PVX_ERR_NOT_SUPPORTED);
+    const char* err = pvx_last_error(ctx);
+    ASSERT(err && strstr(err, "mirror-consistency"));
+
+    // Plain generation still works on the imported stream (KV is healthy —
+    // only the spec substrate refuses). The import restores the KV stream but
+    // NOT the logits snapshot (fresh-decode contract): commit one more token,
+    // then greedy sampling continues off the restored KV.
+    ASSERT(pvx_conversation_prompt(cb, " Paris") == PVX_OK);
+    ASSERT(pvx_infer(ctx) == PVX_DECODE_OK);
+    ASSERT(pvx_conversation_sample(cb, &sp, &t) == PVX_OK);
+    ASSERT(pvx_conversation_token_count(cb) > committed);  // continuation committed
+    ASSERT(pvx_pool_return(pool, cb) == PVX_OK);
+
+    // Control: a FRESH lease + prompt (mirror covers stream) → spec init OK.
+    pvx_conversation_t* cc = nullptr; ASSERT(pvx_pool_lease(pool, &cc) == PVX_OK);
+    ASSERT(pvx_conversation_prompt(cc, "The capital of France is") == PVX_OK);
+    ASSERT(pvx_infer(ctx) == PVX_DECODE_OK);
+    ASSERT(pvx_conversation_spec_init(cc, &s) == PVX_OK);
+    pvx_conversation_spec_free(cc);
+    ASSERT(pvx_pool_return(pool, cc) == PVX_OK);
+
+    pvx_pool_free(pool); pvx_free_context(ctx); pvx_free_model(m);
+    fprintf(stderr, "  phantom-prefix guard fired on import: committed=%d refused typed\n", committed);
+}
+
 // Stats export (feature 12): counter sanity on both lanes (no spec session:
 // 0/0 spec telemetry).
 static void test_stats_export() {
@@ -1990,6 +2053,7 @@ int main() {
     TEST(lora_typed);
     TEST(lora_live);
     TEST(control_vector);
+    TEST(conversation_checkpoint_import_phantom_prefix_guard);
     TEST(stats_export);
     fprintf(stderr, "\n=== %d/%d passed, %d skipped ===\n", tests_passed, tests_run, tests_skipped);
     return 0;

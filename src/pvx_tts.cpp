@@ -223,7 +223,7 @@ pvx_result_t pvx_tts_generate(pvx_tts_session_t* session,
     inp.out_type = MTMD_HELPER_GEN_AUDIO_OUTTYPE_PCM;  // raw PCM F32
     int32_t si = mtmd_helper_gen_audio_set_input(gen, &inp);
     if (si != 0) {
-        fprintf(stderr, "[pvx-tts] set_input failed rc=%d\n", si);
+        pvx_log(PVX_LOG_ERROR, "TTS", "gen_audio set_input failed rc=%d", si);
         session->last_error = "tts/prompt-stage: set_input failed (rc=" +
                               std::to_string(si) + "; lang='" +
                               std::string(inp.lang ? inp.lang : "") + "')";
@@ -235,7 +235,7 @@ pvx_result_t pvx_tts_generate(pvx_tts_session_t* session,
     for (;;) {
         int32_t ret = mtmd_helper_gen_audio_step_prompt(gen, n_batch);
         if (ret < 0) {
-            fprintf(stderr, "[pvx-tts] step_prompt failed rc=%d\n", ret);
+            pvx_log(PVX_LOG_ERROR, "TTS", "gen_audio step_prompt failed rc=%d", ret);
             session->last_error = "tts/prompt-stage: step_prompt failed (rc=" +
                                   std::to_string(ret) + ")";
             return PVX_ERR_DECODE_FAILED;
@@ -258,7 +258,7 @@ pvx_result_t pvx_tts_generate(pvx_tts_session_t* session,
         const float* h_next = nullptr;
         int32_t gret = mtmd_helper_gen_audio_step_gen(gen, sampled, h_state, &h_next, &stop);
         if (gret != 0) {
-            fprintf(stderr, "[pvx-tts] step_gen failed rc=%d at frame %d\n", gret, n_frames);
+            pvx_log(PVX_LOG_ERROR, "TTS", "gen_audio step_gen failed rc=%d at frame %d", gret, n_frames);
             session->last_error = "tts/gen-stage: step_gen failed at frame " +
                                  std::to_string(n_frames) + " (rc=" + std::to_string(gret) + ")";
             return PVX_ERR_DECODE_FAILED;
