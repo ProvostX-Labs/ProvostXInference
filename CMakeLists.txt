@@ -45,6 +45,7 @@ add_library(pvxinference SHARED
     src/pvxinference.cpp
     src/pvx_backend.cpp
     src/pvx_spec_engine.cpp
+    src/pvx_ngram.cpp
 )
 
 # Specialist module naming (BL-02 stage 1): the CI matrix builds ALL FIVE

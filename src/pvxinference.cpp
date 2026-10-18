@@ -640,6 +640,8 @@ pvx_decode_result_t pvx_executor_infer(pvx_executor_t* exec) {
             exec->recent_tokens.insert(exec->recent_tokens.end(),
                                        exec->pending_tokens.begin(),
                                        exec->pending_tokens.begin() + decoded);
+            for (int i = 0; i < decoded; i++)
+                pvx_mirror_push_token(exec, exec->pending_tokens[i], kv_base + i);
             exec->pending_tokens.erase(exec->pending_tokens.begin(),
                                        exec->pending_tokens.begin() + decoded);
             exec->ctx_ref->last_error = "llama_decode failed (rc=" + std::to_string(rc) + ")";
@@ -650,6 +652,9 @@ pvx_decode_result_t pvx_executor_infer(pvx_executor_t* exec) {
         exec->recent_tokens.insert(exec->recent_tokens.end(),
                                    exec->pending_tokens.begin() + decoded,
                                    exec->pending_tokens.begin() + decoded + slice);
+        for (int i = 0; i < slice; i++)
+            pvx_mirror_push_token(exec, exec->pending_tokens[decoded + i],
+                                  kv_base + decoded + i);
         exec->n_tokens += slice;
         exec->n_kv_pos += slice;
         if (last_slice) {
@@ -710,6 +715,12 @@ pvx_result_t pvx_executor_rewind(pvx_executor_t* exec, int n_tokens) {
         exec->recent_tokens.resize(exec->recent_tokens.size() - n_tokens);
     else
         exec->recent_tokens.clear();
+    // Mirror ring retreats with the window: the rewound positions are gone
+    // from KV, so their entries (token or embd) are dropped with them.
+    if ((int)exec->mirror.size() > n_tokens)
+        exec->mirror.resize(exec->mirror.size() - n_tokens);
+    else
+        exec->mirror.clear();
     return PVX_OK;
 }
 
@@ -723,6 +734,7 @@ pvx_result_t pvx_executor_reset(pvx_executor_t* exec) {
     exec->has_pending = false;
     exec->pending_tokens.clear();
     exec->recent_tokens.clear();
+    exec->mirror.clear();
     exec->last_batch_idx = -1;
     exec->last_logits.clear();
     return PVX_OK;
@@ -750,10 +762,23 @@ pvx_result_t pvx_model_spec_capabilities(const pvx_model_t* model,
     const bool vocab_std = llama_vocab_type(model->vocab) != LLAMA_VOCAB_TYPE_NONE;
     uint32_t types = 0;
     if (mtp) types |= PVX_SPEC_TYPE_MTP;
-    if (vocab_std) types |= PVX_SPEC_TYPE_DRAFT_SIMPLE;
+    if (vocab_std) {
+        types |= PVX_SPEC_TYPE_DRAFT_SIMPLE;
+        // n-gram drafting needs no draft model and no arch support: any
+        // standard-vocab target qualifies (ABI v6).
+        types |= PVX_SPEC_TYPE_NGRAM;
+        types |= PVX_SPEC_TYPE_NGRAM_MAP_K;
+        types |= PVX_SPEC_TYPE_NGRAM_MOD;
+        types |= PVX_SPEC_TYPE_NGRAM_CACHE;
+    }
     out_caps->types = types;
     out_caps->mtp   = mtp;
     out_caps->draft = vocab_std;
+    // ABI v6: the spec engine's mirror is embd-aware (token rows by id,
+    // image rows by projected embedding at pinned positions, draft-width
+    // mismatch zero-pads with a warning) — spec sessions continue drafting
+    // after multimodal inputs on every standard-vocab target.
+    out_caps->spec_vision = true;
     return PVX_OK;
 }
 
@@ -799,6 +824,47 @@ pvx_result_t pvx_model_spec_validate(const pvx_model_t* model,
             // only type-check the config shape (fail-closed at enable time).
             return PVX_OK;
         }
+        case PVX_SPEC_NGRAM_SIMPLE:
+        case PVX_SPEC_NGRAM_MAP_K:
+        case PVX_SPEC_NGRAM_MOD: {
+            pvx_spec_capabilities_t caps{};
+            pvx_result_t rc = pvx_model_spec_capabilities(model, &caps);
+            if (rc != PVX_OK) return rc;
+            if (!(caps.types & PVX_SPEC_TYPE_NGRAM)) {
+                m->last_error = "model has no standard vocabulary for n-gram "
+                                "speculation (boundary: spec-engine/capability)";
+                return PVX_ERR_NOT_SUPPORTED;
+            }
+            if (params->ngram.n_min < 0 || params->ngram.n_max < 0 ||
+                (params->ngram.n_min > 0 && params->ngram.n_max > 0 &&
+                 params->ngram.n_min > params->ngram.n_max)) {
+                m->last_error = "ngram params invalid: need 0 <= n_min <= n_max "
+                                "(0 selects per-mode defaults) (boundary: spec-engine/ngram-config)";
+                return PVX_ERR_INVALID_ARG;
+            }
+            return PVX_OK;
+        }
+        case PVX_SPEC_NGRAM_CACHE: {
+            pvx_spec_capabilities_t caps{};
+            pvx_result_t rc = pvx_model_spec_capabilities(model, &caps);
+            if (rc != PVX_OK) return rc;
+            if (!(caps.types & PVX_SPEC_TYPE_NGRAM)) {
+                m->last_error = "model has no standard vocabulary for n-gram "
+                                "speculation (boundary: spec-engine/capability)";
+                return PVX_ERR_NOT_SUPPORTED;
+            }
+            if (params->ngram.n_min < 0 || params->ngram.n_max < 0 ||
+                (params->ngram.n_min > 0 && params->ngram.n_max > 0 &&
+                 params->ngram.n_min > params->ngram.n_max)) {
+                m->last_error = "ngram params invalid: need 0 <= n_min <= n_max "
+                                "(0 selects per-mode defaults) (boundary: spec-engine/ngram-config)";
+                return PVX_ERR_INVALID_ARG;
+            }
+            // Cache file readability is exercised by spec_init; here we type-check
+            // the config shape (fail-closed typed error at enable time on a corrupt
+            // or unreadable file — never a silent empty cache).
+            return PVX_OK;
+        }
         default:
             return PVX_ERR_INVALID_ARG;
     }
@@ -823,8 +889,10 @@ pvx_result_t pvx_executor_spec_init(pvx_executor_t* exec,
         //   draft model fails to load      -> PVX_ERR_LOAD_FAILED
         //   capability/wiring boundaries   -> PVX_ERR_NOT_SUPPORTED
         const std::string& err = exec->ctx_ref->last_error;
-        if (err.find("draft-load") != std::string::npos)  return PVX_ERR_LOAD_FAILED;
+        if (err.find("draft-load") != std::string::npos ||
+            err.find("ngram-cache") != std::string::npos) return PVX_ERR_LOAD_FAILED;
         if (err.find("draft-config") != std::string::npos ||
+            err.find("ngram-config") != std::string::npos ||
             err.find("spec-engine/config") != std::string::npos) return PVX_ERR_INVALID_ARG;
         return PVX_ERR_NOT_SUPPORTED;
     }
@@ -882,6 +950,9 @@ pvx_result_t pvx_state_save(pvx_executor_t* exec, pvx_state_t** out_state) {
     if (!exec || !out_state) return PVX_ERR_INVALID_ARG;
     auto* state = new pvx_state_s();
     state->n_tokens = exec->n_tokens;
+    // Snapshot the committed-stream mirror (embd rows included) so a restore
+    // resumes the spec substrate against the same rows the backup KV holds.
+    state->mirror = exec->mirror;
     // Copy KV from seq 0 to seq 1 (backup)
     if (exec->n_tokens > 0) {
         if (exec->ctx_ref->n_seq_max < 2) {
@@ -915,6 +986,18 @@ pvx_result_t pvx_state_restore(pvx_executor_t* exec, pvx_state_t* state) {
     }
     exec->n_tokens = state->n_tokens;
     exec->n_kv_pos = state->n_tokens;
+    // Restore the mirror verbatim, rebased to the restored window's position
+    // contract [0, n_tokens): restore semantics pin the continuation at
+    // position n_tokens regardless of any pre-save shift_left, so the ring's
+    // pinned positions are rebased by the saved front offset to match. Embd
+    // rows are preserved exactly (they cannot be re-derived from KV).
+    exec->mirror = state->mirror;
+    if (!exec->mirror.empty()) {
+        const llama_pos front = exec->mirror.front().pos[0];
+        if (front != 0)
+            for (auto& e : exec->mirror)
+                for (auto& p : e.pos) p -= front;
+    }
     // Restored KV may not include the sampled row's token — snapshot is stale.
     exec->last_batch_idx = -1;
     exec->last_logits.clear();
@@ -1860,6 +1943,14 @@ pvx_result_t pvx_executor_shift_left(pvx_executor_t* exec, int n_tokens) {
     else
         exec->recent_tokens.clear();
 
+    // Mirror ring: the freed front positions [0, n_tokens) drop out of the
+    // window; surviving entries keep their pinned absolute positions (the
+    // draft replay uses entry.pos, not index arithmetic).
+    if ((int)exec->mirror.size() > n_tokens)
+        exec->mirror.erase(exec->mirror.begin(), exec->mirror.begin() + n_tokens);
+    else
+        exec->mirror.clear();
+
     return PVX_OK;
 }
 
@@ -2386,25 +2477,112 @@ pvx_result_t pvx_executor_prompt_with_images(pvx_executor_t* exec,
                 }
                 exec->n_tokens += n;
                 exec->n_kv_pos += n;
+                // Committed window grew: mirror + penalty history advance with
+                // it (same bookkeeping as the conversation lane's text flush).
+                exec->recent_tokens.insert(exec->recent_tokens.end(),
+                                           exec->pending_tokens.begin(), exec->pending_tokens.end());
+                for (int j = 0; j < n; j++)
+                    pvx_mirror_push_token(exec, exec->pending_tokens[j], exec->n_kv_pos - n + j);
                 exec->pending_tokens.clear();
                 exec->has_pending = false;
             }
 
-            // Encode image with CLIP (non-causal attention)
-            llama_set_causal_attn(exec->ctx_ref->ctx, false);
-            // FIX (2026-10-06): helper WRITES through new_n_past — nullptr = SIGSEGV
-            // right after "image decoded" (null write at decode end). Always pass a real out-param.
-            llama_pos vision_new_n_past = 0;
-            mtmd_helper_eval_chunk_single(mctx, exec->ctx_ref->ctx, chunk,
-                                          exec->n_kv_pos, 0, 512, false, &vision_new_n_past);
-            llama_set_causal_attn(exec->ctx_ref->ctx, true);
+            // Encode the image chunk and decode its projected embeddings
+            // DIRECTLY (conversation-lane pattern) instead of the batched
+            // helper: the embd rows must be captured into the executor's
+            // mirror ring (spec substrate) — the helper hides them. Non-causal
+            // attention only when the projector requires it.
+            const bool need_non_causal = mtmd_decode_use_non_causal(mctx, chunk);
+            if (need_non_causal) llama_set_causal_attn(exec->ctx_ref->ctx, false);
+            int32_t enc_rc = mtmd_encode_chunk(mctx, chunk);
+            if (enc_rc != 0) {
+                if (need_non_causal) llama_set_causal_attn(exec->ctx_ref->ctx, true);
+                exec->ctx_ref->last_error = "image chunk encode failed (rc=" +
+                                            std::to_string(enc_rc) + ")";
+                mtmd_input_chunks_free(chunks);
+                return PVX_ERR_DECODE_FAILED;
+            }
 
-            // Update position by the number of image tokens
-            const mtmd_image_tokens* img_tokens = mtmd_input_chunk_get_tokens_image(chunk);
-            int n_img_tokens = img_tokens ? mtmd_image_tokens_get_n_tokens(img_tokens) : 0;
-            exec->n_tokens += n_img_tokens;
-            exec->n_kv_pos += n_img_tokens;
-            exec->last_batch_idx = n_img_tokens - 1;
+            float* embd = mtmd_get_output_embd(mctx);
+            const int n_tokens = (int) mtmd_input_chunk_get_n_tokens(chunk);
+            const int n_embd   = llama_model_n_embd_inp(llama_get_model(exec->ctx_ref->ctx));
+            const bool use_mrope = mtmd_decode_use_mrope(mctx);
+            const mtmd_image_tokens* image_tokens = mtmd_input_chunk_get_tokens_image(chunk);
+
+            if (embd && n_tokens > 0 && n_embd > 0 && (!use_mrope || image_tokens)) {
+                const llama_pos embd_base = exec->n_kv_pos;
+                // Pinned per-row positions, helper semantics exactly
+                // (mtmd_helper_decode_image_chunk): M-RoPE image rows carry
+                // [t, y, x, z] section-major; normal rows are plain 1-D.
+                std::vector<std::array<llama_pos, 4>> rowpos(n_tokens);
+                if (use_mrope) {
+                    for (int i = 0; i < n_tokens; i++) {
+                        const mtmd_decoder_pos dp =
+                            mtmd_image_tokens_get_decoder_pos(image_tokens, embd_base, (size_t) i);
+                        rowpos[i] = { (llama_pos) dp.t, (llama_pos) dp.y,
+                                      (llama_pos) dp.x, (llama_pos) dp.z };
+                    }
+                } else {
+                    for (int i = 0; i < n_tokens; i++)
+                        rowpos[i] = { embd_base + i, embd_base + i,
+                                      embd_base + i, embd_base + i };
+                }
+
+                // Chunked decode through the stable extended-batch API — the
+                // same surface the vendored helper uses (never linked, only
+                // pattern-ported). Only the final row of the chunk is output.
+                const uint32_t n_batch = llama_n_batch(exec->ctx_ref->ctx);
+                int offset = 0;
+                bool failed = false;
+                while (offset < n_tokens) {
+                    const int n_slice = std::min((int) n_batch, n_tokens - offset);
+                    llama_batch_ext* ext = llama_batch_ext_init(exec->ctx_ref->ctx);
+                    for (int j = 0; j < n_slice; j++) {
+                        const int i = offset + j;
+                        const llama_embd e = { embd + (size_t) i * n_embd, 1, (size_t) n_embd };
+                        const int32_t idx = llama_batch_ext_add_embd(ext, 0, e);
+                        if (idx < 0 || !llama_batch_ext_set_pos(ext, idx, rowpos[i].data())) {
+                            failed = true; break;
+                        }
+                        if (i == n_tokens - 1)
+                            llama_batch_ext_set_output_logits(ext, idx, true);
+                    }
+                    if (!failed) {
+                        const int32_t dec_rc = llama_process(exec->ctx_ref->ctx,
+                                                             LLAMA_PROCESS_TYPE_DECODE, ext);
+                        if (dec_rc != 0) failed = true;
+                    }
+                    llama_batch_ext_free(ext);
+                    if (failed) break;
+                    offset += n_slice;
+                }
+                if (need_non_causal) llama_set_causal_attn(exec->ctx_ref->ctx, true);
+                if (failed) {
+                    exec->ctx_ref->last_error = "image embd decode failed";
+                    mtmd_input_chunks_free(chunks);
+                    return PVX_ERR_DECODE_FAILED;
+                }
+                exec->n_tokens += n_tokens;
+                exec->n_kv_pos += n_tokens;
+                exec->last_batch_idx = n_tokens - 1;
+                // Mirror: one embd-aware entry per committed image position
+                // (id == LLAMA_TOKEN_NULL) — the rows that keep mirror-size ==
+                // n_kv_pos after a multimodal prompt.
+                for (int i = 0; i < n_tokens; i++)
+                    pvx_mirror_push_embd(exec, embd + (size_t) i * n_embd, n_embd, rowpos[i]);
+                // Snapshot the last row now — it is only valid until the next
+                // decode on this shared context (same discipline as the
+                // conversation lane).
+                snapshot_logits_row(exec->ctx_ref->ctx, exec->last_logits, n_tokens - 1);
+            } else {
+                if (need_non_causal) llama_set_causal_attn(exec->ctx_ref->ctx, true);
+                // Fail closed: a projector that produced no usable rows must
+                // not silently advance nothing while the caller believes the
+                // image landed.
+                exec->ctx_ref->last_error = "image chunk produced no usable embeddings";
+                mtmd_input_chunks_free(chunks);
+                return PVX_ERR_DECODE_FAILED;
+            }
         }
     }
 

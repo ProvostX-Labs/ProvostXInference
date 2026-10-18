@@ -23,8 +23,10 @@ internal static class PvxNative
     /// a mismatch fails fast with a clear error instead of a silent ABI drift
     /// (root cause of the 2026-09-27 INVALID_ARG/segfault: an orphaned app-root
     /// native copy was loaded instead of the current one). BL-05: 3 — speculative
-    /// decoding entry points + supported-types capability report.</summary>
-    internal const int ExpectedAbiVersion = 5;
+    /// decoding entry points + supported-types capability report. v6 (wave 1):
+    /// embd-aware spec mirror (spec+vision), n-gram spec modes + knobs,
+    /// spec_vision capability bit.</summary>
+    internal const int ExpectedAbiVersion = 6;
 
     /// <summary>
     /// NATIVE RESOLUTION (2026-09-27 fix, retained): load the native library

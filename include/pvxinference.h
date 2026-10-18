@@ -95,20 +95,30 @@ typedef bool (*pvx_spec_token_callback_t)(int32_t token, void* user_data);
  * Bitset of PVX_SPEC_TYPE_* — reported per MODEL LOAD from GGUF metadata
  * (arch + nextn/MTP tensor presence). Bits not listed below are reserved 0:
  * companion-draft types (eagle3/dflash/dspark) are per-target companion GGUFs
- * (not detectable from the target model alone) and ngram types are not wired
- * in this slice — enabling them is structurally unreachable through
- * pvx_spec_params_t, which is the named config-surface boundary. */
+ * (not detectable from the target model alone) and are not wired in this
+ * slice — enabling them is structurally unreachable through pvx_spec_params_t,
+ * which is the named config-surface boundary. The n-gram types are
+ * model-independent (drafting from the committed stream + caches, no draft
+ * model) and are reported for every standard-vocab target (ABI v6). */
 #define PVX_SPEC_TYPE_DRAFT_SIMPLE 0x1u /* second draft model, any eligible target */
 #define PVX_SPEC_TYPE_MTP          0x2u /* model carries its own MTP (nextn) layers */
 #define PVX_SPEC_TYPE_EAGLE3       0x4u /* not detected / not wired this slice */
 #define PVX_SPEC_TYPE_DFLASH       0x8u /* not detected / not wired this slice */
 #define PVX_SPEC_TYPE_DSPARK       0x10u /* not detected / not wired this slice */
-#define PVX_SPEC_TYPE_NGRAM        0x20u /* not wired this slice */
+#define PVX_SPEC_TYPE_NGRAM        0x20u /* n-gram simple: history-pattern lookup (ABI v6) */
+#define PVX_SPEC_TYPE_NGRAM_MAP_K  0x40u /* n-gram map with value statistics (ABI v6) */
+#define PVX_SPEC_TYPE_NGRAM_MOD    0x80u /* n-gram MOD: (n-1)-suffix match, one deviation (ABI v6) */
+#define PVX_SPEC_TYPE_NGRAM_CACHE  0x100u /* n-gram cache: static+dynamic token-prob caches (ABI v6) */
 
 typedef struct {
     uint32_t types;  /* supported-types list (PVX_SPEC_TYPE_* bitset); 0 = no native spec type */
     bool mtp;        /* convenience mirror of the MTP bit */
     bool draft;      /* convenience mirror of the DRAFT_SIMPLE bit */
+    /* ABI v6 append: the spec session can continue drafting after multimodal
+     * (image) inputs — the embd-aware mirror replays projected embedding rows
+     * onto the draft side (zero-padded with a warning when the draft input
+     * width differs). Model-independent property of the spec engine. */
+    bool spec_vision;
 } pvx_spec_capabilities_t;
 
 /* Spec config for a sequential executor.
@@ -123,7 +133,26 @@ typedef enum {
     PVX_SPEC_OFF      = 0,
     PVX_SPEC_MTP_AUTO = 1,
     PVX_SPEC_DRAFT    = 2,
+    /* ABI v6 appends — n-gram drafting needs NO draft model: drafts come from
+     * the committed stream itself (lookup caches built online). Any
+     * standard-vocab target qualifies. */
+    PVX_SPEC_NGRAM_SIMPLE = 3, /* history-pattern lookup (upstream ngram-simple) */
+    PVX_SPEC_NGRAM_MAP_K  = 4, /* n-gram -> m-gram map with accept statistics */
+    PVX_SPEC_NGRAM_MOD   = 5, /* MOD: (n-1)-suffix match allowing one deviation */
+    PVX_SPEC_NGRAM_CACHE = 6, /* static (file) + dynamic token-probability caches */
 } pvx_spec_mode_t;
+
+/* ABI v6 append — n-gram knobs (all modes PVX_SPEC_NGRAM_*). Zero-value
+ * fields select per-mode upstream defaults; no env vars. cache_path is read
+ * at spec_init (a corrupt/vocab-mismatched file is a typed PVX_ERR_LOAD_FAILED
+ * naming the path — never a silently empty cache). */
+typedef struct {
+    int         n_min;      /* lookup min n-gram size; 0 = per-mode default */
+    int         n_max;      /* lookup/draft max size (m-gram length); 0 = per-mode default */
+    int         min_hits;   /* PVX_SPEC_NGRAM_MAP_K only: min key hits; 0 = default (1) */
+    int         n_match;    /* PVX_SPEC_NGRAM_MOD only: hash n-gram window; 0 = default (24) */
+    const char* cache_path; /* PVX_SPEC_NGRAM_CACHE only: optional static cache file; NULL = dynamic only */
+} pvx_ngram_params_t;
 
 typedef struct {
     pvx_spec_mode_t mode;
@@ -132,6 +161,7 @@ typedef struct {
     int   draft_min;               /* reject drafts shorter than this;   <=0 = upstream default */
     float p_min;                   /* drafter top-token confidence floor; <0 = upstream default */
     int   draft_gpu_layers;        /* -1 = same offload as target, else explicit */
+    pvx_ngram_params_t ngram;      /* ABI v6 append — active iff mode is PVX_SPEC_NGRAM_* */
 } pvx_spec_params_t;
 
 /* Capability query (see struct docs). Engines without spec support report
@@ -574,7 +604,7 @@ pvx_result_t pvx_kv_flush(pvx_context_t* ctx, int seq_id);
  * fails FAST with a clear error instead of corrupting the stack/segfaulting.
  * Bump BOTH sides in lockstep on any native signature/ABI change.
  */
-#define PVX_ABI_VERSION 5
+#define PVX_ABI_VERSION 6
 int pvx_abi_version(void);
 
 #ifdef __cplusplus

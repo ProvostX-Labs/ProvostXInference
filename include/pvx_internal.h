@@ -12,6 +12,7 @@
 
 #include <string>
 #include <vector>
+#include <array>
 #include <stack>
 #include <mutex>
 #include <condition_variable>
@@ -189,6 +190,31 @@ struct pvx_pool_s {
     std::mutex mtx;
 };
 
+// ── Embd-aware mirror entry ring (ABI v6 wave 1, spec-mirror substrate) ──
+//
+// One entry per COMMITTED KV position on the standard executor's stream
+// (positions are the executor's own seq-0 window). A token row carries the
+// committed token id; a multimodal row carries the projected embedding slice
+// (mtmd output) with id == LLAMA_TOKEN_NULL — the pattern of the vendored
+// draft-simple batch builder: token rows feed the draft by id, embd rows by
+// pointer, and a draft whose input width differs from the target's receives
+// a ZERO row plus a one-time warning (never an abort; the target still
+// verifies the real row). Positions are pinned per entry (absolute KV
+// positions, stable across shift_left which only frees the front).
+//
+// INVARIANT (spec-engine mirror-consistency guard): mirror.size() == n_tokens
+// and the covered positions are exactly [n_kv_pos - n_tokens, n_kv_pos)
+// (contiguous ascending, entry.pos pinned). Every site that advances or
+// retreats the executor's committed window updates the ring in the same
+// operation — there is no second code path.
+struct pvx_mirror_entry_t {
+    llama_token id = LLAMA_TOKEN_NULL; // LLAMA_TOKEN_NULL => embd row
+    // Pinned position array, section-major [t, y, x, z] (M-RoPE order; for
+    // non-M-RoPE streams all four equal the plain KV position).
+    std::array<llama_pos, 4> pos = { 0, 0, 0, 0 };
+    std::vector<float> embd;            // row payload iff id == LLAMA_TOKEN_NULL
+};
+
 struct pvx_executor_s {
     pvx_context_t* ctx_ref;
     // Speculative-decoding session (INF BL-05): owned; created lazily via
@@ -205,11 +231,39 @@ struct pvx_executor_s {
     // that a later decode on the shared ctx may have invalidated).
     std::vector<float> last_logits;
     std::vector<llama_token> recent_tokens;
+    // Embd-aware committed-stream mirror (see pvx_mirror_entry_t): the spec
+    // engine replays THIS ring onto the draft context — plain token ids AND
+    // multimodal embedding rows at their pinned positions. recent_tokens
+    // alone cannot express image rows (no ids exist), which is why the old
+    // id-only mirror desynced after any image prompt.
+    std::vector<pvx_mirror_entry_t> mirror;
     pvx_grammar_state_s grammar_state;
 };
 
+inline void pvx_mirror_push_token(pvx_executor_t* e, llama_token id, llama_pos pos) {
+    pvx_mirror_entry_t ent;
+    ent.id = id;
+    ent.pos = { pos, pos, pos, pos };
+    e->mirror.push_back(std::move(ent));
+}
+
+inline void pvx_mirror_push_embd(pvx_executor_t* e, const float* row, int n_embd,
+                                 const std::array<llama_pos, 4>& pos) {
+    pvx_mirror_entry_t ent;
+    ent.id  = LLAMA_TOKEN_NULL;
+    ent.pos = pos;
+    ent.embd.assign(row, row + n_embd);
+    e->mirror.push_back(std::move(ent));
+}
+
 struct pvx_state_s {
     int n_tokens;
+    // Committed-stream mirror snapshot (ABI v6): taken at save, restored
+    // verbatim (positions rebased to the restored window's [0, n) contract,
+    // see pvx_state_restore) so an embd-aware spec session resumes against
+    // the same rows the backup KV holds — including multimodal rows whose
+    // embeddings are not recoverable from KV alone.
+    std::vector<pvx_mirror_entry_t> mirror;
 };
 
 #endif // PVX_INTERNAL_H
