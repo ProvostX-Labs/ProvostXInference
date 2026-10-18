@@ -159,6 +159,31 @@ internal interface IPvxEntryPoints
     // ── ABI v7: JSON-schema → GBNF converter (no handles — string→string) ──
     PvxResult GrammarFromJsonSchema(string jsonSchema, string rootName, out IntPtr gbnf, out IntPtr error);
 
+    // ── ABI v8: audio input ──
+    bool MtmdSupportsAudio(IntPtr model);
+    int MtmdAudioSampleRate(IntPtr model);
+    PvxResult ExecutorPromptWithAudio(IntPtr executor, IntPtr model, string text, float[] pcm, int nSamples);
+    PvxResult ConversationPromptWithAudio(IntPtr conversation, IntPtr model, string text, float[] pcm, int nSamples);
+    // ── ABI v8: TTS ──
+    PvxResult TtsSessionCreate(IntPtr model, string ttsMmprojPath, uint contextSize, out IntPtr session);
+    void TtsSessionFree(IntPtr session);
+    PvxResult TtsGenerate(IntPtr session, in PvxTtsParams parameters, string text, out IntPtr pcm, out int nSamples, out int sampleRate);
+    void FreeFloatArray(IntPtr pcm);
+    // ── ABI v8: rerank ──
+    PvxResult Rerank(IntPtr context, string query, IntPtr[] documents, int nDocuments, out IntPtr scores);
+    void FreeRerankScores(IntPtr scores);
+    // ── ABI v8: LoRA adapters ──
+    PvxResult AdapterLoad(IntPtr model, string path, out IntPtr adapter);
+    void AdapterFree(IntPtr adapter);
+    PvxResult ContextSetLora(IntPtr context, IntPtr[] adapters, float[] scales, int n);
+    // ── ABI v8: control vectors ──
+    PvxResult ControlVectorLoad(IntPtr model, string path, out IntPtr cvec);
+    void ControlVectorFree(IntPtr cvec);
+    PvxResult ContextSetControlVector(IntPtr context, IntPtr cvec, int layerStart, int layerEnd);
+    // ── ABI v8: stats export ──
+    PvxResult ExecutorStats(IntPtr executor, out PvxStats stats);
+    PvxResult ConversationStats(IntPtr conversation, out PvxStats stats);
+
     // ── Handshake ──
     int AbiVersion();
 }

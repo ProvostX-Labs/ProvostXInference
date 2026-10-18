@@ -1,11 +1,11 @@
 # API-INDEX.md — ProvostXInference
 
-Generated: 2026-10-18T18:14:10.482488+00:00
-Packages: 3  |  Types: 1880
+Generated: 2026-10-18T19:08:52.906686+00:00
+Packages: 3  |  Types: 1888
 
 ---
 
-## Tests (26 types, ~3381 LOC)
+## Tests (27 types, ~3652 LOC)
 
 - 🟡 DecisionEngineOpsTests  (Tests)
 - 🟡 DecisionEngineRequestTests  (Tests)
@@ -33,8 +33,9 @@ Packages: 3  |  Types: 1880
 - 🟡 SpecDecodeTests  (Tests)
 - 🟡 StallSafePrefillLiveJourneyTests  (Tests)
 - 🟡 StallWatchdogTests  (Tests)
+- 🟡 Wave3FeatureTests  (Tests)
 
-## csharp (80 types, ~4956 LOC)
+## csharp (87 types, ~5476 LOC)
 
 - 🔵 IChunkWallClock  (csharp)
 - 🔵 IConversation : IDisposable  (csharp)
@@ -58,7 +59,9 @@ Packages: 3  |  Types: 1880
 - 🔵 IPrefillStallDetector  (csharp)
 - 🔵 ISpeculationSuspender  (csharp)
 - 🔵 IStandardExecutor : IDisposable  (csharp)
+- 🔵 ITtsSession : IDisposable  (csharp)
 - 🔵 IVisionEncoder : IDisposable  (csharp)
+- 🟣 AudioChunk  (csharp)  deps: [float]
 - 🟡 ChunkedStallSafePrefillRunner  (csharp)  deps: [IConversationPool, StallWatchdogConfig, IChunkWallClock, IPrefillStallDetector, ISpeculationSuspender? draftSuspender =]
 - 🟡 DecisionAssetCatalog  (csharp)  deps: [string]
 - 🟡 DecisionEngineOps : IDecisionEngineOps, IDisposable  (csharp)  deps: [DecisionSession]
@@ -71,6 +74,7 @@ Packages: 3  |  Types: 1880
 - 🟡 EncoderEngineOps : IEncoderEngineOps, IDisposable  (csharp)  deps: [IInferenceModel, IVisionEncoder]
 - 🟡 EncoderEngineRequestBuilder  (csharp)  deps: [string]
 - 🟡 EngineKindMismatchException : InferenceException  (csharp)  deps: [string]
+- 🟣 EngineStats  (csharp)  deps: [long, long, long, long, long, long]
 - 🟣 EpAttempt  (csharp)  deps: [string, Action]
 - 🟡 ExecutionProviderChain  (csharp)
 - 🟡 ExecutionProviderOptionsApplier  (csharp)
@@ -96,6 +100,7 @@ Packages: 3  |  Types: 1880
 - 🟣 JudgeSequenceSpec  (csharp)  deps: [JudgeRecordKind, int, int, IReadOnlyList, IReadOnlyList]
 - 🟣 JudgeStateQuestions  (csharp)  deps: [string, IReadOnlyList]
 - 🟡 JudgeTokenizer  (csharp)  deps: [string]
+- 🟡 NativeControlVector : IControlVector  (csharp)
 - 🟡 NativeConversation : IConversation  (csharp)
 - 🟡 NativeConversationPool : IConversationPool  (csharp)
 - 🟡 NativeConversationSpecSession  (csharp)
@@ -106,7 +111,9 @@ Packages: 3  |  Types: 1880
 - 🟡 NativeInferenceModel : IInferenceModel  (csharp)
 - 🟡 NativeInferenceState : IInferenceState  (csharp)
 - 🟡 NativeLogBridge  (csharp)
+- 🟡 NativeLoraAdapter : ILoraAdapter  (csharp)
 - 🟡 NativeStandardExecutor : IStandardExecutor  (csharp)
+- 🟡 NativeTtsSession : ITtsSession  (csharp)
 - 🟡 NativeVisionEncoder : IVisionEncoder  (csharp)
 - 🟡 OsExecutionProviderDefaultSource : IExecutionProviderDefaultSource  (csharp)  deps: [string? osOverride =]
 - 🟡 PrefillStallUnrecoveredException : Exception  (csharp)  deps: [int, int, double, double, IReadOnlyList, string? reason =]
@@ -116,8 +123,9 @@ Packages: 3  |  Types: 1880
 - 🟡 RollingPrefillStallDetector : IPrefillStallDetector  (csharp)  deps: [StallWatchdogConfig]
 - 🟡 StallRecoveryLadder  (csharp)  deps: [StallWatchdogConfig]
 - 🟡 SystemChunkWallClock : IChunkWallClock  (csharp)  deps: [TimeProvider]
+- 🟣 TtsResult  (csharp)  deps: [float, int]
 
-## ProvostXInference (native C++) (1774 types, ~758574 LOC)
+## ProvostXInference (native C++) (1774 types, ~760358 LOC)
 
 - struct (global)::acl_deleter (acl_tensor.h) 
 - class ov::AlignEltwiseOperandRanks (align_eltwise_ranks.h) 

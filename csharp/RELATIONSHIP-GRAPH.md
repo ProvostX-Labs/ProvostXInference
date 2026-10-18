@@ -1,7 +1,7 @@
 # RELATIONSHIP-GRAPH.md — csharp
 
-Generated: 2026-10-18T18:14:10.554533+00:00
-Edges: 33  |  Packages: 2
+Generated: 2026-10-18T19:08:51.804812+00:00
+Edges: 34  |  Packages: 2
 
 ---
 
@@ -37,6 +37,7 @@ Edges: 33  |  Packages: 2
 - NativeInferenceModel ──implements──► IInferenceModel (csharp)
 - NativeInferenceState ──implements──► IInferenceState (csharp)
 - NativeStandardExecutor ──implements──► IStandardExecutor (csharp)
+- NativeTtsSession ──implements──► ITtsSession (csharp)
 - NativeVisionEncoder ──implements──► IVisionEncoder (csharp)
 - OsExecutionProviderDefaultSource ──implements──► IExecutionProviderDefaultSource (csharp)
 - QuietInferenceLogger ──implements──► IInferenceLogger (csharp)

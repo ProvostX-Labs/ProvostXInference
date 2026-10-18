@@ -43,4 +43,14 @@ public interface IStandardExecutor : IDisposable
     /// non-spec run). Token-exact vs the plain Prompt/Infer/Sample loop for
     /// identical sampling params.</summary>
     IReadOnlyList<int> GenerateSpeculative(SamplingConfig? config, int maxTokens, Action<int>? onToken = null);
+
+    /// <summary>ABI v8: prompt with ONE raw audio clip (PCM F32 mono at the
+    /// projector's native rate — see IInferenceModel.AudioSampleRate). Same
+    /// embd-row commit mechanics as images; typed refusal when the model's
+    /// projector lacks an audio adapter.</summary>
+    void PromptWithAudio(string text, IInferenceModel modelWithMmproj, AudioChunk audio);
+
+    /// <summary>ABI v8: stats snapshot of this executor lane (see
+    /// EngineStats).</summary>
+    EngineStats GetStats();
 }

@@ -267,6 +267,25 @@ internal static class PvxExportTypeMap
         "pvx_conversation_generate_spec" => typeof(PvxAbiDelegates.PvxConversationGenerateSpecDelegate),
         "pvx_conversation_spec_stats" => typeof(PvxAbiDelegates.PvxConversationSpecStatsDelegate),
         "pvx_grammar_from_json_schema" => typeof(PvxAbiDelegates.PvxGrammarFromJsonSchemaDelegate),
+        // ── ABI v8 (wave 3): audio / TTS / rerank / lora / cvec / stats ──
+        "pvx_mtmd_supports_audio" => typeof(PvxAbiDelegates.PvxMtmdSupportsAudioDelegate),
+        "pvx_mtmd_audio_sample_rate" => typeof(PvxAbiDelegates.PvxMtmdAudioSampleRateDelegate),
+        "pvx_executor_prompt_with_audio" => typeof(PvxAbiDelegates.PvxPromptWithAudioDelegate),
+        "pvx_conversation_prompt_with_audio" => typeof(PvxAbiDelegates.PvxPromptWithAudioDelegate),
+        "pvx_tts_session_create" => typeof(PvxAbiDelegates.PvxTtsSessionCreateDelegate),
+        "pvx_tts_session_free" => typeof(PvxAbiDelegates.PvxFreeHandleDelegate),
+        "pvx_tts_generate" => typeof(PvxAbiDelegates.PvxTtsGenerateDelegate),
+        "pvx_free_audio_samples" => typeof(PvxAbiDelegates.PvxFreeHandleDelegate),
+        "pvx_rerank" => typeof(PvxAbiDelegates.PvxRerankDelegate),
+        "pvx_free_rerank_scores" => typeof(PvxAbiDelegates.PvxFreeHandleDelegate),
+        "pvx_adapter_load" => typeof(PvxAbiDelegates.PvxAdapterLoadDelegate),
+        "pvx_adapter_free" => typeof(PvxAbiDelegates.PvxFreeHandleDelegate),
+        "pvx_context_set_lora" => typeof(PvxAbiDelegates.PvxContextSetLoraDelegate),
+        "pvx_control_vector_load" => typeof(PvxAbiDelegates.PvxControlVectorLoadDelegate),
+        "pvx_control_vector_free" => typeof(PvxAbiDelegates.PvxFreeHandleDelegate),
+        "pvx_context_set_control_vector" => typeof(PvxAbiDelegates.PvxContextSetControlVectorDelegate),
+        "pvx_executor_stats" => typeof(PvxAbiDelegates.PvxStatsDelegate),
+        "pvx_conversation_stats" => typeof(PvxAbiDelegates.PvxStatsDelegate),
         _ => throw new InvalidOperationException($"unknown export '{exportName}'")
     };
 }

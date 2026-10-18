@@ -283,4 +283,60 @@ public sealed class NativeInferenceModel : IInferenceModel
         _disposed = true;
         _handle.Dispose();
     }
+
+    // ── ABI v8 (wave 3): audio input / TTS / adapters ──
+
+    /// <summary>Capability probe: the loaded (shared) mmproj's audio adapter
+    /// (false until a mmproj is loaded; vision-only projectors report
+    /// false).</summary>
+    public bool SupportsAudioInput
+    {
+        get { ObjectDisposedException.ThrowIf(_disposed, this);
+              return EntryPoints.MtmdSupportsAudio(_handle.DangerousGetHandle()); }
+    }
+
+    /// <summary>Native PCM rate the audio projector expects (-1 when
+    /// unsupported). Product code never resamples.</summary>
+    public int AudioSampleRate
+    {
+        get { ObjectDisposedException.ThrowIf(_disposed, this);
+              return EntryPoints.MtmdAudioSampleRate(_handle.DangerousGetHandle()); }
+    }
+
+    /// <summary>Load a LoRA adapter for this model (typed InferenceException
+    /// naming the boundary on file/arch/rank mismatch).</summary>
+    public ILoraAdapter CreateLoraAdapter(string path)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        EntryPoints.AdapterLoad(_handle.DangerousGetHandle(), path, out var raw)
+            .ThrowIfError(EntryPoints, _handle.DangerousGetHandle());
+        var handle = new AdapterSafeHandle(EntryPoints);
+        handle.SetHandleSafe(raw);
+        return new NativeLoraAdapter(handle, EntryPoints);
+    }
+
+    /// <summary>Load a control-vector direction file (typed refusal naming
+    /// both dims on n_embd mismatch).</summary>
+    public IControlVector CreateControlVector(string path)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        EntryPoints.ControlVectorLoad(_handle.DangerousGetHandle(), path, out var raw)
+            .ThrowIfError(EntryPoints, _handle.DangerousGetHandle());
+        var handle = new ControlVectorSafeHandle(EntryPoints);
+        handle.SetHandleSafe(raw);
+        return new NativeControlVector(handle, EntryPoints);
+    }
+
+    /// <summary>Create a TTS session (separate decode context on this
+    /// backbone model + gen-audio mmproj). Typed InferenceException
+    /// (tts/gen-audio-capability) when the mmproj has no gen-audio pipeline.</summary>
+    public ITtsSession CreateTtsSession(string ttsMmprojPath, uint contextSize = 0)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        EntryPoints.TtsSessionCreate(_handle.DangerousGetHandle(), ttsMmprojPath, contextSize, out var raw)
+            .ThrowIfError(EntryPoints, _handle.DangerousGetHandle());
+        var handle = new TtsSessionSafeHandle(EntryPoints);
+        handle.SetHandleSafe(raw);
+        return new NativeTtsSession(handle, EntryPoints, _handle.DangerousGetHandle());
+    }
 }

@@ -1,6 +1,6 @@
 # Tests.API.md
 
-Types: 26  |  LOC: 3381  |  ~1412 tokens
+Types: 27  |  LOC: 3652  |  ~1474 tokens
 
 ---
 
@@ -108,3 +108,7 @@ Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Implementa
 ### Class: StallWatchdogTests
 > Unit tests for the stall-safe prefill watchdog (INF BL-33):
 Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Exceptions, ProvostXInference.Implementation, ProvostXInference.Models, Xunit
+
+### Class: Wave3FeatureTests
+> ABI v8 (wave 3) surface tests: audio input, TTS, rerank, LoRA attach/
+Cross-package deps: ProvostXInference.Abstractions, Xunit, ProvostXInference.Exceptions, ProvostXInference.Implementation, ProvostXInference.Models

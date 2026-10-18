@@ -205,6 +205,11 @@ struct pvx_conversation_s {
     // pvx_spec_engine.h).
     std::unique_ptr<class PvxBLSpecEngine> spec;
 
+    // ABI v8 (feature 12, stats export): prompt/decode counters kept by
+    // the commit paths under the context infer mutex (snapshot semantics;
+    // zero new locks). Additive fields only.
+    int64_t n_prompt_tokens = 0;
+    int64_t n_decode_steps = 0;
     // Snapshot of the last committed token's logits row, copied at decode
     // time. llama_get_logits_ith() rows are only addressable while their
     // batch is the shared context's CURRENT batch — any later decode on the
@@ -253,6 +258,11 @@ struct pvx_executor_s {
     // id-only mirror desynced after any image prompt.
     std::vector<pvx_mirror_entry_t> mirror;
     pvx_grammar_state_s grammar_state;
+    // ABI v8 (feature 12, stats export): prompt/decode counters kept by
+    // the commit paths under the context infer mutex (snapshot semantics;
+    // zero new locks). Additive fields only.
+    int64_t n_prompt_tokens = 0;
+    int64_t n_decode_steps = 0;
 };
 
 inline void pvx_mirror_push_token(pvx_executor_t* e, llama_token id, llama_pos pos) {

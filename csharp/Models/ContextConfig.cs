@@ -12,4 +12,5 @@ public sealed record ContextConfig
 }
 
 /// <summary>Managed enum mirroring PvxPoolingType.</summary>
-public enum PoolingType { None = 0, Mean = 1, Cls = 2, Last = 3 }
+public enum PoolingType { None = 0, Mean = 1, Cls = 2, Last = 3, /// <summary>ABI v8: rerank lane (classification head).</summary>
+    Rank = 4 }

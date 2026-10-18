@@ -17,6 +17,7 @@ public class SmokeTests
     private static readonly string ModelPath = Environment.GetEnvironmentVariable("PVX_MODEL_PATH") ?? "./models/Qwen3.5-4B-Q4_K_M.gguf";
     private static readonly string EmbedModelPath = Environment.GetEnvironmentVariable("PVX_EMBED_MODEL_PATH") ?? "./models/all-MiniLM-L6-v2-Q5_K_M.gguf";
     private static readonly string MmprojPath = Environment.GetEnvironmentVariable("PVX_MMPROJ_PATH") ?? "./models/mmproj-Qwen3.5-4B-BF16.gguf";
+    private static readonly string HybridModelPath = Environment.GetEnvironmentVariable("PVX_HYBRID_MODEL_PATH") ?? "./models/Qwen3.5-4B-Q4_K_M.gguf";
 
     // ═══════════════════════════════════════════════════
     // 1. Model lifecycle
@@ -636,7 +637,10 @@ public class SmokeTests
     public void Vision_LoadMmproj()
     {
         if (!File.Exists(MmprojPath)) return; // skip when mmproj not available
-        using var model = NativeInferenceModel.Load(new ModelConfig { Path = ModelPath, GpuLayers = 99 });
+        // ABI v8: vision tests pair the mmproj with its HYBRID backbone
+        // (default Qwen3.5-4B) — never the dense default (ModelPath may point
+        // at a non-multimodal model under env gating).
+        using var model = NativeInferenceModel.Load(new ModelConfig { Path = HybridModelPath, GpuLayers = 99 });
         using var vision = model.LoadVisionEncoder(MmprojPath);
         Assert.False(string.IsNullOrEmpty(vision.Marker));
         Assert.True(vision.Marker.Length > 0);
@@ -661,7 +665,8 @@ public class SmokeTests
         var imageBytes = File.ReadAllBytes(imagePath);
         if (imageBytes.Length < 100) return; // skip if invalid
 
-        using var model = NativeInferenceModel.Load(new ModelConfig { Path = ModelPath, GpuLayers = 99 });
+        // ABI v8: vision pair rides the HYBRID backbone (see Vision_LoadMmproj).
+        using var model = NativeInferenceModel.Load(new ModelConfig { Path = HybridModelPath, GpuLayers = 99 });
         using var ctx = model.CreateContext(new ContextConfig { ContextSize = 4096, BatchSize = 512, SeqMax = 2 });
         using var pool = ctx.CreatePool();
         using var vision = model.LoadVisionEncoder(MmprojPath);

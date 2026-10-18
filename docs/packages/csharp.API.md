@@ -1,6 +1,6 @@
 # csharp.API.md
 
-Types: 80  |  LOC: 4956  |  ~5714 tokens
+Types: 87  |  LOC: 5476  |  ~6479 tokens
 
 ---
 
@@ -33,6 +33,8 @@ Methods:
   - void DisableSpeculation()
   - IReadOnlyList<int> GenerateSpeculative(SamplingConfig? config, int maxTokens, Action<int>? onToken = null)
   - SpeculationStats SpeculationStats()
+  - void PromptWithAudio(string text, IInferenceModel modelWithMmproj, AudioChunk audio)
+  - EngineStats GetStats()
 Cross-package deps: ProvostXInference.Models
 
 ### Interface: IConversationPool
@@ -104,6 +106,8 @@ Properties:
   - IConversationPool Pool { get; set; }
   - bool PartialRewindSupported { get; set; }
   - SpeculativeCapabilities SpeculativeCapabilities { get; set; }
+  - bool SupportsAudioInput { get; set; }
+  - int AudioSampleRate { get; set; }
 Methods:
   - void RebuildContext()
   - IConversation LeaseConversation()
@@ -123,6 +127,18 @@ Methods:
   - SpeculativeConfig? ActiveConversationSpeculation(IConversation conversation)
   - SpeculationStats ConversationSpeculationStats(IConversation conversation)
   - void ValidateSpeculation(SpeculativeConfig config)
+  - void PromptWithAudio(IStandardExecutor executor, string text, AudioChunk audio)
+  - void PromptWithAudio(IConversation conversation, string text, AudioChunk audio)
+  - float[] Rerank(string query, IReadOnlyList<string> documents)
+  - ILoraAdapter LoadLora(string path)
+  - IDisposable WithLora(string path, float scale)
+  - void ClearLora()
+  - IControlVector LoadControlVector(string path)
+  - IDisposable WithControlVector(IControlVector vector, int layerStart = 0, int layerEnd = 0)
+  - void ClearControlVector()
+  - ITtsSession CreateTtsSession(string ttsMmprojPath, uint contextSize = 0)
+  - EngineStats GetExecutorStats(IStandardExecutor executor)
+  - EngineStats GetConversationStats(IConversation conversation)
 Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Models
 
 ### Interface: IGgufModelLoader
@@ -145,6 +161,7 @@ Methods:
 Cross-package deps: ProvostXInference.Models
 
 ### Interface: IInferenceContext
+> ABI v8: single-shot rerank scores for one query against N
 Implements: IDisposable
 Properties:
   - uint ContextSize { get; set; }
@@ -160,6 +177,8 @@ Methods:
   - string Detokenize(int[] tokens, bool removeSpecial = false)
   - string TokenToPiece(int token)
   - bool IsEos(int token)
+  - float[] Rerank(string query, IReadOnlyList<string> documents)
+  - void SetControlVector(IControlVector? vector, int layerStart = 0, int layerEnd = 0)
 Cross-package deps: ProvostXInference.Models, ProvostXInference.Abstractions
 
 ### Interface: IInferenceEngine
@@ -196,6 +215,8 @@ Implements: IDisposable
 Properties:
   - int EmbeddingDimension { get; set; }
   - SpeculativeCapabilities SpeculativeCapabilities { get; set; }
+  - bool SupportsAudioInput { get; set; }
+  - int AudioSampleRate { get; set; }
 Methods:
   - IInferenceContext CreateContext(ContextConfig config)
   - float[] GetEmbeddings(IInferenceContext context, string text)
@@ -203,6 +224,9 @@ Methods:
   - IGrammar CreateGrammar(string grammarStr, string grammarRoot)
   - IGrammar CreateGrammarFromJsonSchema(string jsonSchema, string? rootName = null)
   - void ValidateSpeculation(SpeculativeConfig config)
+  - ILoraAdapter CreateLoraAdapter(string path)
+  - IControlVector CreateControlVector(string path)
+  - ITtsSession CreateTtsSession(string ttsMmprojPath, uint contextSize = 0)
 Cross-package deps: ProvostXInference.Models
 
 ### Interface: IInferenceState
@@ -242,6 +266,15 @@ Methods:
   - void EnableSpeculation(SpeculativeConfig config)
   - void DisableSpeculation()
   - IReadOnlyList<int> GenerateSpeculative(SamplingConfig? config, int maxTokens, Action<int>? onToken = null)
+  - void PromptWithAudio(string text, IInferenceModel modelWithMmproj, AudioChunk audio)
+  - EngineStats GetStats()
+Cross-package deps: ProvostXInference.Models
+
+### Interface: ITtsSession
+> ABI v8 (wave 3, feature 7): a TTS session — a SEPARATE decode context on
+Implements: IDisposable
+Methods:
+  - TtsResult Generate(TtsRequest request, string text)
 Cross-package deps: ProvostXInference.Models
 
 ### Interface: IVisionEncoder
@@ -335,7 +368,7 @@ Cross-package deps: ProvostXInference.Abstractions
 Implements: IGgufEngineOps, IDisposable
 Constructor:
   - GgufEngineOps(IInferenceModel model, ContextConfig contextSettings, SamplingConfig sampling, IInferenceBackend backend)
-Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Models
+Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Models, ProvostXInference.Exceptions
 
 ### Class: GgufEngineRequestBuilder
 > Fluent builder for <see cref="GgufEngineRequest"/>. <see cref="Build"/> yields a
@@ -393,6 +426,11 @@ Constructor:
 Constructor:
   - JudgeTokenizer(string tokenizerJsonPath)
 
+### Class: NativeControlVector
+> ABI v8 (wave 3, feature 10): wraps a pvx_cvec_t (control-vector direction
+Implements: IControlVector
+Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Interop, ProvostXInference.SafeHandles
+
 ### Class: NativeConversation
 > Wraps a leased pvx_conversation_t. Does NOT own the handle — the pool does.
 Implements: IConversation
@@ -441,9 +479,19 @@ Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Interop, P
 > Bridges native C-level logging (pvx_set_log_callback) to a managed callback.
 Cross-package deps: ProvostXInference.Interop
 
+### Class: NativeLoraAdapter
+> ABI v8 (wave 3, feature 9): wraps a pvx_adapter_t (LoRA). Loaded via
+Implements: ILoraAdapter
+Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Interop, ProvostXInference.SafeHandles
+
 ### Class: NativeStandardExecutor
 > Wraps a pvx_executor_t (standard, non-batched path). All calls
 Implements: IStandardExecutor
+Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Exceptions, ProvostXInference.Interop, ProvostXInference.Models, ProvostXInference.SafeHandles
+
+### Class: NativeTtsSession
+> ABI v8 (wave 3, feature 7): wraps a pvx_tts_session_t — a SEPARATE decode
+Implements: ITtsSession
 Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Exceptions, ProvostXInference.Interop, ProvostXInference.Models, ProvostXInference.SafeHandles
 
 ### Class: NativeVisionEncoder
@@ -497,6 +545,16 @@ Constructor:
   - SystemChunkWallClock(TimeProvider timeProvider)
 Cross-package deps: ProvostXInference.Abstractions
 
+### Record: AudioChunk
+> ABI v8 (wave 3, feature 6): one raw PCM audio clip for prompt-with-audio.
+Constructor:
+  - AudioChunk(float[] PcmMono)
+
+### Record: EngineStats
+> ABI v8 (wave 3, feature 12): copy-out stats snapshot of one lane
+Constructor:
+  - EngineStats(long Tokens, long KvPositions, long PromptTokens, long DecodeSteps, long SpecDrafted, long SpecAccepted)
+
 ### Record: EpAttempt
 > One candidate configuration for an EP session init: a label for
 Constructor:
@@ -546,3 +604,8 @@ Constructor:
 > One decision-engine question batch on the Jev wire: the SERIALIZED state text
 Constructor:
   - JudgeStateQuestions(string StateText, IReadOnlyList<JudgeQuestionDef>? Questions)
+
+### Record: TtsResult
+> TTS generation result: raw PCM F32 mono at the pipeline rate.
+Constructor:
+  - TtsResult(float[] PcmMono, int SampleRate)

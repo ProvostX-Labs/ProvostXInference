@@ -28,7 +28,10 @@ internal static class PvxNative
     /// spec_vision capability bit. v7 (wave 2): companion-draft modes
     /// (eagle3/dflash params append), batched/pool-lane spec trio,
     /// JSON-schema→GBNF converter.</summary>
-    internal const int ExpectedAbiVersion = 7;
+    /// v8 (wave 3): audio input (MTMD_INPUT_CHUNK_TYPE_AUDIO), TTS gen-audio,
+    /// rerank (RANK pooling), LoRA runtime attach/detach, control vectors,
+    /// stats export.
+    internal const int ExpectedAbiVersion = 8;
 
     /// <summary>
     /// NATIVE RESOLUTION (2026-09-27 fix, retained): load the native library

@@ -169,6 +169,92 @@
   ngram 14/14 + stress; C# build 0/0 + full suite 208/208 (206 baseline + 2 new)
   default-env + targeted live 2/2 env-set; LDC both roots regenerated + PASS.
 
+### BL-37 · Upstream parity wave 3 (ABI v8): audio in/out, rerank, LoRA, control vectors, stats
+- Source: owner order 2026-10-18 20:16 (upstream-parity plan wave 3, docs/plans/UPSTREAM-PARITY-PLAN.md)
+- Spec: six plan features, ABI v8 additive-only, PVX_ABI_VERSION + C# ExpectedAbiVersion bumped
+  lockstep in the same commit: (6) audio input — `pvx_mtmd_supports_audio` /
+  `pvx_mtmd_audio_sample_rate` probes + `pvx_executor_prompt_with_audio` /
+  `pvx_conversation_prompt_with_audio` (MTMD_INPUT_CHUNK_TYPE_AUDIO through the same embd-row
+  mirror mechanics as vision; PCM F32 at the projector's native rate, NO resampling in product
+  code); (7) TTS — `pvx_tts_session_create`/`_free`/`pvx_tts_generate` via the PUBLIC
+  mtmd-helper gen-audio surface, a SEPARATE decode context on the backbone (qwen3tts:
+  embeddings on), our own deterministic top-k/top-p backbone sampler (frozen common runtimes
+  untouched), SINGLE-SHOT session (`tts/session-consumed` — upstream gen pipeline carries
+  cross-call state in the mtmd context; fresh sessions replay byte-identically per (text, seed));
+  (8) rerank — `PVX_POOL_RANK` pooling append + `pvx_rerank` (upstream llama-server --reranking
+  contract: RANK pooling attaches the classification head; score = pooled embd[0]; "rerank"
+  chat template or BOS/query/EOS/SEP/doc/EOS token fallback; fresh seq per pair);
+  (9) LoRA — `pvx_adapter_load` (arch precheck naming both) + `pvx_context_set_lora`
+  (weights-surface: LIVE context attach/detach under infer_mtx, all-or-nothing, scale > 0 typed);
+  (10) control vectors — `pvx_control_vector_load` (pattern-port of common_control_vector_load
+  into src/: direction.<L> F32 accumulation, n_embd typed mismatch naming both dims, explicit
+  out-of-range layer ends typed, never clamped) + `pvx_context_set_control_vector` (NULL clears);
+  (12) stats export — `pvx_executor_stats`/`pvx_conversation_stats` snapshot (pvx_stats_t copy-out
+  counters: tokens / kv-pos / prompt-tokens / decode-steps + spec telemetry mirroring spec stats).
+- Scope: include/pvxinference.h, include/pvx_internal.h, src/pvx_adapters.cpp (new),
+  src/pvx_tts.cpp (new), src/pvxinference.cpp, CMakeLists.txt, tests/test_basic.cpp (legs
+  35–43), csharp/ (interop PvxAbiDelegates/PvxTtsParams/PvxStats/IPvxEntryPoints/PvxHandleEntryPoints/
+  PvxNative v8 + PoolingType.Rank, SafeHandles Adapter/ControlVector/TtsSession, models
+  AudioChunk/TtsRequest/TtsResult/EngineStats, abstractions ILoraAdapter/IControlVector/
+  ITtsSession + IInferenceModel/IInferenceContext/IStandardExecutor/IConversation appends,
+  implementation NativeLoraAdapter/NativeControlVector/NativeTtsSession (new) +
+  NativeInferenceModel/NativeInferenceContext/NativeStandardExecutor/NativeConversation appends,
+  engines IGgufEngineOps/GgufEngineOps facade view: Rerank/PromptWithAudio/WithLora/ClearLora/
+  WithControlVector/CreateTtsSession/GetExecutorStats/GetConversationStats, tests
+  Wave3FeatureTests (new) + EngineTestDoubles/StallWatchdog fake appends + SmokeTests vision
+  hybrid-pair fix), docs (ARCHITECTURE ×2 → ABI v8).
+- KV-neutrality (owner constraint, argued per feature): audio = image mechanics (positions
+  advance, mirror rows added; no KV-op changes); TTS = separate decode context, zero
+  conversation interaction; rerank = single-shot fresh seq per pair; LoRA + cvec =
+  weights-surface modifiers (upstream semantics: existing KV content stays valid, no context
+  recreation required — gated live: attach/detach mid-conversation on ONE context via state
+  save/restore, detached continuation == baseline continuation); stats = read-only snapshot.
+- Acceptance / Status: **done** 2026-10-18 — branch wave1-upstream-parity, HEAD child of 88f8c1a.
+  Native Release build 0 errors; native suite **43/43 passed, 0 skipped** with standard fixtures
+  (Llama-3.2-3B dense, Qwen3.5-4B hybrid + mmproj, Llama-1B draft, MiniLM embed) + all nine new
+  legs (rerank_typed / rerank_live / audio_capability_typed / audio_live / tts_live / lora_typed
+  / lora_live / control_vector / stats_export); ngram 23/23; stress 31/31; EAGLE3 live legs
+  green (PVX_EAGLE3_TARGET_PATH/PVX_DRAFT_PATH: Qwen3-8B pair — "live: eagle3 exact 24/24
+  tokens, drafted=95 accepted=9 (accept-rate 9.5%)"). KV/context regression sweep (all green,
+  from the 43/43 run): [3] partial_rewind_capability, [4] partial_rewind_refused_on_hybrid,
+  [6] pool, [9] state_save_restore, [12] pool_reuse, [14] shift_left, [15] kv_copy,
+  [16] causal_attn, [28] conversation_spec_rewind_continue. Wave-1 draft+vision harness
+  rebuilt + **BYTE-EXACT 24/24** (Qwen3.5-4B-PVXLLM + mmproj + Qwen3.5-0.8B draft). C# build
+  Debug+Release 0 errors / suite **219/219** (208 baseline + 11 new) with ALL wave-3 live legs
+  env-set; SmokeTests vision legs pinned to the hybrid pair (env-gating mismatch fix).
+  LDC regenerated + enforcement **PASS both roots** (repo + csharp; 1888 types indexed).
+  Provisioning (owner-sanctioned ≤ 8 GB; ~4.07 GB used; range-request header prechecks BEFORE
+  download, byte-size verified after, RAM-gated loads): audio pair
+  ggml-org/Qwen3-ASR-1.7B-GGUF (Qwen3-ASR-1.7B-Q8_0.gguf 2165034944 B + mmproj-...-Q8_0.gguf
+  355709344 B; clip.has_audio_encoder=true, qwen3a projector), TTS pair
+  ggml-org/Qwen3-TTS-12Hz-1.7B-Base-GGUF (Qwen3-TTS-12Hz-1.7B-Base-Q4_K_M.gguf 1035965280 B +
+  mmproj-...-Q8_0.gguf 446422912 B; clip.has_gen_audio_encoder=true, QWEN3TTS), LoRA adapter
+  Leejy0-0/Llama-3.2-3b-lora_model-F16-GGUF (Llama-3.2-3b-lora_model-f16.gguf 97282976 B;
+  general.type=adapter, adapter.type=lora, arch llama — matches the Llama-3.2-3B fixture),
+  reranker gpustack/jina-reranker-v1-tiny-en-GGUF (jina-reranker-v1-tiny-en-Q8_0.gguf 36676960 B;
+  cls.weight 384x1 score head). Control vectors: NO download — synthetic direction.GGUF written
+  by the test via the stable gguf writer API (tests-only; product loader is a pattern-port).
+  Live evidence: rerank scores 0.1101 / 0.0029 / 0.0449 (relevant docs > distractor, replay
+  bit-stable); ASR native rate 16000 Hz both lanes + post-audio greedy continuation;
+  TTS 26880 samples @ 24000 Hz, seed-42 replay byte-identical on fresh session + random-seed leg;
+  LoRA/cvec attach/detach: prompt-greedy=35308, baseline-cont=927, lora-cont=927,
+  detached-cont=927 (detach == baseline at the same anchor KV, single context, no reset);
+  stats counters consistent (n_tokens == n_kv_pos == n_prompt_tokens, decode_steps ≥ 1, spec 0/0).
+- Honest findings (documented, no band-aids): (a) TTS single-shot contract — repeated generates
+  on one live session shift the output (cross-call gen-pipeline state inside the mtmd context);
+  typed `tts/session-consumed` refusal + fresh-session determinism is the shipped contract.
+  (b) UPSTREAM LEAK (llama.cpp frozen, not fixed here): mtmd_init_from_file of a vision mmproj
+  against the qwen3tts backbone fails deep and leaks a Metal buffer set → exit-time
+  GGML_ASSERT([rsets->data count] == 0) abort; the suite deliberately avoids that combination
+  (the negative leg uses the audio-only mmproj → clean typed NOT_SUPPORTED); repro is minimal
+  (load pair, gen, exit). (c) rerank gate is the pooling TYPE (upstream --reranking contract);
+  `llama_model_n_embd_out` is NOT a rerank capability signal (the jina conversion lacks
+  embedding_length_out; score-head presence (cls.weight) is the GGUF conversion contract,
+  verified at provisioning). (d) Plan deviation: shipped lane-specific prompt-with-audio
+  exports instead of the generalized `pvx_media_chunk_t` union — the vision path stays
+  ABI-stable untouched (additive-only wave constraint); EncoderEngineOps untouched (images-only,
+  audio rides the Gguf ops view) per plan.
+
 ### Ongoing verification duty
 - Every repo state keeps: native Release build 0 errors, ctest green, C# suite green, LDC regenerated + enforcement PASS. Any public-surface change regenerates LDC artifacts in the SAME commit.
 

@@ -45,6 +45,11 @@ typedef enum {
     PVX_POOL_MEAN = 1,
     PVX_POOL_CLS = 2,
     PVX_POOL_LAST = 3,
+    /* ABI v8: RANK pooling attaches the model's classification head to the
+     * graph — the reranking lane (upstream LLAMA_POOLING_TYPE_RANK, the
+     * llama-server --reranking mode). Contexts created with this pooling are
+     * rerank-capable; pvx_rerank refuses typed on every other pooling. */
+    PVX_POOL_RANK = 4,
 } pvx_pooling_type_t;
 
 /* ── Model params ── */
@@ -692,7 +697,185 @@ pvx_result_t pvx_kv_flush(pvx_context_t* ctx, int seq_id);
  * fails FAST with a clear error instead of corrupting the stack/segfaulting.
  * Bump BOTH sides in lockstep on any native signature/ABI change.
  */
-#define PVX_ABI_VERSION 7
+/* ══════════════════════════════════════════════════════════
+ *  ABI v8 — Wave 3 (media + weight-surface modifiers + rerank + stats)
+ *  ══════════════════════════════════════════════════════════ */
+
+/* ── Audio input (plan feature 6; MTMD_INPUT_CHUNK_TYPE_AUDIO) ──
+ *
+ * Audio rides the same embd-row mechanics as vision: the mmproj projector
+ * (audio adapter) converts PCM F32 rows into projected embeddings that are
+ * decoded at pinned positions and pushed into the committed-stream mirror
+ * ring (KV positions advance by n_audio_tokens; no plain ids exist).
+ * Sample-rate contract: PCM must arrive at the projector's native rate
+ * (pvx_mtmd_audio_sample_rate); product code does NOT resample — a rate
+ * mismatch is the caller's to fix. Fail-closed boundaries (typed, named):
+ *   media/audio-adapter   — model's mtmd context lacks an audio adapter
+ *   media/audio-mixed     — tokenizer produced a non-text/audio chunk
+ * KV-neutrality: identical to images — positions only, no KV-op changes. */
+
+/* Capability probe: does the loaded (shared) mmproj carry an audio adapter? */
+bool pvx_mtmd_supports_audio(const pvx_model_t* model_with_mtmd);
+
+/* Native PCM sample rate the projector expects, or -1 when audio is
+ * unsupported (mirrors mtmd_get_audio_sample_rate). */
+int pvx_mtmd_audio_sample_rate(const pvx_model_t* model_with_mtmd);
+
+/* Prompt the standard executor with text + ONE audio clip (raw PCM F32 at
+ * the projector's native rate; text carries the media marker). Mirrors
+ * pvx_executor_prompt_with_images; the projected rows enter the executor
+ * mirror ring. Same flush/fail-closed contract as the image path. */
+pvx_result_t pvx_executor_prompt_with_audio(pvx_executor_t* exec,
+                                            pvx_model_t* model_with_mtmd,
+                                            const char* text,
+                                            const float* pcm,
+                                            int n_samples);
+
+/* Conversation-lane twin (same contract as the executor path). */
+pvx_result_t pvx_conversation_prompt_with_audio(pvx_conversation_t* conv,
+                                                pvx_model_t* model_with_mtmd,
+                                                const char* text,
+                                                const float* pcm,
+                                                int n_samples);
+
+/* ── Speech output / TTS (plan feature 7; mtmd gen-audio, QWEN3TTS) ──
+ *
+ * A TTS session is a SEPARATE decode context on the backbone (speech) model
+ * plus a dedicated gen-audio mmproj — never entangled with any conversation
+ * context (KV-neutral by construction: no conversation KV interaction).
+ * Determinism: identical (text, params.seed) pairs produce identical PCM on
+ * FRESH sessions (the session is SINGLE-SHOT — the gen-audio pipeline carries
+ * cross-call state; a second generate on a live session is a typed refusal,
+ * boundary tts/session-consumed). seed == UINT32_MAX selects a random draw.
+ * Fail-closed boundaries (typed):
+ *   tts/gen-audio-capability — mmproj has no gen-audio pipeline (info.type
+ *                             == MTMD_GEN_AUDIO_TYPE_NONE; a QWEN3TTS-
+ *                             capable mmproj is required)
+ *   tts/prompt-stage|gen-stage — helper pipeline stage failure */
+
+typedef struct pvx_tts_session_s pvx_tts_session_t;
+
+/* TTS sampling knobs (zero-value = per-model upstream defaults from
+ * mtmd_gen_inp_default; no env vars). max_frames caps the generation loop
+ * (<=0 = 512). lang is an optional BCP-ish tag the pipeline may use. */
+typedef struct {
+    const char* lang;    /* NULL/"" = pipeline default */
+    int   top_k;         /* 0 = default */
+    float top_p;         /* 0 = default */
+    float temp;          /* 0 = default */
+    uint32_t seed;       /* UINT32_MAX = random */
+    int   max_frames;    /* 0 = 512 */
+} pvx_tts_params_t;
+
+/* Create a TTS session: loads the gen-audio mmproj against the backbone
+ * speech model and owns its own llama context (context_size tokens; 0 =
+ * model default). Capability-truthful: a mmproj without a gen-audio
+ * pipeline fails PVX_ERR_NOT_SUPPORTED (boundary: tts/gen-audio-capability). */
+pvx_result_t pvx_tts_session_create(pvx_model_t* backbone_model,
+                                    const char* tts_mmproj_path,
+                                    uint32_t context_size,
+                                    pvx_tts_session_t** out_session);
+
+void pvx_tts_session_free(pvx_tts_session_t* session);
+
+/* Generate PCM F32 mono for one text prompt. out_pcm is malloc'd (free with
+ * pvx_free_audio_samples); out_sample_rate receives the pipeline rate. */
+pvx_result_t pvx_tts_generate(pvx_tts_session_t* session,
+                              const pvx_tts_params_t* params,
+                              const char* text,
+                              float** out_pcm,
+                              int* out_n_samples,
+                              int* out_sample_rate);
+
+void pvx_free_audio_samples(float* pcm);
+
+/* ── Reranking (plan feature 8; RANK-pooling score head) ──
+ *
+ * Upstream pattern: llama-server --reranking — the model's classification
+ * head is attached via RANK pooling and scores each (query, document) pair.
+ * The prompt layout follows the model's "rerank" chat template ({query}/
+ * {document} substitution) or the token fallback (BOS + query + EOS + doc +
+ * EOS). Single-shot, own seq usage, KV cleared per document — KV-neutral.
+ * Fail-closed boundaries (typed, named):
+ *   rerank/pooling — context pooling must be PVX_POOL_RANK
+ *   rerank/score-head — embeddings output is not the 1-dim score head */
+pvx_result_t pvx_rerank(pvx_context_t* ctx,
+                        const char* query,
+                        const char* const* documents,
+                        int n_documents,
+                        float** out_scores);
+void pvx_free_rerank_scores(float* scores);
+
+/* ── LoRA adapters runtime attach/detach (plan feature 9) ──
+ *
+ * Adapters are a WEIGHTS-surface modifier (llama_set_adapters_lora): they
+ * change future logits exactly like a sampling change — existing KV content
+ * and contexts stay valid, no rewind is required (upstream semantics; the
+ * set is serialized against decodes by the context's infer mutex).
+ * Set with n == 0 detaches all adapters (back to baseline logits).
+ * Fail-closed boundaries (typed, named):
+ *   adapter/file       — load failed (path named in the model error string)
+ *   adapter/arch       — adapter base arch does not match the model's
+ *   adapter/scale      — scale <= 0
+ * All-or-nothing: llama_set_adapters_lora applies the full array or fails. */
+
+typedef struct pvx_adapter_s pvx_adapter_t;
+
+pvx_result_t pvx_adapter_load(pvx_model_t* model, const char* path,
+                              pvx_adapter_t** out_adapter);
+void pvx_adapter_free(pvx_adapter_t* adapter);
+
+/* Attach (or detach, n == 0) adapters on a LIVE context. scales[i] applies to
+ * adapters[i]; scale <= 0 is a typed arg error. */
+pvx_result_t pvx_context_set_lora(pvx_context_t* ctx,
+                                  const pvx_adapter_t* const* adapters,
+                                  const float* scales,
+                                  int n_adapters);
+
+/* ── Control vectors (plan feature 10) ──
+ *
+ * Pattern-port of common_control_vector_load (never linked): direction.<L>
+ * F32 1-D tensors (layer L >= 1) from a GGUF, accumulated into an
+ * n_embd x max_layer buffer (layer 1 at [0]). Weights-surface modifier like
+ * LoRA — KV-neutral, live attach/detach, serialized by the infer mutex.
+ * Fail-closed boundaries (typed, named):
+ *   cvector/file  — unreadable/invalid direction tensor file
+ *   cvector/n-embd — direction width != model n_embd (both dims named)
+ *   cvector/layer-range — layer_start/end outside [1, n_layer] */
+
+typedef struct pvx_cvec_s pvx_cvec_t;
+
+pvx_result_t pvx_control_vector_load(pvx_model_t* model, const char* path,
+                                     pvx_cvec_t** out_cvec);
+void pvx_control_vector_free(pvx_cvec_t* cvec);
+
+/* Apply on a live context (layer range inclusive; 0/0 = full 1..n_layer).
+ * cvec == NULL clears the applied vector (no residual: logits return to
+ * baseline, gated by tests). */
+pvx_result_t pvx_context_set_control_vector(pvx_context_t* ctx,
+                                            const pvx_cvec_t* cvec,
+                                            int layer_start,
+                                            int layer_end);
+
+/* ── Metrics / stats export (plan feature 12, additive snapshot) ──
+ *
+ * Copy-out snapshot (blittable, zero new locks): counters maintained by the
+ * existing commit paths under the infer mutex. Spec counters mirror the
+ * existing pvx_*_spec_stats telemetry (0/0 when no session). Counters never
+ * hide failures: spec rejected drafts are derivable (drafted - accepted). */
+typedef struct {
+    int64_t n_tokens;       /* committed stream tokens (mirror rows) */
+    int64_t n_kv_pos;       /* committed KV positions */
+    int64_t n_prompt_tokens;/* tokens fed through prompt paths */
+    int64_t n_decode_steps; /* llama decode calls issued on this lane */
+    int64_t spec_drafted;   /* speculative drafts proposed (0 = none) */
+    int64_t spec_accepted;  /* speculative drafts accepted */
+} pvx_stats_t;
+
+pvx_result_t pvx_executor_stats(pvx_executor_t* exec, pvx_stats_t* out_stats);
+pvx_result_t pvx_conversation_stats(pvx_conversation_t* conv, pvx_stats_t* out_stats);
+
+#define PVX_ABI_VERSION 8
 int pvx_abi_version(void);
 
 #ifdef __cplusplus

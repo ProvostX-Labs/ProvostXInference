@@ -49,6 +49,9 @@ internal sealed class FakeEngineConversation : IConversation
     public byte[] ExportCheckpoint() => new byte[] { 1, 2, 3 };
     public void ImportCheckpoint(byte[] data) => Imports.Add(data);
     public void PromptWithImages(string text, IVisionEncoder vision, params byte[][] images) { }
+    public void PromptWithAudio(string text, IInferenceModel modelWithMmproj, AudioChunk audio) =>
+        Prompts.Add(text);
+    public EngineStats GetStats() => new(0, 0, Prompts.Sum(p => p.Length), 0, 0, 0);
 
     // ABI v7: batched/pool-lane spec doubles
     public SpeculativeConfig? ActiveSpeculation { get; private set; }
@@ -93,6 +96,10 @@ internal sealed class FakeEngineContext : IInferenceContext
     public string Detokenize(int[] tokens, bool removeSpecial = false) => "fake";
     public string TokenToPiece(int token) => "x";
     public bool IsEos(int token) => false;
+    public float[] Rerank(string query, IReadOnlyList<string> documents) =>
+        documents.Select((d, i) => 0.5f - i * 0.1f).ToArray();
+    public void SetAdapters(IReadOnlyList<(ILoraAdapter adapter, float scale)> adapters) { }
+    public void SetControlVector(IControlVector? vector, int layerStart = 0, int layerEnd = 0) { }
     public void Dispose() => Disposed = true;
 }
 
@@ -125,6 +132,32 @@ internal sealed class FakeEngineModel : IInferenceModel
     public bool PartialRewindSupported => true;
     public SpeculativeCapabilities SpeculativeCapabilities => SpeculativeCapabilities.None;
     public void ValidateSpeculation(SpeculativeConfig config) { }
+    public bool SupportsAudioInput => false;
+    public int AudioSampleRate => -1;
+    public ILoraAdapter CreateLoraAdapter(string path) => new FakeEngineLoraAdapter();
+    public IControlVector CreateControlVector(string path) => new FakeEngineControlVector();
+    public ITtsSession CreateTtsSession(string ttsMmprojPath, uint contextSize = 0) =>
+        new FakeEngineTtsSession();
+    public void Dispose() => Disposed = true;
+}
+
+internal sealed class FakeEngineLoraAdapter : ILoraAdapter
+{
+    public bool Disposed { get; private set; }
+    public void Dispose() => Disposed = true;
+}
+
+internal sealed class FakeEngineControlVector : IControlVector
+{
+    public bool Disposed { get; private set; }
+    public void Dispose() => Disposed = true;
+}
+
+internal sealed class FakeEngineTtsSession : ITtsSession
+{
+    public bool Disposed { get; private set; }
+    public TtsResult Generate(TtsRequest request, string text) =>
+        new(new float[240], 24000);
     public void Dispose() => Disposed = true;
 }
 

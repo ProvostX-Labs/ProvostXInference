@@ -141,3 +141,28 @@ fixture the native suite pins).
 Fail-closed everywhere: missing/unloadable draft, bad n-gram params, missing/unloadable
 companion GGUFs, and corrupt cache files are typed errors naming the boundary; never
 silent fallbacks.
+
+## Wave 3 media / rerank / weights-surface (ABI v8)
+
+ABI v8 (wave 3) is additive across the binding: `PvxNative.ExpectedAbiVersion = 8`
+(lockstep with the native macro), `PvxPoolingType.Rank` / `PoolingType.Rank` (the
+rerank lane — RANK pooling attaches the model's classification head to the graph;
+`NativeInferenceContext.Rerank(query, documents)` scores pairs single-shot on a
+fresh seq and throws typed naming `rerank/pooling` on every other pooling), audio
+input (`NativeStandardExecutor.PromptWithAudio` / `NativeConversation.PromptWithAudio`
+with `AudioChunk` (raw PCM F32 mono) + `IInferenceModel.SupportsAudioInput` /
+`AudioSampleRate` probes; `EncoderEngineOps` stays images-only — audio is GGUF-lane
+input), TTS (`NativeTtsSession` + `TtsRequest`/`TtsResult`; the session is
+single-shot — `tts/session-consumed` — and fresh sessions replay byte-identically
+per (text, seed)), LoRA (`NativeLoraAdapter` + `IInferenceContext.SetAdapters`,
+weights-surface: KV-neutral live attach/detach), control vectors
+(`NativeControlVector` + `SetControlVector`, same pattern-port discipline), and the
+stats export (`EngineStats` snapshot via `IStandardExecutor.GetStats` /
+`IConversation.GetStats`; spec telemetry mirrors the spec stats). The facade view:
+`GgufEngineOps` grows `Rerank`, `PromptWithAudio` (both lanes), `LoadLora` /
+`WithLora` (scoped disposable) / `ClearLora`, `LoadControlVector` /
+`WithControlVector` / `ClearControlVector`, `CreateTtsSession`,
+`SupportsAudioInput`/`AudioSampleRate`, and `GetExecutorStats` /
+`GetConversationStats`. Fail-closed: every wave-3 surface throws typed
+`InferenceException`s naming the boundary (`rerank/pooling`, `media/audio-adapter`,
+`tts/gen-audio-capability`, `tts/session-consumed`, `adapter/*`, `cvector/*`).

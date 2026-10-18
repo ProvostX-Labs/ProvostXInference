@@ -218,4 +218,26 @@ public sealed class NativeStandardExecutor : IStandardExecutor
         _activeSpeculation = null; // Dispose tears the speculative session down
         _handle.Dispose();
     }
+
+    /// <summary>ABI v8 (wave 3): prompt with ONE raw audio clip (PCM F32 mono
+    /// at the projector's native rate). Same embd-row commit mechanics as
+    /// images; typed refusal when the projector lacks an audio adapter.</summary>
+    public void PromptWithAudio(string text, IInferenceModel modelWithMmproj, AudioChunk audio)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentNullException.ThrowIfNull(text);
+        ArgumentNullException.ThrowIfNull(audio);
+        var nativeModel = (NativeInferenceModel)modelWithMmproj;
+        EP.ExecutorPromptWithAudio(_handle.DangerousGetHandle(), nativeModel.RawHandle,
+            text, audio.PcmMono, audio.PcmMono.Length).ThrowIfError(EP, _context.RawHandle); // F16
+    }
+
+    /// <summary>ABI v8 (wave 3): stats snapshot of this executor lane.</summary>
+    public EngineStats GetStats()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        EP.ExecutorStats(_handle.DangerousGetHandle(), out var st).ThrowIfError(EP, _context.RawHandle);
+        return new EngineStats(st.NTokens, st.NKvPos, st.NPromptTokens, st.NDecodeSteps,
+            st.SpecDrafted, st.SpecAccepted);
+    }
 }

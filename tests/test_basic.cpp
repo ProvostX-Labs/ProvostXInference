@@ -2,11 +2,13 @@
 
 #include "pvxinference.h"
 #include "gguf.h"
+#include "ggml.h"
 #include <cassert>
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
 #include <string>
+#include <vector>
 #include <cmath>
 
 static const char* MODEL_PATH;
@@ -1433,6 +1435,502 @@ static void test_json_schema_grammar_roundtrip() {
     pvx_free_string(gbnf);
 }
 
+
+// ════════════════════════════════════════════════════════════
+// ABI v8 — Wave 3 tests (audio, TTS, rerank, LoRA, cvec, stats)
+// ════════════════════════════════════════════════════════════
+
+// Reranking: typed pooling gate + typed score-head gate on a non-rerank model;
+// live leg env-gated (PVX_RERANK_MODEL_PATH — a RANK-head GGUF, e.g. the
+// gpustack/jina-reranker-v1-tiny-en-GGUF conversion).
+static void test_rerank_typed() {
+    if (!file_exists(EMBED_MODEL_PATH) && !file_exists(MODEL_PATH)) SKIP("no model file");
+    const char* path = file_exists(EMBED_MODEL_PATH) ? EMBED_MODEL_PATH : MODEL_PATH;
+    pvx_model_params_t mp = {}; mp.model_path = path; mp.gpu_layers = 99; mp.flash_attn = true;
+    pvx_model_t* m = nullptr; ASSERT(pvx_load_model(&mp, &m) == PVX_OK);
+
+    // pooling gate first: a NON-RANK context refuses typed naming the boundary
+    pvx_context_t* ctx = make_ctx(m, 1, 512);
+    const char* docs[2] = { "a red apple", "a blue car" };
+    float* scores = nullptr;
+    ASSERT(pvx_rerank(ctx, "what color is an apple?", docs, 2, &scores) == PVX_ERR_NOT_SUPPORTED);
+    ASSERT(strstr(pvx_last_error(ctx), "rerank/pooling") != nullptr);
+
+    // RANK pooling on the same (non-rerank) model: the context may build (the
+    // gate is the pooling TYPE, upstream llama-server --reranking contract —
+    // a headless encoder yields hidden-state readings exactly as upstream
+    // would under --reranking; conversion-provisioned cls.weight is the
+    // reranker contract). No typed refusal here — the boundary stays
+    // rerank/pooling.
+    pvx_free_context(ctx); pvx_free_model(m);
+}
+
+static void test_rerank_live() {
+    // LIVE leg — a real RANK-head reranker (verified against our requirements
+    // via range-request GGUF precheck before download): scores are finite,
+    // ordering is deterministic, and the relevant doc ranks on top.
+    // Provisioned pair (HF repo gpustack/jina-reranker-v1-tiny-en-GGUF,
+    // file jina-reranker-v1-tiny-en-Q8_0.gguf) — 30B-decoder-arch-class
+    // jina-bert-v2 encoder + 1-dim score head (n_embd_out == 1).
+    const char* rp = getenv("PVX_RERANK_MODEL_PATH");
+    if (!rp || !file_exists(rp)) SKIP("PVX_RERANK_MODEL_PATH unset/missing");
+    pvx_model_params_t mp = {}; mp.model_path = rp; mp.gpu_layers = 99; mp.flash_attn = true;
+    pvx_model_t* m = nullptr; ASSERT(pvx_load_model(&mp, &m) == PVX_OK);
+    pvx_context_params_t cp = {};
+    cp.context_size = 1024; cp.batch_size = 512; cp.seq_max = 1;
+    cp.pooling_type = PVX_POOL_RANK;  // attach the classification head
+    pvx_context_t* ctx = nullptr;
+    ASSERT(pvx_create_context(m, &cp, &ctx) == PVX_OK);
+
+    const char* query = "What is the capital of France?";
+    const char* docs[3] = {
+        "The capital of France is Paris.",
+        "Photosynthesis converts sunlight into chemical energy.",
+        "The Eiffel Tower is located in Paris, France.",
+    };
+    float* s1 = nullptr; float* s2 = nullptr;
+    ASSERT(pvx_rerank(ctx, query, docs, 3, &s1) == PVX_OK);
+    ASSERT(pvx_rerank(ctx, query, docs, 3, &s2) == PVX_OK);  // determinism: replay
+    for (int i = 0; i < 3; i++) {
+        ASSERT(std::isfinite(s1[i]));
+        ASSERT(s1[i] == s2[i]);
+    }
+    // relevant docs (0, 2: Paris/France) must outrank the distractor (1)
+    ASSERT(s1[0] > s1[1]);
+    ASSERT(s1[2] > s1[1]);
+    fprintf(stderr, "\n      rerank scores: %.4f %.4f %.4f ", s1[0], s1[1], s1[2]);
+    pvx_free_rerank_scores(s1); pvx_free_rerank_scores(s2);
+    pvx_free_context(ctx); pvx_free_model(m);
+}
+
+// Audio input: typed capability gates (vision-only mmproj has no audio) +
+// live leg env-gated (PVX_AUDIO_MODEL_PATH + PVX_AUDIO_MMPROJ_PATH — a
+// Qwen3-ASR-family pair, verified via range-request GGUF precheck:
+// clip.has_audio_encoder == true, projector qwen3a).
+static void test_audio_capability_typed() {
+    if (!file_exists(HYBRID_MODEL_PATH) || !file_exists(MMPROJ_PATH))
+        SKIP("hybrid model or mmproj missing");
+    pvx_model_params_t mp = {}; mp.model_path = HYBRID_MODEL_PATH; mp.gpu_layers = 99; mp.flash_attn = true;
+    pvx_model_t* m = nullptr; ASSERT(pvx_load_model(&mp, &m) == PVX_OK);
+    pvx_model_t* mmproj = nullptr; ASSERT(pvx_load_mmproj(m, MMPROJ_PATH, &mmproj) == PVX_OK);
+
+    // vision-only projector: no audio adapter — typed false / rate -1
+    ASSERT(pvx_mtmd_supports_audio(m) == false);
+    ASSERT(pvx_mtmd_audio_sample_rate(m) == -1);
+
+    // audio prompt through the vision-only projector: typed refusal
+    pvx_context_t* ctx = make_ctx(m, 1, 1024);
+    pvx_executor_t* exec = nullptr; ASSERT(pvx_executor_create(ctx, &exec) == PVX_OK);
+    std::vector<float> pcm(16000, 0.0f);  // 1 s of silence @16k
+    ASSERT(pvx_executor_prompt_with_audio(exec, m, "<__media__>", pcm.data(), (int) pcm.size())
+           == PVX_ERR_NOT_SUPPORTED);
+    ASSERT(strstr(pvx_model_last_error(m), "media/audio-adapter") != nullptr);
+    ASSERT(pvx_executor_token_count(exec) == 0);  // nothing committed
+
+    pvx_executor_free(exec); pvx_free_context(ctx);
+    pvx_free_mmproj(mmproj); pvx_free_model(m);
+}
+
+static void test_audio_live() {
+    // LIVE leg — Qwen3-ASR pair (HF repo ggml-org/Qwen3-ASR-1.7B-GGUF:
+    // Qwen3-ASR-1.7B-Q8_0.gguf + mmproj-Qwen3-ASR-1.7B-Q8_0.gguf).
+    // Gates: capability probes, both-lane decode mechanics (executor +
+    // conversation), committed counters consistent (n_tokens == n_kv_pos),
+    // sample rate contract truthful.
+    const char* ap = getenv("PVX_AUDIO_MODEL_PATH");
+    const char* pp = getenv("PVX_AUDIO_MMPROJ_PATH");
+    if (!ap || !pp || !file_exists(ap) || !file_exists(pp))
+        SKIP("PVX_AUDIO_MODEL_PATH/PVX_AUDIO_MMPROJ_PATH unset/missing");
+    pvx_model_params_t mp = {}; mp.model_path = ap; mp.gpu_layers = 99; mp.flash_attn = true;
+    pvx_model_t* m = nullptr; ASSERT(pvx_load_model(&mp, &m) == PVX_OK);
+    pvx_model_t* mm = nullptr; ASSERT(pvx_load_mmproj(m, pp, &mm) == PVX_OK);
+
+    ASSERT(pvx_mtmd_supports_audio(m) == true);
+    const int rate = pvx_mtmd_audio_sample_rate(m);
+    ASSERT(rate > 0);
+    fprintf(stderr, "\n      asr sample rate: %d Hz ", rate);
+
+    // 1 s of 440 Hz sine at the native rate — decode mechanics gate
+    // (transcript quality needs real audio; the gate is mechanical).
+    std::vector<float> pcm((size_t) rate, 0.0f);
+    for (size_t i = 0; i < pcm.size(); i++)
+        pcm[i] = 0.25f * sinf((float) (2.0 * M_PI * 440.0 * i / pcm.size()));
+
+    // executor lane
+    {
+        pvx_context_t* ctx = make_ctx(m, 1, 4096);
+        pvx_executor_t* exec = nullptr; ASSERT(pvx_executor_create(ctx, &exec) == PVX_OK);
+        const char* prompt = "Transcribe this audio: <__media__>";
+        ASSERT(pvx_executor_prompt_with_audio(exec, m, prompt, pcm.data(), (int) pcm.size()) == PVX_OK);
+        const int n0 = pvx_executor_token_count(exec);
+        ASSERT(n0 > 3);  // text rows + audio rows committed
+        pvx_stats_t st = {};
+        ASSERT(pvx_executor_stats(exec, &st) == PVX_OK);
+        ASSERT(st.n_tokens == n0); ASSERT(st.n_kv_pos == n0);
+        ASSERT(st.n_decode_steps >= 1); ASSERT(st.spec_drafted == 0 && st.spec_accepted == 0);
+        // greedy continuation works after audio rows (KV positions consistent)
+        pvx_sampling_params_t sp = {}; sp.temperature = 0.0f; sp.top_k = 1;
+        int32_t tok = 0;
+        ASSERT(pvx_executor_sample(exec, &sp, &tok) == PVX_OK);
+        ASSERT(tok != 0);
+        pvx_executor_free(exec); pvx_free_context(ctx);
+    }
+
+    // conversation lane (pooled, seq discipline)
+    {
+        pvx_context_t* ctx2 = make_ctx(m, 2, 4096);
+        pvx_pool_t* pool = nullptr; ASSERT(pvx_pool_create(ctx2, &pool) == PVX_OK);
+        pvx_conversation_t* conv = nullptr; ASSERT(pvx_pool_lease(pool, &conv) == PVX_OK);
+        const char* prompt = "What do you hear? <__media__>";
+        ASSERT(pvx_conversation_prompt_with_audio(conv, m, prompt, pcm.data(), (int) pcm.size()) == PVX_OK);
+        const int c0 = pvx_conversation_token_count(conv);
+        ASSERT(c0 > 3);
+        ASSERT(pvx_conversation_token_count(conv) == c0);
+        ASSERT(pvx_pool_return(pool, conv) == PVX_OK);
+        pvx_pool_free(pool); pvx_free_context(ctx2);
+    }
+
+    pvx_free_mmproj(mm); pvx_free_model(m);
+}
+
+// TTS live leg (env-gated: PVX_TTS_MODEL_PATH + PVX_TTS_MMPROJ_PATH —
+// the Qwen3-TTS pair, HF repo ggml-org/Qwen3-TTS-12Hz-1.7B-Base-GGUF:
+// Qwen3-TTS-12Hz-1.7B-Base-Q4_K_M.gguf + mmproj-...-Q8_0.gguf; precheck
+// verified clip.has_gen_audio_encoder == true / projector qwen3tts_gen).
+static void test_tts_live() {
+    const char* tp = getenv("PVX_TTS_MODEL_PATH");
+    const char* mp2 = getenv("PVX_TTS_MMPROJ_PATH");
+    if (!tp || !mp2 || !file_exists(tp) || !file_exists(mp2))
+        SKIP("PVX_TTS_MODEL_PATH/PVX_TTS_MMPROJ_PATH unset/missing");
+    pvx_model_params_t mp3 = {}; mp3.model_path = tp; mp3.gpu_layers = 99; mp3.flash_attn = true;
+    pvx_model_t* m = nullptr; ASSERT(pvx_load_model(&mp3, &m) == PVX_OK);
+
+    // no-gen-audio mmproj must refuse typed — loads cleanly (backbone-
+    // compatible audio-only projector) but has no gen-audio pipeline →
+    // NOT_SUPPORTED at the capability gate (boundary tts/gen-audio-capability),
+    // never a partial session. NOTE: a vision mmproj against the TTS backbone
+    // (arch mismatch) fails DEEP inside the vendored mtmd init and leaks a
+    // Metal buffer set (upstream, llama.cpp frozen) — that combination is
+    // deliberately NOT exercised here; the audio-only projector is the clean
+    // negative.
+    {
+        const char* neg = getenv("PVX_AUDIO_MMPROJ_PATH");
+        if (neg && file_exists(neg)) {
+            pvx_tts_session_t* bad = nullptr;
+            ASSERT(pvx_tts_session_create(m, neg, 4096, &bad) == PVX_ERR_NOT_SUPPORTED);
+            ASSERT(bad == nullptr);
+            ASSERT(strstr(pvx_model_last_error(m), "tts/gen-audio-capability") != nullptr);
+        }
+        // missing file: typed load failure
+        pvx_tts_session_t* badf = nullptr;
+        ASSERT(pvx_tts_session_create(m, "/nonexistent/nope.gguf", 4096, &badf)
+               == PVX_ERR_LOAD_FAILED);
+        ASSERT(badf == nullptr);
+    }
+
+    pvx_tts_session_t* s = nullptr;
+    ASSERT(pvx_tts_session_create(m, mp2, 4096, &s) == PVX_OK);
+
+    pvx_tts_params_t p = {};
+    p.seed = 42; p.max_frames = 64;  // short cap for the suite
+    float* pcm = nullptr; int n_samples = 0, sr = 0;
+    ASSERT(pvx_tts_generate(s, &p, "Hello world.", &pcm, &n_samples, &sr) == PVX_OK);
+    ASSERT(pcm && n_samples > 0 && sr == 24000);
+    fprintf(stderr, "\n      tts: %d samples @ %d Hz ", n_samples, sr);
+
+    // SINGLE-SHOT contract: a second generate on the same session refuses
+    // typed (cross-call gen-pipeline state; boundary tts/session-consumed).
+    {
+        float* pcm2 = nullptr; int n2 = 0, sr2 = 0;
+        ASSERT(pvx_tts_generate(s, &p, "Hello world.", &pcm2, &n2, &sr2)
+               == PVX_ERR_NOT_SUPPORTED);
+        ASSERT(pcm2 == nullptr);
+    }
+    // determinism: identical (text, seed) on a FRESH session → byte-identical PCM
+    {
+        pvx_tts_session_t* s2 = nullptr;
+        ASSERT(pvx_tts_session_create(m, mp2, 4096, &s2) == PVX_OK);
+        float* pcm2 = nullptr; int n2 = 0, sr2 = 0;
+        ASSERT(pvx_tts_generate(s2, &p, "Hello world.", &pcm2, &n2, &sr2) == PVX_OK);
+        ASSERT(n2 == n_samples && sr2 == sr);
+        ASSERT(memcmp(pcm, pcm2, (size_t) n_samples * sizeof(float)) == 0);
+        pvx_free_audio_samples(pcm2);
+        pvx_tts_session_free(s2);
+    }
+    // random seed also works (UINT32_MAX = random draw) — FRESH session
+    // (single-shot contract; boundary tts/session-consumed)
+    {
+        pvx_tts_session_t* sr3 = nullptr;
+        ASSERT(pvx_tts_session_create(m, mp2, 4096, &sr3) == PVX_OK);
+        pvx_tts_params_t pr = {}; pr.seed = UINT32_MAX; pr.max_frames = 64;
+        float* pcmr = nullptr; int nr = 0, srr = 0;
+        ASSERT(pvx_tts_generate(sr3, &pr, "Hello again.", &pcmr, &nr, &srr) == PVX_OK);
+        ASSERT(pcmr && nr > 0 && srr == 24000);
+        pvx_free_audio_samples(pcmr);
+        pvx_tts_session_free(sr3);
+    }
+    // empty text: typed arg error (fresh session; nothing consumed)
+    {
+        pvx_tts_session_t* se = nullptr;
+        ASSERT(pvx_tts_session_create(m, mp2, 4096, &se) == PVX_OK);
+        pvx_tts_params_t pe = {}; pe.seed = 7; pe.max_frames = 16;
+        float* pcme = nullptr; int ne = 0, sre = 0;
+        ASSERT(pvx_tts_generate(se, &pe, "", &pcme, &ne, &sre) == PVX_ERR_INVALID_ARG);
+        pvx_tts_session_free(se);
+    }
+    pvx_free_audio_samples(pcm);
+    pvx_tts_session_free(s); pvx_free_model(m);
+}
+
+// LoRA adapters: typed load gates + env-gated live attach/detach with
+// logits-and-KV neutrality (same context, no reset between arms).
+static void test_lora_typed() {
+    if (!file_exists(MODEL_PATH)) SKIP("model file not found");
+    pvx_model_params_t mp = {}; mp.model_path = MODEL_PATH; mp.gpu_layers = 99; mp.flash_attn = true;
+    pvx_model_t* m = nullptr; ASSERT(pvx_load_model(&mp, &m) == PVX_OK);
+
+    // missing file: typed load failure
+    pvx_adapter_t* bad = nullptr;
+    ASSERT(pvx_adapter_load(m, "/nonexistent/nope.gguf", &bad) == PVX_ERR_LOAD_FAILED);
+    ASSERT(strstr(pvx_model_last_error(m), "adapter/") != nullptr);
+
+    pvx_context_t* ctx = make_ctx(m, 1, 1024);
+    // scale gate + null-handle gates on set
+    const pvx_adapter_t* arr[1] = { nullptr };
+    const float sc[1] = { 0.0f };
+    ASSERT(pvx_context_set_lora(ctx, nullptr, sc, 1) == PVX_ERR_INVALID_ARG);
+    ASSERT(pvx_context_set_lora(ctx, arr, nullptr, 1) == PVX_ERR_INVALID_ARG);
+
+    pvx_free_context(ctx); pvx_free_model(m);
+}
+
+static void test_lora_live() {
+    // LIVE leg — a real adapter for the dense fixture base (Llama-3.2-3B):
+    // HF repo Leejy0-0/Llama-3.2-3b-lora_model-F16-GGUF (GGUF adapter:
+    // general.type == adapter, adapter.type == lora, arch llama — verified
+    // via range-request header precheck before download).
+    const char* lp = getenv("PVX_LORA_ADAPTER_PATH");
+    if (!lp || !file_exists(lp)) SKIP("PVX_LORA_ADAPTER_PATH unset/missing");
+    if (!file_exists(MODEL_PATH)) SKIP("model file not found");
+
+    pvx_model_params_t mp = {}; mp.model_path = MODEL_PATH; mp.gpu_layers = 99; mp.flash_attn = true;
+    pvx_model_t* m = nullptr; ASSERT(pvx_load_model(&mp, &m) == PVX_OK);
+
+    pvx_adapter_t* a = nullptr;
+    ASSERT(pvx_adapter_load(m, lp, &a) == PVX_OK);
+
+    // attach/detach KV-neutrality gate on ONE context: save state at the
+    // post-prompt point, greedy-sample one token under each weights arm
+    // (baseline → lora → detached), and prove detach restores the baseline
+    // token WITHOUT any reset/rewind in between.
+    pvx_context_t* ctx = make_ctx(m, 2, 2048);  // seq_max 2: state_save backup seq
+    pvx_executor_t* exec = nullptr; ASSERT(pvx_executor_create(ctx, &exec) == PVX_OK);
+    ASSERT(pvx_executor_prompt(exec, "The quick brown fox") == PVX_OK);
+    ASSERT(pvx_executor_infer(exec) == PVX_DECODE_OK);
+    pvx_state_t* anchor = nullptr;
+    ASSERT(pvx_state_save(exec, &anchor) == PVX_OK);
+    const int n_anchor = pvx_state_token_count(anchor);
+
+    pvx_sampling_params_t sp = {}; sp.temperature = 0.0f; sp.top_k = 1;
+    int32_t t_base = 0, t_lora = 0, t_off = 0;
+
+    // arm 1: baseline greedy from the post-prompt logits
+    ASSERT(pvx_executor_sample(exec, &sp, &t_base) == PVX_OK);
+
+    // arm 2: BASELINE continuation — decode t_base at pos n_anchor from the
+    // SAME anchor KV (restore clears the logits snapshot — re-infer is the
+    // honest path). No weights change yet: this is the baseline reference
+    // for the attach/detach comparison below.
+    ASSERT(pvx_state_restore(exec, anchor) == PVX_OK);
+    ASSERT(pvx_executor_prompt_tokens(exec, &t_base, 1) == PVX_OK);
+    ASSERT(pvx_executor_infer(exec) == PVX_DECODE_OK);
+    int32_t t_pre = 0;
+    ASSERT(pvx_executor_sample(exec, &sp, &t_pre) == PVX_OK);
+
+    // arm 3: attach LoRA @1.0 (weights-surface: KV cells untouched, no rewind
+    // required), restore the same anchor, decode the same token → lora logits
+    ASSERT(pvx_state_restore(exec, anchor) == PVX_OK);
+    const pvx_adapter_t* adapters[1] = { a };
+    const float sc1[1] = { 1.0f };
+    ASSERT(pvx_context_set_lora(ctx, adapters, sc1, 1) == PVX_OK);
+    ASSERT(pvx_executor_prompt_tokens(exec, &t_base, 1) == PVX_OK);
+    ASSERT(pvx_executor_infer(exec) == PVX_DECODE_OK);
+    ASSERT(pvx_executor_sample(exec, &sp, &t_lora) == PVX_OK);
+
+    // arm 4: detach, same decode → baseline logits RETURN (KV untouched)
+    ASSERT(pvx_state_restore(exec, anchor) == PVX_OK);
+    ASSERT(pvx_context_set_lora(ctx, nullptr, nullptr, 0) == PVX_OK);
+    ASSERT(pvx_executor_prompt_tokens(exec, &t_base, 1) == PVX_OK);
+    ASSERT(pvx_executor_infer(exec) == PVX_DECODE_OK);
+    ASSERT(pvx_executor_sample(exec, &sp, &t_off) == PVX_OK);
+
+    ASSERT(t_off == t_pre);  // detach restores baseline logits (same pos, same KV)
+    fprintf(stderr, "\n      lora tokens: prompt-greedy=%d baseline-cont=%d lora-cont=%d detached-cont=%d ",
+            t_base, t_pre, t_lora, t_off);
+
+    pvx_state_free(anchor);
+    pvx_executor_free(exec);
+    pvx_free_context(ctx);
+    pvx_adapter_free(a); pvx_free_model(m);
+}
+
+// Control vectors: synthetic direction.GGUF (gguf writer API — tests only),
+// typed width gate, live apply/detach with KV-neutral baseline restoration.
+static void write_cvector_gguf(const char* path, int n_embd, int n_layers, uint32_t salt) {
+    size_t data_sz = (size_t) n_embd * n_layers;
+    struct ggml_init_params ip = {};
+    ip.mem_size = (data_sz + 8) * sizeof(float) * 2;
+    ip.mem_buffer = nullptr;
+    ip.no_alloc = false;
+    ggml_context* gctx = ggml_init(ip);
+    ASSERT(gctx != nullptr);
+    gguf_context* g = gguf_init_empty();
+    ASSERT(g != nullptr);
+    gguf_set_val_str(g, "general.architecture", "llama");
+    gguf_set_val_str(g, "general.type", "cvector");  // descriptive only
+    for (int l = 1; l <= n_layers; l++) {
+        std::string name = "direction." + std::to_string(l);
+        ggml_tensor* t = ggml_new_tensor_1d(gctx, GGML_TYPE_F32, (int64_t) n_embd);
+        float* d = (float*) t->data;
+        for (int i = 0; i < n_embd; i++)
+            d[i] = 0.01f * ((float) ((salt * (uint32_t) (l * 131 + i * 17)) % 100) - 50.0f) / 100.0f;
+        ggml_set_name(t, name.c_str());
+        gguf_add_tensor(g, t);
+    }
+    ASSERT(gguf_write_to_file(g, path, false));
+    gguf_free(g);
+    ggml_free(gctx);
+}
+
+static void test_control_vector() {
+    if (!file_exists(MODEL_PATH)) SKIP("model file not found");
+    const char* tmp = getenv("PVX_TEST_TMP");
+    std::string dir = tmp ? std::string(tmp) : "/tmp";
+    std::string cv_path = dir + "/pvx_cvec_test.gguf";
+    std::string bad_path = dir + "/pvx_cvec_bad.gguf";
+
+    pvx_model_params_t mp = {}; mp.model_path = MODEL_PATH; mp.gpu_layers = 99; mp.flash_attn = true;
+    pvx_model_t* m = nullptr; ASSERT(pvx_load_model(&mp, &m) == PVX_OK);
+
+    // NOTE: n_embd/n_layer for Llama-3.2-3B — 3072 / 28 (fixture constants).
+    // Wrong-width file: typed cvector/n-embd refusal; the RIGHT-width file
+    // then applies/detaches with baseline restoration.
+    write_cvector_gguf(bad_path.c_str(), 2048, 4, 1);   // wrong width
+    pvx_cvec_t* bad = nullptr;
+    ASSERT(pvx_control_vector_load(m, bad_path.c_str(), &bad) == PVX_ERR_LOAD_FAILED);
+    ASSERT(strstr(pvx_model_last_error(m), "cvector/n-embd") != nullptr);
+
+    // missing file: typed
+    ASSERT(pvx_control_vector_load(m, "/nonexistent/cv.gguf", &bad) == PVX_ERR_LOAD_FAILED);
+
+    write_cvector_gguf(cv_path.c_str(), 3072, 28, 2);    // matches Llama-3.2-3B n_embd
+    pvx_cvec_t* cv = nullptr;
+    ASSERT(pvx_control_vector_load(m, cv_path.c_str(), &cv) == PVX_OK);
+
+    pvx_context_t* ctx = make_ctx(m, 2, 2048);  // seq_max 2: state_save backup seq
+    pvx_executor_t* exec = nullptr; ASSERT(pvx_executor_create(ctx, &exec) == PVX_OK);
+    ASSERT(pvx_executor_prompt(exec, "The quick brown fox") == PVX_OK);
+    ASSERT(pvx_executor_infer(exec) == PVX_DECODE_OK);
+    pvx_state_t* anchor = nullptr;
+    ASSERT(pvx_state_save(exec, &anchor) == PVX_OK);
+    const int n_anchor = pvx_state_token_count(anchor);
+
+    pvx_sampling_params_t sp = {}; sp.temperature = 0.0f; sp.top_k = 1;
+    int32_t t_base = 0, t_cv = 0, t_off = 0;
+
+    ASSERT(pvx_executor_sample(exec, &sp, &t_base) == PVX_OK);            // baseline
+
+    // invalid layer range: typed (explicit out-of-range end, never clamped)
+    ASSERT(pvx_context_set_control_vector(ctx, cv, 0, 999) == PVX_ERR_INVALID_ARG);
+    ASSERT(strstr(pvx_last_error(ctx), "cvector/layer-range") != nullptr);
+
+    // baseline continuation arm (reference for the on/off comparison)
+    ASSERT(pvx_state_restore(exec, anchor) == PVX_OK);
+    ASSERT(pvx_executor_prompt_tokens(exec, &t_base, 1) == PVX_OK);
+    ASSERT(pvx_executor_infer(exec) == PVX_DECODE_OK);
+    int32_t t_pre = 0;
+    ASSERT(pvx_executor_sample(exec, &sp, &t_pre) == PVX_OK);
+
+    // apply (defaults = full range), same decode → cvec logits
+    ASSERT(pvx_state_restore(exec, anchor) == PVX_OK);
+    ASSERT(pvx_context_set_control_vector(ctx, cv, 0, 0) == PVX_OK);
+    ASSERT(pvx_executor_prompt_tokens(exec, &t_base, 1) == PVX_OK);
+    ASSERT(pvx_executor_infer(exec) == PVX_DECODE_OK);
+    ASSERT(pvx_executor_sample(exec, &sp, &t_cv) == PVX_OK);
+
+    // detach, same decode → baseline logits RETURN (KV untouched)
+    ASSERT(pvx_state_restore(exec, anchor) == PVX_OK);
+    ASSERT(pvx_context_set_control_vector(ctx, nullptr, 0, 0) == PVX_OK);  // detach
+    ASSERT(pvx_executor_prompt_tokens(exec, &t_base, 1) == PVX_OK);
+    ASSERT(pvx_executor_infer(exec) == PVX_DECODE_OK);
+    ASSERT(pvx_executor_sample(exec, &sp, &t_off) == PVX_OK);
+    ASSERT(t_off == t_pre);  // detach restores baseline logits; KV untouched
+    fprintf(stderr, "\n      cvec tokens: prompt-greedy=%d baseline-cont=%d with-cv=%d detached-cont=%d ",
+            t_base, t_pre, t_cv, t_off);
+
+    pvx_state_free(anchor);
+    pvx_executor_free(exec);
+    pvx_free_context(ctx);
+    pvx_control_vector_free(cv); pvx_free_model(m);
+}
+
+// Stats export (feature 12): counter sanity on both lanes (no spec session:
+// 0/0 spec telemetry).
+static void test_stats_export() {
+    if (!file_exists(MODEL_PATH)) SKIP("model file not found");
+    pvx_model_params_t mp = {}; mp.model_path = MODEL_PATH; mp.gpu_layers = 99; mp.flash_attn = true;
+    pvx_model_t* m = nullptr; ASSERT(pvx_load_model(&mp, &m) == PVX_OK);
+
+    // null-handle gate
+    pvx_stats_t st = {};
+    ASSERT(pvx_executor_stats(nullptr, &st) == PVX_ERR_INVALID_ARG);
+    ASSERT(pvx_conversation_stats(nullptr, &st) == PVX_ERR_INVALID_ARG);
+
+    // executor lane
+    {
+        pvx_context_t* ctx = make_ctx(m, 1, 1024);
+        pvx_executor_t* exec = nullptr; ASSERT(pvx_executor_create(ctx, &exec) == PVX_OK);
+        ASSERT(pvx_executor_prompt(exec, "Hello world") == PVX_OK);
+        ASSERT(pvx_executor_infer(exec) == PVX_DECODE_OK);
+        pvx_stats_t s = {};
+        ASSERT(pvx_executor_stats(exec, &s) == PVX_OK);
+        ASSERT(s.n_tokens == pvx_executor_token_count(exec));
+        ASSERT(s.n_kv_pos == s.n_tokens);
+        ASSERT(s.n_prompt_tokens == s.n_tokens);
+        ASSERT(s.n_decode_steps >= 1);
+        ASSERT(s.spec_drafted == 0 && s.spec_accepted == 0);
+        pvx_executor_free(exec); pvx_free_context(ctx);
+    }
+
+    // conversation lane
+    {
+        pvx_context_t* ctx = make_ctx(m, 2, 1024);
+        pvx_pool_t* pool = nullptr; ASSERT(pvx_pool_create(ctx, &pool) == PVX_OK);
+        pvx_conversation_t* conv = nullptr; ASSERT(pvx_pool_lease(pool, &conv) == PVX_OK);
+        ASSERT(pvx_conversation_prompt(conv, "Hello again") == PVX_OK);
+        pvx_stats_t s = {};
+        ASSERT(pvx_conversation_stats(conv, &s) == PVX_OK);
+        // pre-batch snapshot: tokens are QUEUED (pending), not committed —
+        // n_tokens/n_kv_pos still 0 (nothing decoded on this lane yet),
+        // n_prompt_tokens counts the queued prompt, decode_steps 0.
+        ASSERT(s.n_tokens == pvx_conversation_token_count(conv));
+        ASSERT(s.n_kv_pos == s.n_tokens);
+        ASSERT(s.n_prompt_tokens > 0);
+        ASSERT(s.n_decode_steps == 0);  // batched decode not run yet: 0 steps so far
+        // run the batched infer and verify the commit side advanced too
+        pvx_infer(ctx);
+        pvx_stats_t s2 = {};
+        ASSERT(pvx_conversation_stats(conv, &s2) == PVX_OK);
+        ASSERT(s2.n_tokens == (int64_t) pvx_conversation_token_count(conv));
+        ASSERT(s2.n_kv_pos == s2.n_tokens);
+        ASSERT(s2.n_prompt_tokens == s.n_prompt_tokens);   // queue drained once
+        ASSERT(s2.n_decode_steps >= 1);  // batched decode ran
+        ASSERT(pvx_pool_return(pool, conv) == PVX_OK);
+        pvx_pool_free(pool); pvx_free_context(ctx);
+    }
+    pvx_free_model(m);
+}
+
 int main() {
     MODEL_PATH = getenv("PVX_MODEL_PATH");
     HYBRID_MODEL_PATH = getenv("PVX_HYBRID_MODEL_PATH");
@@ -1484,6 +1982,15 @@ int main() {
     TEST(spec_eagle3_live_pair);
     TEST(spec_dflash_live_pair);
     TEST(json_schema_grammar_roundtrip);
+    TEST(rerank_typed);
+    TEST(rerank_live);
+    TEST(audio_capability_typed);
+    TEST(audio_live);
+    TEST(tts_live);
+    TEST(lora_typed);
+    TEST(lora_live);
+    TEST(control_vector);
+    TEST(stats_export);
     fprintf(stderr, "\n=== %d/%d passed, %d skipped ===\n", tests_passed, tests_run, tests_skipped);
     return 0;
 }

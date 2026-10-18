@@ -1,5 +1,6 @@
 using ProvostXInference.Abstractions;
 using ProvostXInference.Models;
+using ProvostXInference.Exceptions;
 
 namespace ProvostXInference.Engines;
 
@@ -135,5 +136,86 @@ public sealed class GgufEngineOps : IGgufEngineOps, IDisposable
     {
         _pool?.Dispose();
         _context.Dispose();
+    }
+
+    // ── ABI v8 (wave 3): audio input / TTS / rerank / lora / cvec / stats ──
+
+    public bool SupportsAudioInput => _model.SupportsAudioInput;
+    public int AudioSampleRate => _model.AudioSampleRate;
+
+    public void PromptWithAudio(IStandardExecutor executor, string text, AudioChunk audio)
+    {
+        ArgumentNullException.ThrowIfNull(executor);
+        executor.PromptWithAudio(text, _model, audio);
+    }
+
+    public void PromptWithAudio(IConversation conversation, string text, AudioChunk audio)
+    {
+        ArgumentNullException.ThrowIfNull(conversation);
+        conversation.PromptWithAudio(text, _model, audio);
+    }
+
+    public float[] Rerank(string query, IReadOnlyList<string> documents) =>
+        _context.Rerank(query, documents);
+
+    public ILoraAdapter LoadLora(string path) => _model.CreateLoraAdapter(path);
+
+    private void AttachLora(ILoraAdapter adapter, float scale) =>
+        _context.SetAdapters(new[] { (adapter, scale) });
+
+    public IDisposable WithLora(string path, float scale) => new LoraScope(this, path, scale);
+
+    public void ClearLora() => _context.SetAdapters(Array.Empty<(ILoraAdapter, float)>());
+
+    public IControlVector LoadControlVector(string path) => _model.CreateControlVector(path);
+
+    public IDisposable WithControlVector(IControlVector vector, int layerStart = 0, int layerEnd = 0)
+    {
+        _context.SetControlVector(vector, layerStart, layerEnd);
+        return new CvecScope(this);
+    }
+
+    public void ClearControlVector() => _context.SetControlVector(null);
+
+    public ITtsSession CreateTtsSession(string ttsMmprojPath, uint contextSize = 0) =>
+        _model.CreateTtsSession(ttsMmprojPath, contextSize);
+
+    public EngineStats GetExecutorStats(IStandardExecutor executor)
+    {
+        ArgumentNullException.ThrowIfNull(executor);
+        return executor.GetStats();
+    }
+
+    public EngineStats GetConversationStats(IConversation conversation)
+    {
+        ArgumentNullException.ThrowIfNull(conversation);
+        return conversation.GetStats();
+    }
+
+    /// <summary>Scoped LoRA attach (ABI v8): detaches and disposes the adapter
+    /// on Dispose — weights-surface only, KV untouched.</summary>
+    private sealed class LoraScope : IDisposable
+    {
+        private readonly GgufEngineOps _owner;
+        private readonly ILoraAdapter? _adapter;
+        public LoraScope(GgufEngineOps owner, string path, float scale)
+        {
+            _owner = owner;
+            _adapter = owner.LoadLora(path);
+            owner.AttachLora(_adapter, scale);
+        }
+        public void Dispose()
+        {
+            _owner.ClearLora();
+            _adapter?.Dispose();
+        }
+    }
+
+    /// <summary>Scoped control-vector apply (ABI v8): detaches on Dispose.</summary>
+    private sealed class CvecScope : IDisposable
+    {
+        private readonly GgufEngineOps _owner;
+        public CvecScope(GgufEngineOps owner) { _owner = owner; }
+        public void Dispose() => _owner.ClearControlVector();
     }
 }

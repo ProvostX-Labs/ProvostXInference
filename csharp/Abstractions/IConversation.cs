@@ -48,4 +48,12 @@ public interface IConversation : IDisposable
     IReadOnlyList<int> GenerateSpeculative(SamplingConfig? config, int maxTokens, Action<int>? onToken = null);
     /// <summary>Spec-session acceptance telemetry for this conversation.</summary>
     SpeculationStats SpeculationStats();
+
+    /// <summary>ABI v8: conversation-lane prompt with ONE raw audio clip
+    /// (PCM F32 mono; media marker must appear in text). Typed refusal when
+    /// the projector lacks an audio adapter.</summary>
+    void PromptWithAudio(string text, IInferenceModel modelWithMmproj, AudioChunk audio);
+
+    /// <summary>ABI v8: stats snapshot of this conversation lane.</summary>
+    EngineStats GetStats();
 }

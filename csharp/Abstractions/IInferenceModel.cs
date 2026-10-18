@@ -52,4 +52,28 @@ string ApplyChatTemplate(string? template, IReadOnlyList<(string role, string co
     /// re-validates fail-closed anyway.
     /// </summary>
     void ValidateSpeculation(SpeculativeConfig config);
+
+    /// <summary>ABI v8: does the loaded (shared) mmproj carry an audio
+    /// adapter? Capability-truthful (false until a mmproj is loaded via
+    /// LoadVisionEncoder; a vision-only projector reports false).</summary>
+    bool SupportsAudioInput { get; }
+
+    /// <summary>Native PCM sample rate the audio projector expects, or -1
+    /// when audio is unsupported (product code never resamples).</summary>
+    int AudioSampleRate { get; }
+
+    /// <summary>ABI v8: load a LoRA adapter for THIS model (arch-matched;
+    /// typed InferenceException on file/arch/rank mismatch naming the
+    /// boundary). One adapter per record; the caller owns the disposable.</summary>
+    ILoraAdapter CreateLoraAdapter(string path);
+
+    /// <summary>ABI v8: load a control-vector direction file (direction.&lt;L&gt;
+    /// F32 tensors) for THIS model (n_embd-matched, typed refusal naming both
+    /// dims on mismatch).</summary>
+    IControlVector CreateControlVector(string path);
+
+    /// <summary>ABI v8: create a TTS session (separate decode context on this
+    /// backbone model + the given gen-audio mmproj). Typed refusal when the
+    /// mmproj has no gen-audio pipeline.</summary>
+    ITtsSession CreateTtsSession(string ttsMmprojPath, uint contextSize = 0);
 }

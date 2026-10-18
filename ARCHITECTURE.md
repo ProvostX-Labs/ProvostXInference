@@ -32,9 +32,10 @@ composes backend adapters into one uniform engine object; nothing below leaks up
 
 ## Native core (src/, include/)
 
-### C API (pvxinference.h) — ABI v7
-Flat C API, 70+ exports. Opaque handles: `pvx_model_t`, `pvx_context_t`, `pvx_pool_t`,
-`pvx_conversation_t`, `pvx_executor_t`, `pvx_state_t`, `pvx_grammar_t`, mmproj wrapper.
+### C API (pvxinference.h) — ABI v8
+Flat C API, 90+ exports. Opaque handles: `pvx_model_t`, `pvx_context_t`, `pvx_pool_t`,
+`pvx_conversation_t`, `pvx_executor_t`, `pvx_state_t`, `pvx_grammar_t`, mmproj wrapper,
+`pvx_adapter_t` (LoRA), `pvx_cvec_t` (control vectors), `pvx_tts_session_t` (gen-audio).
 The ABI version is handshake-checked against the C# binding's `ExpectedAbiVersion` at
 engine open — mismatch refuses to load (fail-closed, never best-effort). v6 (wave 1) was
 append-only: `pvx_spec_mode_t` gained the n-gram modes, `pvx_spec_params_t` appends
@@ -44,12 +45,40 @@ append-only too: `pvx_spec_mode_t` gains `PVX_SPEC_EAGLE3`/`PVX_SPEC_DFLASH`,
 the batched/pool-lane spec trio (`pvx_conversation_spec_init/_generate_spec/_spec_stats`),
 the per-conversation spec-session teardown hook (`pvx_conversation_spec_free`), and the
 pure JSON-schema→GBNF converter (`pvx_grammar_from_json_schema`, string→string, KV-neutral).
+v8 (wave 3) is append-only as well: `pvx_pooling_type_t` gains `PVX_POOL_RANK` (the
+rerank lane — classification head attached to the graph, upstream llama-server
+`--reranking` contract; `pvx_rerank` scores (query, doc) pairs single-shot on a fresh
+seq, refusal typed on any other pooling), audio input rides the mtmd surface
+(`pvx_mtmd_supports_audio` / `pvx_mtmd_audio_sample_rate` /
+`pvx_executor_prompt_with_audio` / `pvx_conversation_prompt_with_audio` — PCM F32 at
+the projector's native rate, no resampling in product code), TTS is a SEPARATE decode
+context (`pvx_tts_session_create`/`_free`/`pvx_tts_generate` — single-shot session,
+fresh sessions replay byte-identically per (text, seed), typed refusal when the mmproj
+has no gen-audio pipeline), LoRA adapters attach/detach on LIVE contexts
+(`pvx_adapter_load`/`pvx_context_set_lora`, weights-surface modifier — KV-neutral),
+control vectors port `common_control_vector_load` into src/
+(`pvx_control_vector_load`/`pvx_context_set_control_vector`, same KV-neutrality), and
+the stats export is a snapshot (`pvx_executor_stats`/`pvx_conversation_stats`,
+`pvx_stats_t` copy-out counters, spec telemetry mirrors the spec stats).
 
 - **`pvxinference.cpp`** — core: model load, tokenize, chat template, context, conversation
   pool, batched + executor inference, sampling, KV ops (save/restore/copy/rewind/shift),
   embeddings, speculative decode, chunked decode (all decode paths split pending tokens into
   ≤ `n_batch` slices with per-slice position advance — `llama_decode` ABORTS beyond one batch).
 - **`pvx_backend.cpp`** — backend safety layer (below).
+- **`pvx_adapters.cpp`** — ABI v8 (wave 3): LoRA adapter load/attach/detach
+  (`llama_set_adapters_lora` — weights-surface: live contexts, KV content untouched,
+  serialized by the context `infer_mtx`) and the control-vector loader (pattern-port of
+  the vendored `common_control_vector_load_one`: `direction.<L>` F32 1-D tensors
+  accumulated into an n_embd × max_layer buffer; explicit out-of-range layer ends are a
+  typed refusal, never a silent clamp).
+- **`pvx_tts.cpp`** — ABI v8 (wave 3): speech output via the PUBLIC mtmd gen-audio
+  helper surface (`mtmd_helper_gen_audio_*` — never the frozen common runtimes): a
+  dedicated decode context on the backbone (qwen3tts — embeddings on, semantic codes
+  through the classification-style output), our own deterministic top-k/top-p backbone
+  sampler, raw-PCM output. The session is SINGLE-SHOT: the gen pipeline carries
+  cross-call state inside the mtmd context, so a second generate refuses typed
+  (`tts/session-consumed`) rather than degrade — fresh sessions replay byte-identically.
 - **`pvx_spec_engine.*`** — speculative decoding: draft model (draft-simple / MTP per
   vendored llama.cpp support) AND n-gram modes (simple / map-k / mod / cache — no draft
   model, drafts from the committed stream). The draft-context mirror is EMBD-AWARE

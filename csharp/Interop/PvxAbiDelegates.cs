@@ -107,4 +107,32 @@ internal static class PvxAbiDelegates
         [MarshalAs(UnmanagedType.LPUTF8Str)] string jsonSchema,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string rootName,
         out IntPtr gbnf, out IntPtr error);
+    // ── ABI v8: audio input ──
+    internal delegate bool PvxMtmdSupportsAudioDelegate(IntPtr model);
+    internal delegate int PvxMtmdAudioSampleRateDelegate(IntPtr model);
+    /// <summary>Executor + conversation prompt-with-audio (PCM F32 mono).</summary>
+    internal delegate PvxResult PvxPromptWithAudioDelegate(IntPtr handle, IntPtr model,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string text, float[] pcm, int nSamples);
+    // ── ABI v8: TTS ──
+    internal delegate PvxResult PvxTtsSessionCreateDelegate(IntPtr model,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string mmprojPath, uint contextSize, out IntPtr session);
+    internal delegate void PvxTtsSessionFreeDelegate(IntPtr session);
+    internal delegate PvxResult PvxTtsGenerateDelegate(IntPtr session, in PvxTtsParams parameters,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string text, out IntPtr pcm, out int nSamples, out int sampleRate);
+    internal delegate void PvxFreeFloatArrayDelegate(IntPtr pcm);
+    // ── ABI v8: rerank ──
+    internal delegate PvxResult PvxRerankDelegate(IntPtr context,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string query, IntPtr[] documents, int nDocuments, out IntPtr scores);
+    // ── ABI v8: LoRA adapters ──
+    internal delegate PvxResult PvxAdapterLoadDelegate(IntPtr model,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string path, out IntPtr adapter);
+    internal delegate void PvxAdapterFreeDelegate(IntPtr adapter);
+    internal delegate PvxResult PvxContextSetLoraDelegate(IntPtr context, IntPtr[] adapters, float[] scales, int n);
+    // ── ABI v8: control vectors ──
+    internal delegate PvxResult PvxControlVectorLoadDelegate(IntPtr model,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string path, out IntPtr cvec);
+    internal delegate void PvxControlVectorFreeDelegate(IntPtr cvec);
+    internal delegate PvxResult PvxContextSetControlVectorDelegate(IntPtr context, IntPtr cvec, int layerStart, int layerEnd);
+    // ── ABI v8: stats export ──
+    internal delegate PvxResult PvxStatsDelegate(IntPtr handle, out PvxStats stats);
 }

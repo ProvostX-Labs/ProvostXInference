@@ -350,6 +350,8 @@ internal sealed class FakeConversation : IConversation
     public byte[] ExportCheckpoint() => Array.Empty<byte>();
     public void ImportCheckpoint(byte[] data) { }
     public void PromptWithImages(string text, IVisionEncoder vision, params byte[][] images) { }
+    public void PromptWithAudio(string text, IInferenceModel modelWithMmproj, AudioChunk audio) { }
+    public EngineStats GetStats() => new(0, 0, 0, 0, 0, 0);
     public SpeculativeConfig? ActiveSpeculation => null;
     public void EnableSpeculation(SpeculativeConfig config) { }
     public void DisableSpeculation() { }
@@ -380,6 +382,8 @@ internal sealed class FakeStandardExecutor : IStandardExecutor
     public void Prompt(string text) => throw new NotSupportedException();
     public void PromptTokens(int[] tokens) => throw new NotSupportedException();
     public void PromptWithImages(string text, IInferenceModel model, params byte[][] images) => throw new NotSupportedException();
+    public void PromptWithAudio(string text, IInferenceModel modelWithMmproj, AudioChunk audio) => throw new NotSupportedException();
+    public EngineStats GetStats() => throw new NotSupportedException();
     public InferResult Infer() => throw new NotSupportedException();
     public int Sample(SamplingConfig? config = null) => throw new NotSupportedException();
     public int SampleWithGrammar(SamplingConfig? config, IGrammar grammar) => throw new NotSupportedException();

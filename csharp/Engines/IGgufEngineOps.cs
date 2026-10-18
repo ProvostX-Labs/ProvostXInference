@@ -105,4 +105,64 @@ public interface IGgufEngineOps
 
     /// <summary>Typed pre-validation of a speculative config (mode/path/capability).</summary>
     void ValidateSpeculation(SpeculativeConfig config);
+
+    // ── ABI v8 (wave 3): audio input / TTS / rerank / lora / cvec / stats ──
+
+    /// <summary>Capability probe: loaded mmproj carries an audio adapter
+    /// (false until a mmproj is loaded; vision-only projectors report
+    /// false).</summary>
+    bool SupportsAudioInput { get; }
+
+    /// <summary>Native PCM rate the audio projector expects (-1 when
+    /// unsupported). Product code never resamples.</summary>
+    int AudioSampleRate { get; }
+
+    /// <summary>Executor-lane prompt with ONE raw audio clip (PCM F32 mono at
+    /// the projector's native rate; media marker in text). Typed refusal when
+    /// the projector lacks an audio adapter.</summary>
+    void PromptWithAudio(IStandardExecutor executor, string text, AudioChunk audio);
+
+    /// <summary>Conversation-lane prompt with ONE raw audio clip.</summary>
+    void PromptWithAudio(IConversation conversation, string text, AudioChunk audio);
+
+    /// <summary>Single-shot rerank scores (RANK-pooling context required —
+    /// set ContextSettings.PoolingType = Rank; typed refusal otherwise).
+    /// KV-neutral (fresh seq per pair).</summary>
+    float[] Rerank(string query, IReadOnlyList<string> documents);
+
+    /// <summary>Load a LoRA adapter (arch-matched; typed refusal on
+    /// file/arch mismatch).</summary>
+    ILoraAdapter LoadLora(string path);
+
+    /// <summary>Scoped attach: loads + attaches the adapter, returns a scope
+    /// that detaches AND disposes on Dispose (weights-surface: KV-neutral,
+    /// attach mid-conversation without rewind).</summary>
+    IDisposable WithLora(string path, float scale);
+
+    /// <summary>Detach all adapters on the live context (baseline logits
+    /// return; KV untouched).</summary>
+    void ClearLora();
+
+    /// <summary>Load a control-vector direction file (n_embd-matched;
+    /// typed refusal naming both dims).</summary>
+    IControlVector LoadControlVector(string path);
+
+    /// <summary>Scoped control-vector apply (layer range 0/0 = full);
+    /// detaches on Dispose (KV-neutral).</summary>
+    IDisposable WithControlVector(IControlVector vector, int layerStart = 0, int layerEnd = 0);
+
+    /// <summary>Clear the applied control vector (baseline logits return).</summary>
+    void ClearControlVector();
+
+    /// <summary>Create a TTS session: a SEPARATE decode context on the
+    /// backbone model + the gen-audio mmproj (KV-neutral by construction).
+    /// Typed refusal (tts/gen-audio-capability) on a mmproj without a
+    /// gen-audio pipeline.</summary>
+    ITtsSession CreateTtsSession(string ttsMmprojPath, uint contextSize = 0);
+
+    /// <summary>Stats snapshot of one executor lane.</summary>
+    EngineStats GetExecutorStats(IStandardExecutor executor);
+
+    /// <summary>Stats snapshot of one conversation lane.</summary>
+    EngineStats GetConversationStats(IConversation conversation);
 }

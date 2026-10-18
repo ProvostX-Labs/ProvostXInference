@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using ProvostXInference.Abstractions;
 using ProvostXInference.Exceptions;
@@ -151,5 +152,69 @@ public sealed class NativeInferenceContext : IInferenceContext
         if (_disposed) return;
         _disposed = true;
         _handle.Dispose();
+    }
+
+    // ── ABI v8 (wave 3): rerank + weights-surface ops ──
+
+    /// <summary>Single-shot rerank (RANK-pooling context required — typed
+    /// InferenceException otherwise). Fresh seq per pair; KV-neutral.</summary>
+    public float[] Rerank(string query, IReadOnlyList<string> documents)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentNullException.ThrowIfNull(query);
+        ArgumentNullException.ThrowIfNull(documents);
+        if (documents.Count == 0) throw new ArgumentException("empty document list", nameof(documents));
+
+        var docPtrs = new IntPtr[documents.Count];
+        var keepAlive = new List<IntPtr>();
+        try
+        {
+            for (int i = 0; i < documents.Count; i++)
+            {
+                keepAlive.Add(PvxNative.AllocUTF8(documents[i]));
+                docPtrs[i] = keepAlive[i];
+            }
+            _model.EntryPoints.Rerank(_handle.DangerousGetHandle(), query, docPtrs, docPtrs.Length, out var scoresPtr)
+                .ThrowIfError(_model.EntryPoints, _handle.DangerousGetHandle());
+            try
+            {
+                var scores = new float[documents.Count];
+                Marshal.Copy(scoresPtr, scores, 0, documents.Count);
+                return scores;
+            }
+            finally { _model.EntryPoints.FreeRerankScores(scoresPtr); }
+        }
+        finally
+        {
+            foreach (var p in keepAlive) Marshal.FreeHGlobal(p);
+        }
+    }
+
+    /// <summary>Attach (or detach — empty list) LoRA adapters. Weights-surface
+    /// modifier: KV-neutral, all-or-nothing, scales &gt; 0.</summary>
+    public void SetAdapters(IReadOnlyList<(ILoraAdapter adapter, float scale)> adapters)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentNullException.ThrowIfNull(adapters);
+        var handles = new IntPtr[adapters.Count];
+        var scales = new float[adapters.Count];
+        for (int i = 0; i < adapters.Count; i++)
+        {
+            var (adapter, scale) = adapters[i];
+            handles[i] = ((NativeLoraAdapter)adapter).RawHandle;
+            scales[i] = scale;
+        }
+        _model.EntryPoints.ContextSetLora(_handle.DangerousGetHandle(), handles, scales, handles.Length)
+            .ThrowIfError(_model.EntryPoints, _handle.DangerousGetHandle());
+    }
+
+    /// <summary>Apply (or clear — null) a control vector (layer range
+    /// inclusive; 0/0 = full range). Weights-surface: KV-neutral.</summary>
+    public void SetControlVector(IControlVector? vector, int layerStart = 0, int layerEnd = 0)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var raw = vector is null ? IntPtr.Zero : ((NativeControlVector)vector).RawHandle;
+        _model.EntryPoints.ContextSetControlVector(_handle.DangerousGetHandle(), raw, layerStart, layerEnd)
+            .ThrowIfError(_model.EntryPoints, _handle.DangerousGetHandle());
     }
 }

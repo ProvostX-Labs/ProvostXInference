@@ -252,6 +252,10 @@ pvx_result_t pvx_create_context(pvx_model_t* model,
         case PVX_POOL_MEAN: cp.pooling_type = LLAMA_POOLING_TYPE_MEAN; break;
         case PVX_POOL_CLS:  cp.pooling_type = LLAMA_POOLING_TYPE_CLS; break;
         case PVX_POOL_LAST: cp.pooling_type = LLAMA_POOLING_TYPE_LAST; break;
+        // ABI v8: reranking lane — attach the classification head to the
+        // graph (upstream llama-server --reranking pooling). pvx_rerank
+        // refuses typed on any other pooling (boundary: rerank/pooling).
+        case PVX_POOL_RANK: cp.pooling_type = LLAMA_POOLING_TYPE_RANK; break;
         default:           cp.pooling_type = LLAMA_POOLING_TYPE_NONE; break;
     }
 
@@ -587,6 +591,7 @@ pvx_result_t pvx_executor_prompt(pvx_executor_t* exec, const char* text) {
     if (do_tokenize(exec->ctx_ref->vocab, text, tokens, false, true) < 0) return PVX_ERR_INTERNAL;
     exec->pending_tokens.insert(exec->pending_tokens.end(), tokens.begin(), tokens.end());
     exec->has_pending = true;
+    exec->n_prompt_tokens += (int64_t) tokens.size();  // ABI v8 stats
     return PVX_OK;
 }
 
@@ -597,6 +602,7 @@ pvx_result_t pvx_executor_prompt_tokens(pvx_executor_t* exec, const int32_t* tok
     // position 0 every token. Text prompts (pvx_executor_prompt) reset instead.
     exec->pending_tokens.insert(exec->pending_tokens.end(), tokens, tokens + count);
     exec->has_pending = true;
+    exec->n_prompt_tokens += count;  // ABI v8 stats
     return PVX_OK;
 }
 
@@ -665,6 +671,7 @@ pvx_decode_result_t pvx_executor_infer(pvx_executor_t* exec) {
         for (int i = 0; i < slice; i++)
             pvx_mirror_push_token(exec, exec->pending_tokens[decoded + i],
                                   kv_base + decoded + i);
+        exec->n_decode_steps++;  // ABI v8 stats
         exec->n_tokens += slice;
         exec->n_kv_pos += slice;
         if (last_slice) {
@@ -1283,6 +1290,7 @@ pvx_result_t pvx_conversation_prompt(pvx_conversation_t* conv, const char* text)
     if (do_tokenize(vocab, text, tokens, false, true) < 0) return PVX_ERR_INTERNAL;
     conv->pending_tokens.insert(conv->pending_tokens.end(), tokens.begin(), tokens.end());
     conv->has_pending_prompt = true;
+    conv->n_prompt_tokens += (int64_t) tokens.size();  // ABI v8 stats
     return PVX_OK;
 }
 
@@ -1291,6 +1299,7 @@ pvx_result_t pvx_conversation_prompt_tokens(pvx_conversation_t* conv,
     if (!conv || !tokens || count <= 0) return PVX_ERR_INVALID_ARG;
     conv->pending_tokens.insert(conv->pending_tokens.end(), tokens, tokens + count);
     conv->has_pending_prompt = true;
+    conv->n_prompt_tokens += count;  // ABI v8 stats
     return PVX_OK;
 }
 
@@ -1621,6 +1630,7 @@ pvx_decode_result_t pvx_infer(pvx_context_t* ctx) {
             int e = std::min(end, conv_end);
             if (s >= e) continue;
             int covered = e - s;
+            cp.conv->n_decode_steps++;  // ABI v8 stats (this conv rode this decode)
             cp.conv->n_tokens += covered;
             cp.conv->n_kv_pos += covered;
             cp.conv->recent_tokens.insert(cp.conv->recent_tokens.end(),
@@ -1985,6 +1995,7 @@ pvx_result_t pvx_conversation_prompt_with_images(pvx_conversation_t* conv,
                         return PVX_ERR_DECODE_FAILED;
                     }
                     conv->n_tokens += n_slice; conv->n_kv_pos += n_slice;
+                    conv->n_decode_steps++;  // ABI v8 stats (text flush)
                     conv->recent_tokens.insert(conv->recent_tokens.end(),
                                                conv->pending_tokens.begin() + flushed,
                                                conv->pending_tokens.begin() + flushed + n_slice);
@@ -2050,6 +2061,7 @@ pvx_result_t pvx_conversation_prompt_with_images(pvx_conversation_t* conv,
                 }
 
                 conv->n_tokens += n_tokens; conv->n_kv_pos += n_tokens;
+                conv->n_decode_steps++;  // ABI v8 stats (image embd decode)
                 // ABI v7 feature 5: embd rows enter the conversation mirror at
                 // their pinned (plain, batched-lane) positions — the spec
                 // engine replays them by pointer exactly like the executor
@@ -2730,6 +2742,7 @@ pvx_result_t pvx_executor_prompt_with_images(pvx_executor_t* exec,
                 }
                 exec->n_tokens += n;
                 exec->n_kv_pos += n;
+                exec->n_decode_steps++;  // ABI v8 stats (text flush)
                 // Committed window grew: mirror + penalty history advance with
                 // it (same bookkeeping as the conversation lane's text flush).
                 exec->recent_tokens.insert(exec->recent_tokens.end(),
@@ -2817,6 +2830,7 @@ pvx_result_t pvx_executor_prompt_with_images(pvx_executor_t* exec,
                 }
                 exec->n_tokens += n_tokens;
                 exec->n_kv_pos += n_tokens;
+                exec->n_decode_steps++;  // ABI v8 stats (image embd decode)
                 exec->last_batch_idx = n_tokens - 1;
                 // Mirror: one embd-aware entry per committed image position
                 // (id == LLAMA_TOKEN_NULL) — the rows that keep mirror-size ==
@@ -3020,3 +3034,514 @@ extern "C" pvx_result_t pvx_repair_eog_metadata(const char* in_path, const char*
              eos_from_fallback ? " (source: eos_token_id)" : "");
     return PVX_OK;
 }
+
+// ══════════════════════════════════════════════════════════
+// ABI v8 — Wave 3: audio input, stats export, reranking
+// ══════════════════════════════════════════════════════════
+
+// ── Audio input (plan feature 6; MTMD_INPUT_CHUNK_TYPE_AUDIO) ──
+//
+// Capability probes: the mtmd context must carry an AUDIO adapter
+// (mtmd_support_audio); the PCM sample rate contract is the projector's own
+// rate (mtmd_get_audio_sample_rate) — product code never resamples.
+bool pvx_mtmd_supports_audio(const pvx_model_t* model_with_mtmd) {
+    return model_with_mtmd && model_with_mtmd->mtmd_ctx && mtmd_support_audio(model_with_mtmd->mtmd_ctx);
+}
+
+int pvx_mtmd_audio_sample_rate(const pvx_model_t* model_with_mtmd) {
+    if (!model_with_mtmd || !model_with_mtmd->mtmd_ctx) return -1;
+    return mtmd_get_audio_sample_rate(model_with_mtmd->mtmd_ctx);
+}
+
+// Shared audio-chunk processing: tokenize(text + audio bitmap) then walk the
+// chunks — TEXT rows queue tokens, AUDIO rows encode+decode through the same
+// embd-row mechanics as images (flat pinned positions: upstream
+// set_position_mrope_1d equals the plain path for audio rows). One audio clip
+// per call (bitmap = PCM F32 at the projector's native rate).
+static pvx_result_t pvx_prompt_with_audio_impl(
+        const char* lane,
+        void* lane_obj,                       // pvx_executor_t* or pvx_conversation_t*
+        pvx_model_t* model_with_mtmd,
+        const char* text,
+        const float* pcm,
+        int n_samples,
+        // lane callbacks (executor vs conversation commit mechanics)
+        void (*queue_text)(void*, const llama_token*, size_t),
+        pvx_result_t (*decode_flush)(void*),           // flush pending text tokens
+        pvx_result_t (*decode_audio)(void*, mtmd_context*, const mtmd_input_chunk*)) {
+    if (!lane_obj || !model_with_mtmd || !text || !pcm || n_samples <= 0)
+        return PVX_ERR_INVALID_ARG;
+
+    mtmd_context* mctx = model_with_mtmd->mtmd_ctx;
+    if (!mctx) {
+        model_with_mtmd->last_error =
+            std::string(lane) + "/audio-adapter: no mmproj loaded";
+        return PVX_ERR_NOT_SUPPORTED;
+    }
+    if (!mtmd_support_audio(mctx)) {
+        model_with_mtmd->last_error =
+            "media/audio-adapter: this multimodal projector has no audio adapter "
+            "(audio input requires an audio-capable mmproj)";
+        return PVX_ERR_NOT_SUPPORTED;
+    }
+
+    // Step 1: PCM → audio bitmap (mtmd owns the copy).
+    mtmd_bitmap* bitmap = mtmd_bitmap_init_from_audio((size_t) n_samples, pcm);
+    if (!bitmap) {
+        model_with_mtmd->last_error = "media/audio-adapter: bitmap init failed";
+        return PVX_ERR_INVALID_ARG;
+    }
+
+    // Step 2: tokenize text + audio bitmap into chunks (media marker required).
+    mtmd_input_text input_text = {};
+    input_text.text = text;
+    input_text.text_len = strlen(text);
+    input_text.add_special = false;
+    input_text.parse_special = false;
+
+    mtmd_input_chunks* chunks = mtmd_input_chunks_init();
+    mtmd_bitmap* bitmaps[1] = { bitmap };
+    int32_t rc = mtmd_tokenize(mctx, chunks, &input_text, bitmaps, 1);
+    mtmd_bitmap_free(bitmap);
+    if (rc != 0) {
+        mtmd_input_chunks_free(chunks);
+        model_with_mtmd->last_error =
+            "media/audio-tokenize: mtmd_tokenize failed (rc=" + std::to_string(rc) +
+            "; prompt must carry the media marker)";
+        return PVX_ERR_INVALID_ARG;
+    }
+
+    // Step 3: walk chunks in order.
+    pvx_result_t result = PVX_OK;
+    const size_t n_chunks = mtmd_input_chunks_size(chunks);
+    for (size_t i = 0; i < n_chunks && result == PVX_OK; i++) {
+        const mtmd_input_chunk* chunk = mtmd_input_chunks_get(chunks, i);
+        switch (mtmd_input_chunk_get_type(chunk)) {
+        case MTMD_INPUT_CHUNK_TYPE_TEXT: {
+            size_t n_tokens = 0;
+            const llama_token* tokens = mtmd_input_chunk_get_tokens_text(chunk, &n_tokens);
+            if (tokens && n_tokens > 0) queue_text(lane_obj, tokens, n_tokens);
+            break;
+        }
+        case MTMD_INPUT_CHUNK_TYPE_AUDIO:
+            // Audio rows cannot share a token batch — flush pending text first.
+            result = decode_flush(lane_obj);
+            if (result == PVX_OK) result = decode_audio(lane_obj, mctx, chunk);
+            break;
+        default:
+            // Image (or future) chunk in an audio prompt — mixed media is a
+            // typed refusal, never a silent drop.
+            model_with_mtmd->last_error =
+                "media/audio-mixed: tokenizer produced a non-text/audio chunk "
+                "(mixed media prompts are not supported on the audio path)";
+            result = PVX_ERR_NOT_SUPPORTED;
+            break;
+        }
+    }
+
+    mtmd_input_chunks_free(chunks);
+    return result;
+}
+
+// ── executor-lane audio callbacks ──
+
+static void exec_audio_queue_text(void* obj, const llama_token* tokens, size_t n) {
+    pvx_executor_t* exec = (pvx_executor_t*) obj;
+    exec->pending_tokens.insert(exec->pending_tokens.end(), tokens, tokens + n);
+    exec->has_pending = true;
+    exec->n_prompt_tokens += (int64_t) n;  // ABI v8 stats
+}
+
+// Flush pending text tokens through chunked llama_decode (same slicing as
+// pvx_executor_prompt_with_images' flush — batch-size safety).
+static pvx_result_t exec_audio_flush(void* obj) {
+    pvx_executor_t* exec = (pvx_executor_t*) obj;
+    if (!exec->has_pending) return PVX_OK;
+    const uint32_t n_batch = llama_n_batch(exec->ctx_ref->ctx);
+    if (n_batch == 0) {
+        exec->ctx_ref->last_error = "audio text flush: n_batch is 0";
+        return PVX_ERR_DECODE_FAILED;
+    }
+    const int kv_base = exec->n_kv_pos;
+    int flushed = 0;
+    const int total = (int) exec->pending_tokens.size();
+    while (flushed < total) {
+        const int n_slice = std::min((int) n_batch, total - flushed);
+        llama_batch batch = llama_batch_init(n_slice, 0, exec->ctx_ref->n_seq_max);
+        for (int j = 0; j < n_slice; j++) {
+            batch.token[j] = exec->pending_tokens[(size_t) flushed + j];
+            batch.pos[j] = kv_base + flushed + j;
+            batch.n_seq_id[j] = 1;
+            batch.seq_id[j][0] = 0;
+            batch.logits[j] = 0;
+        }
+        batch.n_tokens = n_slice;
+        int rc = llama_decode(exec->ctx_ref->ctx, batch);
+        llama_batch_free(batch);
+        if (rc != 0) {
+            // Keep the REMAINING rows (already-decoded slices committed below).
+            exec->pending_tokens.erase(exec->pending_tokens.begin(),
+                                       exec->pending_tokens.begin() + flushed);
+            exec->ctx_ref->last_error = "audio text flush failed (rc=" +
+                                        std::to_string(rc) + ")";
+            return PVX_ERR_DECODE_FAILED;
+        }
+        exec->recent_tokens.insert(exec->recent_tokens.end(),
+                                   exec->pending_tokens.begin() + flushed,
+                                   exec->pending_tokens.begin() + flushed + n_slice);
+        for (int j = 0; j < n_slice; j++)
+            pvx_mirror_push_token(exec, exec->pending_tokens[(size_t) flushed + j],
+                                  kv_base + flushed + j);
+        exec->n_tokens += n_slice;
+        exec->n_kv_pos += n_slice;
+        exec->n_decode_steps++;  // ABI v8 stats
+        flushed += n_slice;
+    }
+    exec->pending_tokens.clear();
+    exec->has_pending = false;
+    return PVX_OK;
+}
+
+static pvx_result_t exec_audio_decode(void* obj, mtmd_context* mctx, const mtmd_input_chunk* chunk) {
+    pvx_executor_t* exec = (pvx_executor_t*) obj;
+    const bool need_non_causal = mtmd_decode_use_non_causal(mctx, chunk);
+    if (need_non_causal) llama_set_causal_attn(exec->ctx_ref->ctx, false);
+    int32_t enc_rc = mtmd_encode_chunk(mctx, chunk);
+    if (enc_rc != 0) {
+        if (need_non_causal) llama_set_causal_attn(exec->ctx_ref->ctx, true);
+        exec->ctx_ref->last_error = "audio chunk encode failed (rc=" +
+                                    std::to_string(enc_rc) + ")";
+        return PVX_ERR_DECODE_FAILED;
+    }
+    float* embd = mtmd_get_output_embd(mctx);
+    const int n_tokens = (int) mtmd_input_chunk_get_n_tokens(chunk);
+    const int n_embd = llama_model_n_embd_inp(llama_get_model(exec->ctx_ref->ctx));
+    if (!embd || n_tokens <= 0 || n_embd <= 0) {
+        if (need_non_causal) llama_set_causal_attn(exec->ctx_ref->ctx, true);
+        exec->ctx_ref->last_error = "audio chunk produced no usable embeddings";
+        return PVX_ERR_DECODE_FAILED;
+    }
+    // Audio rows decode at FLAT pinned positions (upstream mrope_1d == plain).
+    const llama_pos embd_base = exec->n_kv_pos;
+    const uint32_t n_batch = llama_n_batch(exec->ctx_ref->ctx);
+    int offset = 0;
+    bool failed = false;
+    while (offset < n_tokens) {
+        const int n_slice = std::min((int) n_batch, n_tokens - offset);
+        llama_batch_ext* ext = llama_batch_ext_init(exec->ctx_ref->ctx);
+        for (int j = 0; j < n_slice; j++) {
+            const int i = offset + j;
+            const llama_embd e = { embd + (size_t) i * n_embd, 1, (size_t) n_embd };
+            const int32_t idx = llama_batch_ext_add_embd(ext, 0, e);
+            const llama_pos pos = embd_base + i;
+            if (idx < 0 || !llama_batch_ext_set_pos(ext, idx, &pos)) { failed = true; break; }
+            if (i == n_tokens - 1) llama_batch_ext_set_output_logits(ext, idx, true);
+        }
+        if (!failed) {
+            if (llama_process(exec->ctx_ref->ctx, LLAMA_PROCESS_TYPE_DECODE, ext) != 0)
+                failed = true;
+        }
+        llama_batch_ext_free(ext);
+        if (failed) break;
+        offset += n_slice;
+    }
+    if (need_non_causal) llama_set_causal_attn(exec->ctx_ref->ctx, true);
+    if (failed) {
+        exec->ctx_ref->last_error = "audio embd decode failed";
+        return PVX_ERR_DECODE_FAILED;
+    }
+    exec->n_tokens += n_tokens;
+    exec->n_kv_pos += n_tokens;
+    exec->n_decode_steps++;  // ABI v8 stats
+    exec->last_batch_idx = n_tokens - 1;
+    for (int i = 0; i < n_tokens; i++) {
+        const std::array<llama_pos, 4> rp = { embd_base + i, embd_base + i,
+                                              embd_base + i, embd_base + i };
+        pvx_mirror_push_embd(exec, embd + (size_t) i * n_embd, n_embd, rp);
+    }
+    snapshot_logits_row(exec->ctx_ref->ctx, exec->last_logits, n_tokens - 1);
+    return PVX_OK;
+}
+
+pvx_result_t pvx_executor_prompt_with_audio(pvx_executor_t* exec,
+                                            pvx_model_t* model_with_mtmd,
+                                            const char* text,
+                                            const float* pcm,
+                                            int n_samples) {
+    if (!exec) return PVX_ERR_INVALID_ARG;
+    // Same EAGLE3 refusal seam as vision (embd rows cannot be drafted exact).
+    if (exec->spec && exec->spec->is_eagle()) {
+        exec->ctx_ref->last_error =
+            "eagle3 spec session active: multimodal prompts are a typed refusal "
+            "while EAGLE3 drafting runs (free the session before media prompts) "
+            "(boundary: spec-engine/eagle3-vision)";
+        return PVX_ERR_NOT_SUPPORTED;
+    }
+    std::lock_guard<std::mutex> lock(exec->ctx_ref->infer_mtx);
+    return pvx_prompt_with_audio_impl("executor", exec, model_with_mtmd, text,
+                                      pcm, n_samples,
+                                      exec_audio_queue_text, exec_audio_flush,
+                                      exec_audio_decode);
+}
+
+// ── conversation-lane audio callbacks ──
+
+static void conv_audio_queue_text(void* obj, const llama_token* tokens, size_t n) {
+    pvx_conversation_t* conv = (pvx_conversation_t*) obj;
+    conv->pending_tokens.insert(conv->pending_tokens.end(), tokens, tokens + n);
+    conv->has_pending_prompt = true;
+    conv->n_prompt_tokens += (int64_t) n;  // ABI v8 stats
+}
+
+static pvx_result_t conv_audio_flush(void* obj) {
+    pvx_conversation_t* conv = (pvx_conversation_t*) obj;
+    if (conv->pending_tokens.empty()) return PVX_OK;
+    const uint32_t n_batch = llama_n_batch(conv->ctx);
+    if (n_batch == 0) return PVX_ERR_DECODE_FAILED;
+    const int vflush_base = conv->n_kv_pos;
+    int flushed = 0;
+    while (flushed < (int) conv->pending_tokens.size()) {
+        int n_slice = std::min((int) n_batch, (int) conv->pending_tokens.size() - flushed);
+        llama_batch tbatch = llama_batch_init(n_slice, 0, 1);
+        for (int j = 0; j < n_slice; j++) {
+            tbatch.token[j] = conv->pending_tokens[(size_t) flushed + j];
+            tbatch.pos[j] = vflush_base + flushed + j;
+            tbatch.n_seq_id[j] = 1;
+            tbatch.seq_id[j][0] = conv->seq_id;
+            tbatch.logits[j] = 0;
+        }
+        tbatch.n_tokens = n_slice;
+        int rc2 = llama_decode(conv->ctx, tbatch);
+        llama_batch_free(tbatch);
+        if (rc2 != 0) {
+            conv->pending_tokens.erase(conv->pending_tokens.begin(),
+                                       conv->pending_tokens.begin() + flushed);
+            return PVX_ERR_DECODE_FAILED;
+        }
+        conv->n_tokens += n_slice; conv->n_kv_pos += n_slice;
+        conv->n_decode_steps++;  // ABI v8 stats
+        conv->recent_tokens.insert(conv->recent_tokens.end(),
+                                   conv->pending_tokens.begin() + flushed,
+                                   conv->pending_tokens.begin() + flushed + n_slice);
+        for (int j = 0; j < n_slice; j++)
+            pvx_conv_mirror_push_token(conv, conv->pending_tokens[(size_t) flushed + j],
+                                       conv->n_kv_pos - n_slice + j);
+        flushed += n_slice;
+    }
+    conv->pending_tokens.clear();
+    return PVX_OK;
+}
+
+static pvx_result_t conv_audio_decode(void* obj, mtmd_context* mctx, const mtmd_input_chunk* chunk) {
+    pvx_conversation_t* conv = (pvx_conversation_t*) obj;
+    const bool need_non_causal = mtmd_decode_use_non_causal(mctx, chunk);
+    if (need_non_causal) llama_set_causal_attn(conv->ctx, false);
+    int32_t enc_rc = mtmd_encode_chunk(mctx, chunk);
+    if (enc_rc != 0) {
+        if (need_non_causal) llama_set_causal_attn(conv->ctx, true);
+        return PVX_ERR_DECODE_FAILED;
+    }
+    float* embd = mtmd_get_output_embd(mctx);
+    const int n_tokens = (int) mtmd_input_chunk_get_n_tokens(chunk);
+    const int n_embd = llama_model_n_embd_inp(llama_get_model(conv->ctx));
+    if (embd && n_tokens > 0 && n_embd > 0) {
+        const llama_pos embd_base = conv->n_kv_pos;
+        llama_batch ebatch = llama_batch_init(n_tokens, n_embd, 1);
+        memcpy(ebatch.embd, embd, (size_t) n_tokens * n_embd * sizeof(float));
+        for (int j = 0; j < n_tokens; j++) {
+            ebatch.pos[j] = embd_base + j;
+            ebatch.n_seq_id[j] = 1;
+            ebatch.seq_id[j][0] = conv->seq_id;
+            ebatch.logits[j] = (j == n_tokens - 1) ? 1 : 0;
+        }
+        ebatch.n_tokens = n_tokens;
+        int rc3 = llama_decode(conv->ctx, ebatch);
+        llama_batch_free(ebatch);
+        if (need_non_causal) llama_set_causal_attn(conv->ctx, true);
+        if (rc3 != 0) return PVX_ERR_DECODE_FAILED;
+        conv->n_tokens += n_tokens; conv->n_kv_pos += n_tokens;
+        conv->n_decode_steps++;  // ABI v8 stats
+        for (int j = 0; j < n_tokens; j++) {
+            const std::array<llama_pos, 4> rp = { embd_base + j, embd_base + j,
+                                                  embd_base + j, embd_base + j };
+            pvx_conv_mirror_push_embd(conv, embd + (size_t) j * n_embd, n_embd, rp);
+        }
+        conv->last_batch_idx = n_tokens - 1;
+        snapshot_logits_row(conv->ctx, conv->last_logits, n_tokens - 1);
+        return PVX_OK;
+    }
+    if (need_non_causal) llama_set_causal_attn(conv->ctx, true);
+    return PVX_ERR_DECODE_FAILED;
+}
+
+pvx_result_t pvx_conversation_prompt_with_audio(pvx_conversation_t* conv,
+                                                pvx_model_t* model_with_mtmd,
+                                                const char* text,
+                                                const float* pcm,
+                                                int n_samples) {
+    if (!conv || !conv->ctx_ref) return PVX_ERR_INVALID_ARG;
+    if (conv->spec && conv->spec->is_eagle()) {
+        conv->ctx_ref->last_error =
+            "eagle3 spec session active: multimodal prompts are a typed refusal "
+            "(boundary: spec-engine/eagle3-vision)";
+        return PVX_ERR_NOT_SUPPORTED;
+    }
+    std::lock_guard<std::mutex> lock(conv->ctx_ref->infer_mtx);
+    return pvx_prompt_with_audio_impl("conversation", conv, model_with_mtmd, text,
+                                      pcm, n_samples,
+                                      conv_audio_queue_text, conv_audio_flush,
+                                      conv_audio_decode);
+}
+
+// ── Stats export (plan feature 12) ──
+// Snapshot semantics: counters are plain copies of the lane's additive
+// fields; spec counters mirror pvx_*_spec_stats (0/0 when no session).
+
+pvx_result_t pvx_executor_stats(pvx_executor_t* exec, pvx_stats_t* out_stats) {
+    if (!exec || !out_stats) return PVX_ERR_INVALID_ARG;
+    std::lock_guard<std::mutex> lock(exec->ctx_ref->infer_mtx);
+    out_stats->n_tokens = exec->n_tokens;
+    out_stats->n_kv_pos = exec->n_kv_pos;
+    out_stats->n_prompt_tokens = exec->n_prompt_tokens;
+    out_stats->n_decode_steps = exec->n_decode_steps;
+    out_stats->spec_drafted = exec->spec ? exec->spec->drafted() : 0;
+    out_stats->spec_accepted = exec->spec ? exec->spec->accepted() : 0;
+    return PVX_OK;
+}
+
+pvx_result_t pvx_conversation_stats(pvx_conversation_t* conv, pvx_stats_t* out_stats) {
+    if (!conv || !conv->ctx_ref || !out_stats) return PVX_ERR_INVALID_ARG;
+    std::lock_guard<std::mutex> lock(conv->ctx_ref->infer_mtx);
+    out_stats->n_tokens = conv->n_tokens;
+    out_stats->n_kv_pos = conv->n_kv_pos;
+    out_stats->n_prompt_tokens = conv->n_prompt_tokens;
+    out_stats->n_decode_steps = conv->n_decode_steps;
+    out_stats->spec_drafted = conv->spec ? conv->spec->drafted() : 0;
+    out_stats->spec_accepted = conv->spec ? conv->spec->accepted() : 0;
+    return PVX_OK;
+}
+
+// ── Reranking (plan feature 8; upstream llama-server --reranking pattern) ──
+//
+// Prompt layout: the model's "rerank" chat template ({query}/{document}
+// substitution) when present, else the token fallback (BOS + query + EOS +
+// SEP? + doc + EOS, mirroring format_prompt_rerank). Each (query, doc) pair
+// is scored on the context's own seq 0 with RANK pooling; the sequence is
+// cleared before the next pair (KV-neutral: no residual state). The score is
+// the classification head's first output element; an embeddings width != 1
+// means the model has no rerank score head → typed refusal.
+
+static void build_rerank_tokens(const llama_vocab* vocab, const llama_model* model,
+                                 const std::string& query, const std::string& doc,
+                                 std::vector<llama_token>& out) {
+    out.clear();
+    const char* tmpl = llama_model_chat_template(model, "rerank");
+    if (tmpl && tmpl[0]) {
+        std::string prompt(tmpl);
+        // {query}/{document} substitution (upstream string_replace_all pattern)
+        const std::string qk = "{query}", dk = "{document}";
+        std::string result;
+        result.reserve(prompt.size() + query.size() + doc.size());
+        size_t pos = 0;
+        while (pos < prompt.size()) {
+            size_t q = prompt.find(qk, pos), d = prompt.find(dk, pos);
+            size_t hit = std::min(q, d);
+            if (hit == std::string::npos) { result.append(prompt, pos, std::string::npos); break; }
+            result.append(prompt, pos, hit - pos);
+            if (hit == q) { result.append(query); pos = q + qk.size(); }
+            else { result.append(doc); pos = d + dk.size(); }
+        }
+        do_tokenize(vocab, result.c_str(), out, false, true);
+        return;
+    }
+    // Token fallback (upstream format_prompt_rerank else-branch)
+    std::vector<llama_token> qtok, dtok;
+    do_tokenize(vocab, query.c_str(), qtok, false, false);
+    do_tokenize(vocab, doc.c_str(), dtok, false, false);
+    llama_token eos = llama_vocab_eos(vocab);
+    if (eos == LLAMA_TOKEN_NULL) eos = llama_vocab_sep(vocab);
+    if (llama_vocab_get_add_bos(vocab)) out.push_back(llama_vocab_bos(vocab));
+    out.insert(out.end(), qtok.begin(), qtok.end());
+    if (llama_vocab_get_add_eos(vocab)) out.push_back(eos);
+    if (llama_vocab_get_add_sep(vocab)) out.push_back(llama_vocab_sep(vocab));
+    out.insert(out.end(), dtok.begin(), dtok.end());
+    if (llama_vocab_get_add_eos(vocab)) out.push_back(eos);
+}
+
+pvx_result_t pvx_rerank(pvx_context_t* ctx, const char* query,
+                        const char* const* documents, int n_documents,
+                        float** out_scores) {
+    if (!ctx || !query || !documents || n_documents <= 0 || !out_scores)
+        return PVX_ERR_INVALID_ARG;
+    if (ctx->pool_type != PVX_POOL_RANK) {
+        ctx->last_error =
+            "rerank/pooling: context pooling must be PVX_POOL_RANK "
+            "(create the context with pooling_type = PVX_POOL_RANK)";
+        return PVX_ERR_NOT_SUPPORTED;
+    }
+
+    // Capability gate (upstream llama-server --reranking contract): ONLY the
+    // pooling type distinguishes the rerank lane. The score is the pooled
+    // embedding's first element (embd[0]) — the classification head (cls.weight)
+    // is the GGUF conversion's contract, verified at provisioning time.
+    // A RANK context on a headless encoder yields hidden-state readings
+    // (upstream behaves identically under --reranking); every non-RANK
+    // pooling refuses typed (boundary: rerank/pooling).
+    std::lock_guard<std::mutex> lock(ctx->infer_mtx);
+    llama_context* lctx = ctx->ctx;
+    const llama_model* model = ctx->model;
+    const llama_vocab* vocab = llama_model_get_vocab(model);
+    const bool has_enc = llama_model_has_encoder(model);
+
+    float* scores = (float*) calloc((size_t) n_documents, sizeof(float));
+    if (!scores) return PVX_ERR_INTERNAL;
+    *out_scores = scores;
+
+    llama_set_embeddings(lctx, true);
+
+    for (int d = 0; d < n_documents; d++) {
+        if (!documents[d]) { free(scores); *out_scores = nullptr; return PVX_ERR_INVALID_ARG; }
+        // Fresh seq 0 per document — no residual KV between pairs.
+        llama_memory_seq_rm(ctx->mem, 0, 0, -1);
+
+        std::vector<llama_token> tokens;
+        build_rerank_tokens(vocab, model, query, documents[d], tokens);
+        if (tokens.empty()) { free(scores); *out_scores = nullptr;
+            ctx->last_error = "rerank/prompt: empty token prompt"; return PVX_ERR_INVALID_ARG; }
+
+        const uint32_t n_batch = llama_n_batch(lctx);
+        int decoded = 0;
+        bool failed = false;
+        while (decoded < (int) tokens.size()) {
+            const int n_slice = std::min((int) n_batch, (int) tokens.size() - decoded);
+            llama_batch batch = llama_batch_init(n_slice, 0, 1);
+            for (int j = 0; j < n_slice; j++) {
+                batch.token[j] = tokens[(size_t) decoded + j];
+                batch.pos[j] = decoded + j;
+                batch.n_seq_id[j] = 1;
+                batch.seq_id[j][0] = 0;
+                batch.logits[j] = 0;
+            }
+            batch.n_tokens = n_slice;
+            int rc = has_enc ? llama_encode(lctx, batch) : llama_decode(lctx, batch);
+            llama_batch_free(batch);
+            if (rc != 0) { failed = true; break; }
+            decoded += n_slice;
+        }
+        if (failed) { free(scores); *out_scores = nullptr;
+            ctx->last_error = "rerank/decode: scoring decode failed"; return PVX_ERR_DECODE_FAILED; }
+
+        // RANK pooling: the score IS the pooled embedding's first element
+        // (upstream server contract: res->scores.push_back(embd[0])).
+        const float* embd = llama_get_embeddings_seq(lctx, 0);
+        if (!embd) embd = llama_get_embeddings_ith(lctx, -1);
+        if (!embd) { free(scores); *out_scores = nullptr;
+            ctx->last_error = "rerank/score-head: no embeddings produced"; return PVX_ERR_NOT_SUPPORTED; }
+        scores[d] = embd[0];
+    }
+
+    llama_memory_seq_rm(ctx->mem, 0, 0, -1);  // leave seq 0 clean
+    return PVX_OK;
+}
+
+void pvx_free_rerank_scores(float* scores) { free(scores); }

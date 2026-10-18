@@ -231,4 +231,26 @@ public sealed class NativeConversation : IConversation
             Console.Error.WriteLine($"[NativeConversation] Pool return failed during Dispose: {ex.GetType().Name}: {ex.Message}");
         }
     }
+
+    /// <summary>ABI v8 (wave 3): conversation-lane prompt with ONE raw audio
+    /// clip (PCM F32 mono; media marker must appear in text). Typed refusal
+    /// when the projector lacks an audio adapter.</summary>
+    public void PromptWithAudio(string text, IInferenceModel modelWithMmproj, AudioChunk audio)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentNullException.ThrowIfNull(text);
+        ArgumentNullException.ThrowIfNull(audio);
+        var nativeModel = (NativeInferenceModel)modelWithMmproj;
+        EP.ConversationPromptWithAudio(_handle, nativeModel.RawHandle,
+            text, audio.PcmMono, audio.PcmMono.Length).ThrowIfError(EP, _pool.Context.RawHandle); // F16
+    }
+
+    /// <summary>ABI v8 (wave 3): stats snapshot of this conversation lane.</summary>
+    public EngineStats GetStats()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        EP.ConversationStats(_handle, out var st).ThrowIfError(EP, _pool.Context.RawHandle);
+        return new EngineStats(st.NTokens, st.NKvPos, st.NPromptTokens, st.NDecodeSteps,
+            st.SpecDrafted, st.SpecAccepted);
+    }
 }

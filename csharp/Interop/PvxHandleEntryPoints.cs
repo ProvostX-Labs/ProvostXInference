@@ -112,6 +112,25 @@ internal sealed class PvxHandleEntryPoints : IPvxEntryPoints
     private readonly PvxAbiDelegates.PvxConversationSpecStatsDelegate _conversationSpecStats; // ABI v7
     private readonly PvxAbiDelegates.PvxGrammarFromJsonSchemaDelegate _grammarFromJsonSchema; // ABI v7
     private readonly PvxAbiDelegates.PvxAbiVersionDelegate _abiVersion;
+    // ── ABI v8 (wave 3): audio / TTS / rerank / lora / cvec / stats ──
+    private readonly PvxAbiDelegates.PvxMtmdSupportsAudioDelegate _mtmdSupportsAudio; // ABI v8
+    private readonly PvxAbiDelegates.PvxMtmdAudioSampleRateDelegate _mtmdAudioSampleRate; // ABI v8
+    private readonly PvxAbiDelegates.PvxPromptWithAudioDelegate _executorPromptWithAudio; // ABI v8
+    private readonly PvxAbiDelegates.PvxPromptWithAudioDelegate _conversationPromptWithAudio; // ABI v8
+    private readonly PvxAbiDelegates.PvxTtsSessionCreateDelegate _ttsSessionCreate; // ABI v8
+    private readonly PvxAbiDelegates.PvxFreeHandleDelegate _ttsSessionFree0; // ABI v8 (void free)
+    private readonly PvxAbiDelegates.PvxTtsGenerateDelegate _ttsGenerate; // ABI v8
+    private readonly PvxAbiDelegates.PvxFreeHandleDelegate _freeFloatArray0; // ABI v8 (void free)
+    private readonly PvxAbiDelegates.PvxRerankDelegate _rerank; // ABI v8
+    private readonly PvxAbiDelegates.PvxFreeHandleDelegate _freeRerankScores0; // ABI v8 (void free)
+    private readonly PvxAbiDelegates.PvxAdapterLoadDelegate _adapterLoad; // ABI v8
+    private readonly PvxAbiDelegates.PvxFreeHandleDelegate _adapterFree0; // ABI v8 (void free)
+    private readonly PvxAbiDelegates.PvxContextSetLoraDelegate _contextSetLora; // ABI v8
+    private readonly PvxAbiDelegates.PvxControlVectorLoadDelegate _controlVectorLoad; // ABI v8
+    private readonly PvxAbiDelegates.PvxFreeHandleDelegate _controlVectorFree0; // ABI v8 (void free)
+    private readonly PvxAbiDelegates.PvxContextSetControlVectorDelegate _contextSetControlVector; // ABI v8
+    private readonly PvxAbiDelegates.PvxStatsDelegate _executorStats; // ABI v8
+    private readonly PvxAbiDelegates.PvxStatsDelegate _conversationStats; // ABI v8
 
     public PvxHandleEntryPoints(IntPtr image, IPvxModuleLoader loader)
     {
@@ -214,6 +233,24 @@ internal sealed class PvxHandleEntryPoints : IPvxEntryPoints
         _conversationGenerateSpec = Bind<PvxAbiDelegates.PvxConversationGenerateSpecDelegate>(loader, image, "pvx_conversation_generate_spec");
         _conversationSpecStats = Bind<PvxAbiDelegates.PvxConversationSpecStatsDelegate>(loader, image, "pvx_conversation_spec_stats");
         _grammarFromJsonSchema = Bind<PvxAbiDelegates.PvxGrammarFromJsonSchemaDelegate>(loader, image, "pvx_grammar_from_json_schema");
+        _mtmdSupportsAudio = Bind<PvxAbiDelegates.PvxMtmdSupportsAudioDelegate>(loader, image, "pvx_mtmd_supports_audio");
+        _mtmdAudioSampleRate = Bind<PvxAbiDelegates.PvxMtmdAudioSampleRateDelegate>(loader, image, "pvx_mtmd_audio_sample_rate");
+        _executorPromptWithAudio = Bind<PvxAbiDelegates.PvxPromptWithAudioDelegate>(loader, image, "pvx_executor_prompt_with_audio");
+        _conversationPromptWithAudio = Bind<PvxAbiDelegates.PvxPromptWithAudioDelegate>(loader, image, "pvx_conversation_prompt_with_audio");
+        _ttsSessionCreate = Bind<PvxAbiDelegates.PvxTtsSessionCreateDelegate>(loader, image, "pvx_tts_session_create");
+        _ttsSessionFree0 = Bind<PvxAbiDelegates.PvxFreeHandleDelegate>(loader, image, "pvx_tts_session_free");
+        _ttsGenerate = Bind<PvxAbiDelegates.PvxTtsGenerateDelegate>(loader, image, "pvx_tts_generate");
+        _freeFloatArray0 = Bind<PvxAbiDelegates.PvxFreeHandleDelegate>(loader, image, "pvx_free_audio_samples");
+        _rerank = Bind<PvxAbiDelegates.PvxRerankDelegate>(loader, image, "pvx_rerank");
+        _freeRerankScores0 = Bind<PvxAbiDelegates.PvxFreeHandleDelegate>(loader, image, "pvx_free_rerank_scores");
+        _adapterLoad = Bind<PvxAbiDelegates.PvxAdapterLoadDelegate>(loader, image, "pvx_adapter_load");
+        _adapterFree0 = Bind<PvxAbiDelegates.PvxFreeHandleDelegate>(loader, image, "pvx_adapter_free");
+        _contextSetLora = Bind<PvxAbiDelegates.PvxContextSetLoraDelegate>(loader, image, "pvx_context_set_lora");
+        _controlVectorLoad = Bind<PvxAbiDelegates.PvxControlVectorLoadDelegate>(loader, image, "pvx_control_vector_load");
+        _controlVectorFree0 = Bind<PvxAbiDelegates.PvxFreeHandleDelegate>(loader, image, "pvx_control_vector_free");
+        _contextSetControlVector = Bind<PvxAbiDelegates.PvxContextSetControlVectorDelegate>(loader, image, "pvx_context_set_control_vector");
+        _executorStats = Bind<PvxAbiDelegates.PvxStatsDelegate>(loader, image, "pvx_executor_stats");
+        _conversationStats = Bind<PvxAbiDelegates.PvxStatsDelegate>(loader, image, "pvx_conversation_stats");
         _abiVersion = Bind<PvxAbiDelegates.PvxAbiVersionDelegate>(loader, image, "pvx_abi_version");
     }
 
@@ -402,6 +439,28 @@ internal sealed class PvxHandleEntryPoints : IPvxEntryPoints
     public PvxResult ConversationGenerateSpec(IntPtr conversation, in PvxSamplingParams parameters, int outMax, IntPtr onToken, IntPtr userData, out int generated) => _conversationGenerateSpec(conversation, parameters, outMax, onToken, userData, out generated);
     public PvxResult ConversationSpecStats(IntPtr conversation, out long drafted, out long accepted) => _conversationSpecStats(conversation, out drafted, out accepted);
     public PvxResult GrammarFromJsonSchema(string jsonSchema, string rootName, out IntPtr gbnf, out IntPtr error) => _grammarFromJsonSchema(jsonSchema, rootName, out gbnf, out error);
+
+
+    // ── ABI v8 (wave 3): audio / TTS / rerank / lora / cvec / stats ──
+
+    public bool MtmdSupportsAudio(IntPtr model) => _mtmdSupportsAudio(model);
+    public int MtmdAudioSampleRate(IntPtr model) => _mtmdAudioSampleRate(model);
+    public PvxResult ExecutorPromptWithAudio(IntPtr executor, IntPtr model, string text, float[] pcm, int nSamples) => _executorPromptWithAudio(executor, model, text, pcm, nSamples);
+    public PvxResult ConversationPromptWithAudio(IntPtr conversation, IntPtr model, string text, float[] pcm, int nSamples) => _conversationPromptWithAudio(conversation, model, text, pcm, nSamples);
+    public PvxResult TtsSessionCreate(IntPtr model, string ttsMmprojPath, uint contextSize, out IntPtr session) => _ttsSessionCreate(model, ttsMmprojPath, contextSize, out session);
+    public void TtsSessionFree(IntPtr session) => _ttsSessionFree0(session);
+    public PvxResult TtsGenerate(IntPtr session, in PvxTtsParams parameters, string text, out IntPtr pcm, out int nSamples, out int sampleRate) => _ttsGenerate(session, in parameters, text, out pcm, out nSamples, out sampleRate);
+    public void FreeFloatArray(IntPtr pcm) => _freeFloatArray0(pcm);
+    public PvxResult Rerank(IntPtr context, string query, IntPtr[] documents, int nDocuments, out IntPtr scores) => _rerank(context, query, documents, nDocuments, out scores);
+    public void FreeRerankScores(IntPtr scores) => _freeRerankScores0(scores);
+    public PvxResult AdapterLoad(IntPtr model, string path, out IntPtr adapter) => _adapterLoad(model, path, out adapter);
+    public void AdapterFree(IntPtr adapter) => _adapterFree0(adapter);
+    public PvxResult ContextSetLora(IntPtr context, IntPtr[] adapters, float[] scales, int n) => _contextSetLora(context, adapters, scales, n);
+    public PvxResult ControlVectorLoad(IntPtr model, string path, out IntPtr cvec) => _controlVectorLoad(model, path, out cvec);
+    public void ControlVectorFree(IntPtr cvec) => _controlVectorFree0(cvec);
+    public PvxResult ContextSetControlVector(IntPtr context, IntPtr cvec, int layerStart, int layerEnd) => _contextSetControlVector(context, cvec, layerStart, layerEnd);
+    public PvxResult ExecutorStats(IntPtr executor, out PvxStats stats) => _executorStats(executor, out stats);
+    public PvxResult ConversationStats(IntPtr conversation, out PvxStats stats) => _conversationStats(conversation, out stats);
 
     // ── Handshake ──
 
