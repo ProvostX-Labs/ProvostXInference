@@ -467,6 +467,13 @@ static void test_spec_capabilities() {
     ASSERT(caps.mtp == false);
     ASSERT((caps.types & PVX_SPEC_TYPE_DRAFT_SIMPLE) != 0);
     ASSERT((caps.types & PVX_SPEC_TYPE_MTP) == 0);
+    // ABI v6: n-gram types reported for every standard-vocab target; the spec
+    // engine's mirror is embd-aware so spec sessions support vision prompts.
+    ASSERT((caps.types & PVX_SPEC_TYPE_NGRAM) != 0);
+    ASSERT((caps.types & PVX_SPEC_TYPE_NGRAM_MAP_K) != 0);
+    ASSERT((caps.types & PVX_SPEC_TYPE_NGRAM_MOD) != 0);
+    ASSERT((caps.types & PVX_SPEC_TYPE_NGRAM_CACHE) != 0);
+    ASSERT(caps.spec_vision == true);
     fprintf(stderr, "(types=0x%x mtp=%d draft=%d) ", caps.types,
             caps.mtp ? 1 : 0, caps.draft ? 1 : 0);
     pvx_free_model(m);
@@ -565,6 +572,213 @@ static void test_spec_init_fail_closed() {
     pvx_executor_free(exec); pvx_free_context(ctx); pvx_free_model(m);
 }
 
+// ── ABI v6 wave 1: n-gram spec modes + spec-vision (mirror embd entries) ──
+
+// Plain greedy loop through the public entry points (the C# sequential lane's
+// exact commit sequence). Fixed token budget — no EOG short-circuit needed
+// for a byte-exact comparison.
+static int gen_plain_loop(pvx_executor_t* exec, const pvx_sampling_params_t* sp,
+                          int max_tokens, int32_t* out) {
+    for (int i = 0; i < max_tokens; i++) {
+        int32_t t = -1;
+        if (pvx_executor_sample(exec, sp, &t) != PVX_OK) return -1;
+        if (pvx_executor_prompt_tokens(exec, &t, 1) != PVX_OK) return -1;
+        if (pvx_executor_infer(exec) != PVX_DECODE_OK) return -1;
+        out[i] = t;
+    }
+    return max_tokens;
+}
+
+static pvx_context_t* make_ctx(pvx_model_t* m, uint32_t seq_max, uint32_t ctx_size) {
+    pvx_context_params_t cp = {};
+    cp.context_size = ctx_size; cp.batch_size = 512; cp.seq_max = seq_max;
+    pvx_context_t* c = nullptr;
+    ASSERT(pvx_create_context(m, &cp, &c) == PVX_OK);
+    return c;
+}
+
+// n-gram spec ON == plain greedy OFF, token-for-token, for every n-gram mode.
+static void test_spec_ngram_token_exactness() {
+    if (!file_exists(MODEL_PATH)) SKIP("model file not found");
+    pvx_model_params_t mp = {}; mp.model_path = MODEL_PATH; mp.gpu_layers = 99; mp.flash_attn = true;
+    pvx_model_t* m = nullptr; ASSERT(pvx_load_model(&mp, &m) == PVX_OK);
+
+    const char* prompt = "The colors of the rainbow, in order, are: red, orange, yellow, green, blue, indigo and";
+    const int n_gen = 16;
+    pvx_sampling_params_t sp = {};
+    sp.temperature = 0.0f; sp.top_k = 1; sp.top_p = 1.0f; sp.repeat_penalty = 1.0f;
+
+    const pvx_spec_mode_t modes[] = { PVX_SPEC_NGRAM_SIMPLE, PVX_SPEC_NGRAM_MAP_K,
+                                      PVX_SPEC_NGRAM_MOD,   PVX_SPEC_NGRAM_CACHE };
+    for (int mi = 0; mi < 4; mi++) {
+        // A: plain greedy (spec OFF) — the reference stream
+        pvx_context_t* ca = make_ctx(m, 1, 1024);
+        pvx_executor_t* ea = nullptr; ASSERT(pvx_executor_create(ca, &ea) == PVX_OK);
+        ASSERT(pvx_executor_prompt(ea, prompt) == PVX_OK);
+        ASSERT(pvx_executor_infer(ea) == PVX_DECODE_OK);
+        int32_t ref[n_gen];
+        ASSERT(gen_plain_loop(ea, &sp, n_gen, ref) == n_gen);
+        pvx_executor_free(ea); pvx_free_context(ca);
+
+        // B: n-gram spec ON with streaming capture — must match byte-for-byte
+        pvx_context_t* cb = make_ctx(m, 1, 1024);
+        pvx_executor_t* eb = nullptr; ASSERT(pvx_executor_create(cb, &eb) == PVX_OK);
+        ASSERT(pvx_executor_prompt(eb, prompt) == PVX_OK);
+        ASSERT(pvx_executor_infer(eb) == PVX_DECODE_OK);
+        pvx_spec_params_t spc = {};
+        spc.mode = modes[mi];
+        ASSERT(pvx_executor_spec_init(eb, &spc) == PVX_OK);
+        struct CapCtx { int32_t* v; int i; };
+        int32_t out[n_gen];
+        CapCtx capc{out, 0};
+        int n = 0;
+        ASSERT(pvx_executor_generate_spec(eb, &sp, n_gen,
+                (pvx_spec_token_callback_t)+[](int32_t t, void* ud) -> bool {
+                    CapCtx* c = (CapCtx*) ud; c->v[c->i++] = t; return true;
+                }, &capc, &n) == PVX_OK);
+        ASSERT(n == n_gen);
+        ASSERT(capc.i == n_gen);
+        ASSERT(memcmp(ref, out, sizeof(ref)) == 0);
+        pvx_executor_free(eb); pvx_free_context(cb);
+    }
+    pvx_free_model(m);
+}
+
+static void test_spec_ngram_fail_closed() {
+    if (!file_exists(MODEL_PATH)) SKIP("model file not found");
+    pvx_model_params_t mp = {}; mp.model_path = MODEL_PATH; mp.gpu_layers = 0; mp.flash_attn = true;
+    pvx_model_t* m = nullptr; ASSERT(pvx_load_model(&mp, &m) == PVX_OK);
+    pvx_context_t* ctx = make_ctx(m, 1, 1024);
+    pvx_executor_t* exec = nullptr; ASSERT(pvx_executor_create(ctx, &exec) == PVX_OK);
+
+    // n_min > n_max: typed invalid arg.
+    pvx_spec_params_t sp = {};
+    sp.mode = PVX_SPEC_NGRAM_SIMPLE;
+    sp.ngram.n_min = 8; sp.ngram.n_max = 2;
+    ASSERT(pvx_model_spec_validate(m, &sp) == PVX_ERR_INVALID_ARG);
+    ASSERT(pvx_executor_spec_init(exec, &sp) == PVX_ERR_INVALID_ARG);
+
+    // Corrupt cache file: typed LOAD_FAILED naming the path, no silent empty cache.
+    const char* tmp = getenv("PVX_TEST_TMP");
+    std::string path = tmp ? tmp : "/tmp";
+    path += "/pvx_spec_corrupt_cache.bin";
+    FILE* f = fopen(path.c_str(), "wb");
+    ASSERT(f);
+    fwrite("garbage-not-a-cache", 1, 19, f);
+    fclose(f);
+    sp = {};
+    sp.mode = PVX_SPEC_NGRAM_CACHE;
+    sp.ngram.cache_path = path.c_str();
+    ASSERT(pvx_executor_spec_init(exec, &sp) == PVX_ERR_LOAD_FAILED);
+    ASSERT(strstr(pvx_last_error(ctx), "ngram-cache") != nullptr);
+    remove(path.c_str());
+
+    // Unknown mode: typed invalid arg.
+    sp = {};
+    sp.mode = (pvx_spec_mode_t) 99;
+    ASSERT(pvx_executor_spec_init(exec, &sp) == PVX_ERR_NOT_SUPPORTED);
+
+    pvx_executor_free(exec); pvx_free_context(ctx); pvx_free_model(m);
+}
+
+// spec + vision: an image prompt lands embd-aware entries in the mirror; a
+// spec session must serve it and stay token-exact against the plain path.
+static void test_spec_vision_exactness() {
+    const char* vision_model = file_exists(HYBRID_MODEL_PATH) ? HYBRID_MODEL_PATH : MODEL_PATH;
+    if (!file_exists(vision_model) || !file_exists(MMPROJ_PATH) || !file_exists(TEST_IMAGE))
+        SKIP("vision files not found");
+    pvx_model_params_t mp = {}; mp.model_path = vision_model; mp.gpu_layers = 99; mp.flash_attn = true;
+    pvx_model_t* model = nullptr; ASSERT(pvx_load_model(&mp, &model) == PVX_OK);
+    pvx_model_t* mmproj = nullptr;
+    ASSERT(pvx_load_mmproj(model, MMPROJ_PATH, &mmproj) == PVX_OK);
+
+    FILE* f = fopen(TEST_IMAGE, "rb");
+    ASSERT(f);
+    fseek(f, 0, SEEK_END); long img_size = ftell(f); fseek(f, 0, SEEK_SET);
+    uint8_t* img_data = (uint8_t*) malloc(img_size);
+    ASSERT(fread(img_data, 1, img_size, f) == (size_t) img_size);
+    fclose(f);
+    const char* imgs[] = { (const char*) img_data };
+    int sizes[] = { (int) img_size };
+    char* marker_str = nullptr;
+    ASSERT(pvx_mtmd_marker(&marker_str) == PVX_OK);
+    const std::string prompt = std::string("Describe this image in exactly ten words: ") + marker_str;
+    pvx_free_string(marker_str);
+
+    const int n_gen = 8;
+    pvx_sampling_params_t sp = {};
+    sp.temperature = 0.0f; sp.top_k = 1; sp.top_p = 1.0f; sp.repeat_penalty = 1.0f;
+
+    // A: plain greedy after the image prompt
+    pvx_context_t* ca = make_ctx(model, 1, 4096);
+    pvx_executor_t* ea = nullptr; ASSERT(pvx_executor_create(ca, &ea) == PVX_OK);
+    ASSERT(pvx_executor_prompt_with_images(ea, model, prompt.c_str(), imgs, sizes, 1) == PVX_OK);
+    ASSERT(pvx_executor_infer(ea) == PVX_DECODE_OK);
+    int32_t ref[n_gen];
+    ASSERT(gen_plain_loop(ea, &sp, n_gen, ref) == n_gen);
+    pvx_executor_free(ea); pvx_free_context(ca);
+
+    // B: spec (n-gram) ON after the image prompt — the mirror now holds embd
+    // entries; the consistency guard and the token stream must hold.
+    struct CapCtx { int32_t* v; int i; };
+    pvx_context_t* cb = make_ctx(model, 1, 4096);
+    pvx_executor_t* eb = nullptr; ASSERT(pvx_executor_create(cb, &eb) == PVX_OK);
+    ASSERT(pvx_executor_prompt_with_images(eb, model, prompt.c_str(), imgs, sizes, 1) == PVX_OK);
+    ASSERT(pvx_executor_infer(eb) == PVX_DECODE_OK);
+    pvx_spec_params_t spc = {};
+    spc.mode = PVX_SPEC_NGRAM_SIMPLE;
+    ASSERT(pvx_executor_spec_init(eb, &spc) == PVX_OK);
+    int32_t out[n_gen];
+    CapCtx cap{out, 0};
+    int n = 0;
+    ASSERT(pvx_executor_generate_spec(eb, &sp, n_gen,
+            (pvx_spec_token_callback_t)+[](int32_t t, void* ud) -> bool {
+                CapCtx* c = (CapCtx*) ud; c->v[c->i++] = t; return true;
+            }, &cap, &n) == PVX_OK);
+    // EOG may end the stream early in either path: the exactness property is
+    // token identity on the emitted prefix (returned count == callback count).
+    ASSERT(n >= 1);
+    ASSERT(cap.i == (size_t) n);
+    for (int i = 0; i < n; i++) ASSERT(ref[i] == out[i]);
+
+    // C: draft-model spec after an image prompt (true embd-aware draft
+    // replay) — only when a draft model is available (env-gated).
+    if (DRAFT_MODEL_PATH && file_exists(DRAFT_MODEL_PATH)) {
+        pvx_context_t* cc = make_ctx(model, 1, 4096);
+        pvx_executor_t* ec = nullptr; ASSERT(pvx_executor_create(cc, &ec) == PVX_OK);
+        ASSERT(pvx_executor_prompt_with_images(ec, model, prompt.c_str(), imgs, sizes, 1) == PVX_OK);
+        ASSERT(pvx_executor_infer(ec) == PVX_DECODE_OK);
+        pvx_spec_params_t spd = {};
+        spd.mode = PVX_SPEC_DRAFT;
+        spd.draft_model_path = DRAFT_MODEL_PATH;
+        spd.draft_max = 4;
+        pvx_result_t rc = pvx_executor_spec_init(ec, &spd);
+        if (rc == PVX_OK) {
+            int32_t outd[n_gen];
+            CapCtx capd{outd, 0};
+            int nd = 0;
+            ASSERT(pvx_executor_generate_spec(ec, &sp, n_gen,
+                    (pvx_spec_token_callback_t)+[](int32_t t, void* ud) -> bool {
+                        CapCtx* c = (CapCtx*) ud; c->v[c->i++] = t; return true;
+                    }, &capd, &nd) == PVX_OK);
+            ASSERT(nd >= 1);
+            ASSERT(capd.i == (size_t) nd);
+            for (int i = 0; i < nd; i++) ASSERT(ref[i] == outd[i]);
+        } else {
+            // Incompatible draft vocab is a typed refusal, not a test failure.
+            fprintf(stderr, "(draft+vision skipped: spec_init rc=%d) ", (int) rc);
+        }
+        pvx_executor_free(ec); pvx_free_context(cc);
+    } else {
+        fprintf(stderr, "(no draft model; draft+vision leg skipped) ");
+    }
+
+    pvx_executor_free(eb); pvx_free_context(cb);
+    free(img_data);
+    pvx_free_mmproj(mmproj);
+    pvx_free_model(model);
+}
+
 int main() {
     MODEL_PATH = getenv("PVX_MODEL_PATH");
     HYBRID_MODEL_PATH = getenv("PVX_HYBRID_MODEL_PATH");
@@ -603,6 +817,9 @@ int main() {
     TEST(spec_validate);
     TEST(spec_generate_requires_session);
     TEST(spec_init_fail_closed);
+    TEST(spec_ngram_token_exactness);
+    TEST(spec_ngram_fail_closed);
+    TEST(spec_vision_exactness);
     fprintf(stderr, "\n=== %d/%d passed, %d skipped ===\n", tests_passed, tests_run, tests_skipped);
     return 0;
 }

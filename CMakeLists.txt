@@ -101,6 +101,10 @@ add_executable(pvxinference_tests
     tests/test_basic.cpp
 )
 
+add_executable(pvxinference_ngram_tests
+    tests/test_ngram.cpp
+)
+
 add_executable(pvxinference_stress_tests
     tests/test_stress.cpp
 )
@@ -128,3 +132,20 @@ target_include_directories(pvxinference_tests
 add_test(NAME pvx_tests COMMAND pvxinference_tests)
 
 add_test(NAME pvx_stress_tests COMMAND pvxinference_stress_tests)
+
+# Pure n-gram + mirror-ring unit tests (ABI v6 wave 1) — no model files needed.
+target_link_libraries(pvxinference_ngram_tests
+    PRIVATE
+        pvxinference
+)
+
+target_include_directories(pvxinference_ngram_tests
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/llama.cpp/include
+        ${CMAKE_SOURCE_DIR}/llama.cpp/ggml/include
+        ${CMAKE_SOURCE_DIR}/llama.cpp/tools/mtmd
+)
+
+add_test(NAME pvx_ngram_tests COMMAND pvxinference_ngram_tests)
