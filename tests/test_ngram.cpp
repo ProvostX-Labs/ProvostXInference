@@ -274,6 +274,167 @@ static void test_mirror_guard_detects_desync() {
     ASSERT(exec.mirror.size() != (size_t) exec.n_tokens);
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ABI v7 wave 2 — JSON-schema → GBNF converter unit tests (no model needed)
+// + conversation-lane mirror helpers.
+// ═══════════════════════════════════════════════════════════════════════════
+
+#include "pvxinference.h"
+
+static void test_json_schema_basic_object() {
+    char* gbnf = nullptr; char* err = nullptr;
+    const char* schema = R"SCHEMA({
+        "type": "object",
+        "properties": { "name": { "type": "string" }, "age": { "type": "integer" } },
+        "required": ["name"]
+    })SCHEMA";
+    ASSERT(pvx_grammar_from_json_schema(schema, nullptr, &gbnf, &err) == PVX_OK);
+    ASSERT(gbnf && !err);
+    const std::string g(gbnf);
+    // root object rule: required name first, optional age branch
+    ASSERT(g.find(R"x(root ::= "{" space root-name-kv ( "," space ( root-age-kv ) )? space "}")x") != std::string::npos);
+    ASSERT(g.find("root-name-kv ::=") != std::string::npos);
+    ASSERT(g.find("space \":\" space root-name") != std::string::npos);
+    ASSERT(g.find(R"x(\"name\")x") != std::string::npos);
+    ASSERT(g.find("space ::=") != std::string::npos);
+    ASSERT(g.find("string ::=") != std::string::npos);
+    ASSERT(g.find("integer ::=") != std::string::npos);
+    pvx_free_string(gbnf);
+}
+
+static void test_json_schema_int_range() {
+    char* gbnf = nullptr; char* err = nullptr;
+    const char* schema = R"SCHEMA({ "type": "integer", "minimum": 5, "maximum": 100 })SCHEMA";
+    ASSERT(pvx_grammar_from_json_schema(schema, nullptr, &gbnf, &err) == PVX_OK);
+    const std::string g(gbnf);
+    // upstream build_min_max_int output shape for [5, 100]: union of
+    // [5-9], the two-digit range, and the exact max bound "100"
+    ASSERT(g.find(R"x(root ::= ([5-9] | ([1-8] [0-9] | [9] [0-9]) | "100"))x") != std::string::npos);
+    pvx_free_string(gbnf);
+}
+
+static void test_json_schema_enum_const() {
+    char* gbnf = nullptr; char* err = nullptr;
+    const char* schema = R"SCHEMA({ "enum": ["red", "green", 7, true, null] })SCHEMA";
+    ASSERT(pvx_grammar_from_json_schema(schema, nullptr, &gbnf, &err) == PVX_OK);
+    const std::string g(gbnf);
+    ASSERT(g.find(R"x(root ::= ("\"red\"" | "\"green\"" | "7" | "true" | "null"))x") != std::string::npos);
+    pvx_free_string(gbnf);
+    gbnf = nullptr;
+    const char* cst = R"SCHEMA({ "const": "hello" })SCHEMA";
+    ASSERT(pvx_grammar_from_json_schema(cst, nullptr, &gbnf, &err) == PVX_OK);
+    ASSERT(gbnf && std::string(gbnf).find(R"x(root ::= "\"hello\"")x") != std::string::npos);
+    pvx_free_string(gbnf);
+}
+
+static void test_json_schema_refs_and_defs() {
+    char* gbnf = nullptr; char* err = nullptr;
+    // recursive schema: a node has optional next pointing back at itself
+    const char* schema = R"SCHEMA({
+        "$defs": { "node": { "type": "object",
+            "properties": { "v": { "type": "integer" }, "next": { "$ref": "#/$defs/node" } },
+            "required": ["v"] } },
+        "$ref": "#/$defs/node"
+    })SCHEMA";
+    ASSERT(pvx_grammar_from_json_schema(schema, nullptr, &gbnf, &err) == PVX_OK);
+    const std::string g(gbnf);
+    ASSERT(g.find("ref-defs-node ::=") != std::string::npos);
+    // the recursive reference must reuse the named rule, not re-expand
+    const size_t n_rec = g.find("ref-defs-node-next ::=");
+    ASSERT(n_rec != std::string::npos);
+    // the named node rule is defined exactly once (self-referencing shape)
+    int n_defs = 0;
+    for (size_t k = 0; (k = g.find("ref-defs-node ::=", k)) != std::string::npos; k++) n_defs++;
+    ASSERT(n_defs == 1);
+    ASSERT(g.find("ref-defs-node-next ::= ref-defs-node") != std::string::npos);
+    pvx_free_string(gbnf);
+}
+
+static void test_json_schema_decision_envelope() {
+    // The v13 decision-envelope schema (structured decisions): thinking
+    // always, optional answer, optional toolcalls with name+string-arg map.
+    char* gbnf = nullptr; char* err = nullptr;
+    const char* schema = R"SCHEMA({
+        "type": "object",
+        "properties": {
+            "thinking": { "type": "string" },
+            "answer": { "type": ["string", "null"] },
+            "toolcalls": { "type": ["array", "null"],
+                "items": { "type": "object",
+                    "properties": {
+                        "name": { "type": "string" },
+                        "args": { "type": "object", "additionalProperties": { "type": "string" } }
+                    },
+                    "required": ["name", "args"] } }
+        },
+        "required": ["thinking"]
+    })SCHEMA";
+    ASSERT(pvx_grammar_from_json_schema(schema, nullptr, &gbnf, &err) == PVX_OK);
+    ASSERT(gbnf);
+    const std::string g(gbnf);
+    ASSERT(g.find(R"x(root-thinking-kv ::= "\"thinking\"" space ":" space root-thinking)x") != std::string::npos);
+    ASSERT(g.find("root-toolcalls-0-item-args-kv ::=") != std::string::npos);
+    ASSERT(g.find("root-toolcalls-1 ::= null") != std::string::npos);
+    ASSERT(g.find(R"x(root-toolcalls-0-item-args-additional-kv ::= string ":" space root-toolcalls-0-item-args-additional-value)x") != std::string::npos);
+    pvx_free_string(gbnf);
+}
+
+static void test_json_schema_invalid_json_typed() {
+    char* gbnf = nullptr; char* err = nullptr;
+    ASSERT(pvx_grammar_from_json_schema("{ not json", nullptr, &gbnf, &err)
+           == PVX_ERR_INVALID_ARG);
+    ASSERT(gbnf == nullptr && err != nullptr);
+    ASSERT(strstr(err, "json-schema/parse") != nullptr);
+    ASSERT(strstr(err, "position") != nullptr);
+    pvx_free_string(err);
+}
+
+static void test_json_schema_unsupported_keyword_typed() {
+    char* gbnf = nullptr; char* err = nullptr;
+    ASSERT(pvx_grammar_from_json_schema(
+        R"SCHEMA({ "type": "string", "pattern": "^[a-z]+$" })SCHEMA",
+        nullptr, &gbnf, &err) == PVX_ERR_NOT_SUPPORTED);
+    ASSERT(err && strstr(err, "'pattern'") != nullptr);
+    ASSERT(strstr(err, "json-schema/keyword") != nullptr);
+    pvx_free_string(err);
+    err = nullptr;
+    ASSERT(pvx_grammar_from_json_schema(
+        R"SCHEMA({ "type": "object", "propertyNames": { "type": "string" } })SCHEMA",
+        nullptr, &gbnf, &err) == PVX_ERR_NOT_SUPPORTED);
+    ASSERT(err && strstr(err, "'propertyNames'") != nullptr);
+    pvx_free_string(err);
+}
+
+static void test_json_schema_format_fails_closed() {
+    char* gbnf = nullptr; char* err = nullptr;
+    ASSERT(pvx_grammar_from_json_schema(
+        R"SCHEMA({ "type": "string", "format": "email" })SCHEMA",
+        nullptr, &gbnf, &err) == PVX_ERR_NOT_SUPPORTED);
+    ASSERT(err && strstr(err, "'format'") != nullptr);
+    pvx_free_string(err);
+    err = nullptr;
+    gbnf = nullptr;
+    ASSERT(pvx_grammar_from_json_schema(
+        R"SCHEMA({ "type": "string", "format": "date-time" })SCHEMA",
+        nullptr, &gbnf, &err) == PVX_OK);
+    ASSERT(gbnf && std::string(gbnf).find("date-time ::=") != std::string::npos);
+    pvx_free_string(gbnf);
+}
+
+static void test_conv_mirror_helpers() {
+    pvx_conversation_s conv{};
+    pvx_conv_mirror_push_token(&conv, 42, 7);
+    const std::array<llama_pos, 4> rp = { 8, 8, 8, 8 };
+    std::vector<float> row = { 1.0f, 2.0f };
+    pvx_conv_mirror_push_embd(&conv, row.data(), 2, rp);
+    ASSERT(conv.mirror.size() == 2);
+    ASSERT(conv.mirror[0].id == 42);
+    ASSERT(conv.mirror[0].pos[0] == 7);
+    ASSERT(conv.mirror[1].id == LLAMA_TOKEN_NULL);
+    ASSERT(conv.mirror[1].embd.size() == 2);
+    ASSERT(conv.mirror[1].pos[3] == 8);
+}
+
 int main() {
     fprintf(stderr, "\n=== ProvostXInference n-gram + mirror unit tests ===\n");
     TEST(ngram_simple_repeat_pattern);
@@ -290,6 +451,15 @@ int main() {
     TEST(mirror_ring_token_and_embd_entries);
     TEST(mirror_ring_invariant_shapes);
     TEST(mirror_guard_detects_desync);
+    TEST(json_schema_basic_object);
+    TEST(json_schema_int_range);
+    TEST(json_schema_enum_const);
+    TEST(json_schema_refs_and_defs);
+    TEST(json_schema_decision_envelope);
+    TEST(json_schema_invalid_json_typed);
+    TEST(json_schema_unsupported_keyword_typed);
+    TEST(json_schema_format_fails_closed);
+    TEST(conv_mirror_helpers);
     fprintf(stderr, "\n=== %d/%d passed ===\n", tests_passed, tests_run);
     return 0;
 }

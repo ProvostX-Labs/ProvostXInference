@@ -25,4 +25,13 @@ public enum SpeculativeMode
     /// <summary>ABI v6 — static (file) + dynamic token-probability caches
     /// (upstream ngram-cache).</summary>
     NgramCache = 6,
+    /// <summary>ABI v7 — EAGLE3 companion draft decoder fed (token, g_embd)
+    /// pairs from target layer features (upstream draft-eagle3). Requires an
+    /// eagle3 companion GGUF (EagleCompanionPath); sequential executor lane
+    /// only — the batched/pool lane refuses typed.</summary>
+    Eagle3 = 7,
+    /// <summary>ABI v7 — DFlash block-diffusion fused drafting (upstream
+    /// draft-dflash). Requires a dflash companion GGUF (DflashCompanionPath);
+    /// metadata validated, drafting unwired — typed boundary.</summary>
+    Dflash = 8,
 }

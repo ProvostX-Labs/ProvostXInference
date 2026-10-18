@@ -2,7 +2,10 @@ using System.IO;
 using ProvostXInference.Abstractions;
 using ProvostXInference.Exceptions;
 using ProvostXInference.Implementation;
+using ProvostXInference.Interop;
 using ProvostXInference.Models;
+using ProvostXInference.Engines;
+using ProvostXInference.Tests.Engines;
 using Xunit;
 
 namespace ProvostXInference.Tests;
@@ -308,5 +311,220 @@ public class SpecDecodeTests
             // TOKEN-EXACT vs the plain loop (identical params, greedy).
             Assert.Equal(plainTokens.Take(specTokens.Count).ToList(), specTokens.ToList());
         }
+    }
+
+    // ═══════════════════════════════════════════════════
+    // ABI v7 (wave 2): companion-draft modes, batched/pool lane, JSON schema
+    // ═══════════════════════════════════════════════════
+
+    /// <summary>Blittable struct discipline: wave-2 modes map onto the native
+    /// enum numerically and the pinned companion pointers ride the ABI v7
+    /// field appends (pure — no model needed).</summary>
+    [Fact]
+    public void SpecParams_Wave2_Modes_And_Companion_Pointers_Map()
+    {
+        var eagle = new SpeculativeConfig { Mode = SpeculativeMode.Eagle3, EagleCompanionPath = "/x/eagle.gguf" };
+        var dflash = new SpeculativeConfig { Mode = SpeculativeMode.Dflash, DflashCompanionPath = "/x/dflash.gguf" };
+        var draft = new SpeculativeConfig { Mode = SpeculativeMode.Draft, DraftModelPath = "/x/draft.gguf" };
+
+        var eaglePtr = PvxNative.AllocUTF8("/x/eagle.gguf");
+        var dflashPtr = PvxNative.AllocUTF8("/x/dflash.gguf");
+        var draftPtr = PvxNative.AllocUTF8("/x/draft.gguf");
+        try
+        {
+            var p1 = new PvxSpecParams(eagle, IntPtr.Zero, IntPtr.Zero, eaglePtr, IntPtr.Zero);
+            Assert.Equal((int) PvxSpecMode.Eagle3, p1.Mode);
+            Assert.Equal(eaglePtr, p1.EagleCompanionPath);
+            Assert.Equal(IntPtr.Zero, p1.DflashCompanionPath);
+
+            var p2 = new PvxSpecParams(dflash, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, dflashPtr);
+            Assert.Equal((int) PvxSpecMode.Dflash, p2.Mode);
+            Assert.Equal(dflashPtr, p2.DflashCompanionPath);
+            Assert.Equal(IntPtr.Zero, p2.EagleCompanionPath);
+
+            var p3 = new PvxSpecParams(draft, draftPtr, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
+            Assert.Equal((int) PvxSpecMode.Draft, p3.Mode);
+            Assert.Equal(draftPtr, p3.DraftModelPath);
+
+            // field growth: ABI v7 appends AFTER ngram (layout order contract)
+            var offEagle = System.Runtime.InteropServices.Marshal.OffsetOf<PvxSpecParams>(nameof(PvxSpecParams.EagleCompanionPath));
+            var offCache = System.Runtime.InteropServices.Marshal.OffsetOf<PvxSpecParams>(nameof(PvxSpecParams.NgramCachePath));
+            Assert.True((long) offEagle >= (long) offCache, "eagle path must append after the ngram block");
+        }
+        finally
+        {
+            System.Runtime.InteropServices.Marshal.FreeHGlobal(eaglePtr);
+            System.Runtime.InteropServices.Marshal.FreeHGlobal(dflashPtr);
+            System.Runtime.InteropServices.Marshal.FreeHGlobal(draftPtr);
+        }
+    }
+
+    /// <summary>Unknown speculative modes are a typed managed refusal at the
+    /// blit boundary (pure).</summary>
+    [Fact]
+    public void SpecParams_Unknown_Mode_Refuses_Typed()
+    {
+        var bad = new SpeculativeConfig { Mode = (SpeculativeMode) 99 };
+        Assert.Throws<ArgumentException>(() => new PvxSpecParams(bad, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero));
+    }
+
+    /// <summary>Capability-gated typed refusals for the companion modes on a
+    /// model without companion metadata: missing companion path AND an
+    /// unloadable companion file both type fail-closed naming the boundary —
+    /// never a silent non-spec enable (env-gated: mirrors native legs 30/31).</summary>
+    [Fact]
+    public void Eagle3_Dflash_Refuse_Typed_Without_Companion()
+    {
+        if (!HasModel()) return;
+        using var model = LoadTarget();
+
+        // validate is SHAPE-level for companion modes: a path present = OK
+        // (mirror of native leg 31: pair-level validation happens at spec_init)
+               var named = new SpeculativeConfig { Mode = SpeculativeMode.Eagle3, EagleCompanionPath = "x.gguf" };
+        model.ValidateSpeculation(named); // no throw
+
+        // executor lane: enabling types the refusals (mirror of native legs 30/31)
+        using var ctx = NewContext(model);
+        using var exec = (NativeStandardExecutor) ctx.CreateExecutor();
+
+        // missing companion path -> typed INVALID_ARG
+        var noPath = new SpeculativeConfig { Mode = SpeculativeMode.Eagle3 };
+        var ex1 = Assert.Throws<InferenceException>(() => exec.EnableSpeculation(noPath));
+        Assert.Equal((int) PvxResult.ErrInvalidArg, ex1.ErrorCode);
+        Assert.Null(exec.ActiveSpeculation); // mirror untouched on refusal
+
+        // unloadable companion file -> typed refusal at the load boundary
+        var badPath = new SpeculativeConfig { Mode = SpeculativeMode.Eagle3, EagleCompanionPath = "/nonexistent/eagle3.gguf" };
+        var ex2 = Assert.Throws<InferenceException>(() => exec.EnableSpeculation(badPath));
+        Assert.True(ex2.ErrorCode == (int) PvxResult.ErrLoadFailed || ex2.ErrorCode == (int) PvxResult.ErrNotSupported);
+
+        // DFlash: missing path typed; metadata boundary typed
+        var dfNo = new SpeculativeConfig { Mode = SpeculativeMode.Dflash };
+        var ex3 = Assert.Throws<InferenceException>(() => exec.EnableSpeculation(dfNo));
+        Assert.Equal((int) PvxResult.ErrInvalidArg, ex3.ErrorCode);
+        var dfBad = new SpeculativeConfig { Mode = SpeculativeMode.Dflash, DflashCompanionPath = "/nonexistent/dflash.gguf" };
+        Assert.Throws<InferenceException>(() => exec.EnableSpeculation(dfBad));
+        Assert.Null(exec.ActiveSpeculation);
+    }
+
+    /// <summary>Batched/pool lane (ABI v7 feature 5): per-conversation n-gram
+    /// spec session is TOKEN-EXACT with the plain pooled lane for identical
+    /// greedy params, the mirror reports the active config, stats never lie,
+    /// teardown is idempotent, and generation without a session is a typed
+    /// refusal — never a silent plain run (env-gated; mirrors native legs
+    /// 25/26/29).</summary>
+    [Fact]
+    public void Conversation_Spec_Lane_Token_Exact_And_Typed_Refusals()
+    {
+        if (!HasModel()) return;
+        var greedy = Greedy();
+        const string prompt = "The colors of the rainbow, in order, are: red, orange, yellow, green, blue, indigo and";
+        const int nGen = 12;
+
+        // plain pooled-lane reference (seq_max 2 context, no speculation)
+        IReadOnlyList<int> plain;
+        using (var model = LoadTarget())
+        {
+            using var ctx = (NativeInferenceContext) model.CreateContext(new ContextConfig
+            {
+                ContextSize = 1024, BatchSize = 512, SeqMax = 2,
+            });
+            using var pool = ctx.CreatePool();
+            var conv = (NativeConversation) pool.Lease();
+            try
+            {
+                conv.Prompt(prompt);
+                Assert.Equal(InferResult.Ok, ctx.InferAll()); // decode the prompt first (pooled-lane contract)
+                var acc = new List<int>();
+                for (int i = 0; i < nGen; i++)
+                {
+                    var t = conv.Sample(greedy);
+                    if (ctx.IsEos(t)) break;
+                    acc.Add(t);
+                    conv.PromptTokens(new[] { t });
+                    Assert.Equal(InferResult.Ok, ctx.InferAll());
+                }
+                plain = acc;
+            }
+            finally { pool.Return(conv); }
+        }
+
+        // spec session on a fresh identical pair
+        using (var model = LoadTarget())
+        {
+            using var ctx = (NativeInferenceContext) model.CreateContext(new ContextConfig
+            {
+                ContextSize = 1024, BatchSize = 512, SeqMax = 2,
+            });
+            using var pool = ctx.CreatePool();
+            var conv = (NativeConversation) pool.Lease();
+            try
+            {
+                // typed refusal BEFORE any session: never a silent plain run
+                Assert.Throws<InferenceException>(() => conv.GenerateSpeculative(greedy, 4));
+
+                conv.Prompt(prompt);
+                Assert.Equal(InferResult.Ok, ctx.InferAll());
+                conv.EnableSpeculation(new SpeculativeConfig { Mode = SpeculativeMode.NgramSimple });
+                Assert.NotNull(conv.ActiveSpeculation);
+                Assert.Equal(SpeculativeMode.NgramSimple, conv.ActiveSpeculation!.Mode);
+
+                var specTokens = conv.GenerateSpeculative(greedy, nGen);
+                Assert.True(specTokens.Count >= 1);
+                // TOKEN-EXACT vs the plain pooled loop (identical greedy params)
+                Assert.Equal(plain.Take(specTokens.Count).ToList(), specTokens.ToList());
+
+                var stats = conv.SpeculationStats();
+                Assert.True(stats.Drafted >= stats.Accepted && stats.Accepted >= 0,
+                    $"stats never lie: drafted={stats.Drafted} accepted={stats.Accepted}");
+
+                conv.DisableSpeculation();
+                Assert.Null(conv.ActiveSpeculation);
+                conv.DisableSpeculation(); // idempotent
+                Assert.Throws<InferenceException>(() => conv.GenerateSpeculative(greedy, 2));
+            }
+            finally { pool.Return(conv); }
+        }
+    }
+
+    /// <summary>Pool return tears the conversation spec session down and the
+    /// managed mirror never reports a phantom session (env-gated).</summary>
+    [Fact]
+    public void Conversation_Spec_Session_Dies_With_Pool_Return()
+    {
+        if (!HasModel()) return;
+        using var model = LoadTarget();
+        using var ctx = (NativeInferenceContext) model.CreateContext(new ContextConfig
+        {
+            ContextSize = 1024, BatchSize = 512, SeqMax = 2,
+        });
+        using var pool = ctx.CreatePool();
+        var conv = (NativeConversation) pool.Lease();
+        conv.EnableSpeculation(new SpeculativeConfig { Mode = SpeculativeMode.NgramSimple });
+        Assert.NotNull(conv.ActiveSpeculation);
+        pool.Return(conv);
+        Assert.Null(conv.ActiveSpeculation); // mirror dropped with the session
+    }
+
+    /// <summary>Facade view: EnableConversationSpeculation is capability-gated
+    /// (model self-report validation first) and the convenience surface wires
+    /// through to the conversation (pure doubles — mirrors the fake-based ops
+    /// suite discipline).</summary>
+    [Fact]
+    public void Facade_Conversation_Spec_Is_Capability_Gated()
+    {
+        var model = new FakeEngineModel();
+        var backend = new FakeEngineBackend();
+        using var ops = new GgufEngineOps(model, new ContextConfig(), new SamplingConfig(), backend);
+        var pool = ops.Pool;
+        var conv = pool.Lease();
+        Assert.Throws<ArgumentNullException>(() => { ops.EnableConversationSpeculation(conv, null!); });
+        // FakeEngineModel.ValidateSpeculation is a no-op gate -> enable wires through
+        var cfg = new SpeculativeConfig { Mode = SpeculativeMode.NgramSimple };
+        ops.EnableConversationSpeculation(conv, cfg);
+        Assert.Equal(cfg, conv.ActiveSpeculation);
+        ops.DisableConversationSpeculation(conv);
+        Assert.Null(conv.ActiveSpeculation);
+        Assert.Equal(SpeculationStats.None, ops.ConversationSpeculationStats(conv));
     }
 }

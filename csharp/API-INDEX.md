@@ -1,11 +1,11 @@
 # API-INDEX.md — csharp
 
-Generated: 2026-10-18T13:45:19.590632+00:00
-Packages: 2  |  Types: 104
+Generated: 2026-10-18T17:40:07.178974+00:00
+Packages: 2  |  Types: 106
 
 ---
 
-## Tests (25 types, ~3010 LOC)
+## Tests (26 types, ~3297 LOC)
 
 - 🟡 DecisionEngineOpsTests  (Tests)
 - 🟡 DecisionEngineRequestTests  (Tests)
@@ -21,6 +21,7 @@ Packages: 2  |  Types: 104
 - 🟡 InferenceEngineBuilderTests  (Tests)
 - 🟡 InferenceEngineFactoryTests  (Tests)
 - 🟡 InferenceEngineTests  (Tests)
+- 🟡 JsonSchemaGrammarTests  (Tests)
 - 🟡 JudgeSequenceEncoderTests  (Tests)
 - 🟡 JudgeTokenizerTests  (Tests)
 - 🟡 ModelEngineSelectionTests  (Tests)
@@ -33,7 +34,7 @@ Packages: 2  |  Types: 104
 - 🟡 StallSafePrefillLiveJourneyTests  (Tests)
 - 🟡 StallWatchdogTests  (Tests)
 
-## csharp (79 types, ~4719 LOC)
+## csharp (80 types, ~4956 LOC)
 
 - 🔵 IChunkWallClock  (csharp)
 - 🔵 IConversation : IDisposable  (csharp)
@@ -97,6 +98,7 @@ Packages: 2  |  Types: 104
 - 🟡 JudgeTokenizer  (csharp)  deps: [string]
 - 🟡 NativeConversation : IConversation  (csharp)
 - 🟡 NativeConversationPool : IConversationPool  (csharp)
+- 🟡 NativeConversationSpecSession  (csharp)
 - 🟡 NativeConversationState : IConversationState  (csharp)
 - 🟡 NativeGrammar : IGrammar  (csharp)
 - 🟡 NativeInferenceBackend : IInferenceBackend  (csharp)

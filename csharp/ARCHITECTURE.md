@@ -111,12 +111,33 @@ tests, model-gated live journey tests. Full suite green (194/194 at last run), b
 0 errors/0 warnings (Debug + Release), LDC artifacts regenerated + enforcement PASS with
 every public-surface change.
 
-## Speculative decoding surface (ABI v6)
+## Speculative decoding surface (ABI v7)
 `SpeculativeConfig` carries the mode (Off / Mtp / Draft / NgramSimple / NgramMapK /
-NgramMod / NgramCache), the draft-model knobs, and the n-gram knobs (`NgramConfig`:
-lookup sizes, map-k min hits, mod window, optional cache file — pinned with the same
-HGlobal rule as the draft path at the native boundary). The engine self-report
-(`SpeculativeCapabilities`) is a types list (`draft_simple`, `mtp`, `ngram-simple/-map-k/
--mod/-cache`) plus `SpecVision` — spec sessions draft after multimodal inputs through the
-embd-aware mirror. Fail-closed everywhere: missing/unloadable draft, bad n-gram params,
-and corrupt cache files are typed errors naming the boundary; never silent fallbacks.
+NgramMod / NgramCache, plus ABI v7 companion modes Eagle3 / Dflash), the draft-model
+knobs, the n-gram knobs (`NgramConfig`: lookup sizes, map-k min hits, mod window,
+optional cache file — pinned with the same HGlobal rule as the draft path at the native
+boundary), and the ABI v7 companion paths (`EagleCompanionPath` / `DflashCompanionPath`).
+The engine self-report (`SpeculativeCapabilities`) is a types list (`draft_simple`, `mtp`,
+ngram-simple/-map-k/-mod/-cache, plus the ABI v7 `eagle3`/`dflash` companion bits —
+reported from companion metadata, typed refusals when absent) plus `SpecVision` —
+spec sessions draft after multimodal inputs through the embd-aware mirror. ABI v7 adds
+the batched/pool lane: `IConversation` grows EnableSpeculation/DisableSpeculation/
+ActiveSpeculation/GenerateSpeculative/SpeculationStats (one spec session per pooled
+conversation, `NativeConversationSpecSession` one-type-per-file; pool return drops the
+managed mirror with the native teardown), and the ops facade gates the lane through the
+model self-report (`EnableConversationSpeculation` validates first). Acceptance telemetry
+(`SpeculationStats`: drafted/accepted counters) never hides rejections.
+
+## JSON-schema → GBNF surface (ABI v7)
+`IInferenceModel.CreateGrammarFromJsonSchema(schema, rootName?)` + the
+`GgufEngineOps.CreateGrammarFromJsonSchema` facade convenience expose the native
+converter (pure string→string, KV-neutral). `GrammarKind` (Gbnf / JsonSchema) labels
+provenance on the grammar record. Fail-closed: invalid JSON → InferenceException naming
+the parse position; unsupported schema keyword → InferenceException naming the keyword;
+the converter's out buffers are freed on every path. Golden pin: the decision-envelope
+schema's GBNF is byte-exact against `tests/fixtures/decision-envelope.gbnf` (the same
+fixture the native suite pins).
+
+Fail-closed everywhere: missing/unloadable draft, bad n-gram params, missing/unloadable
+companion GGUFs, and corrupt cache files are typed errors naming the boundary; never
+silent fallbacks.

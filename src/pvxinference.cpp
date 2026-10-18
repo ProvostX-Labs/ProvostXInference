@@ -649,6 +649,16 @@ pvx_decode_result_t pvx_executor_infer(pvx_executor_t* exec) {
             return PVX_DECODE_FAILED;
         }
 
+        // ABI v7 (feature 4): EAGLE3 feature capture — features for these rows
+        // die at the NEXT decode on this context; the hook must see them now.
+        if (exec->spec && exec->spec->is_eagle()) {
+            if (!exec->spec->eagle_process_target_rows(
+                    kv_base + decoded, slice, exec->pending_tokens.data() + decoded)) {
+                exec->ctx_ref->last_error = exec->spec->last_error();
+                PVX_LOG(PVX_LOG_ERROR, "Decode", "eagle3 capture failed on infer slice");
+                return PVX_DECODE_FAILED;
+            }
+        }
         exec->recent_tokens.insert(exec->recent_tokens.end(),
                                    exec->pending_tokens.begin() + decoded,
                                    exec->pending_tokens.begin() + decoded + slice);
@@ -865,6 +875,40 @@ pvx_result_t pvx_model_spec_validate(const pvx_model_t* model,
             // or unreadable file — never a silent empty cache).
             return PVX_OK;
         }
+        case PVX_SPEC_EAGLE3: {
+            pvx_spec_capabilities_t caps{};
+            pvx_result_t rc = pvx_model_spec_capabilities(model, &caps);
+            if (rc != PVX_OK) return rc;
+            if (!caps.draft) {
+                m->last_error = "model has no standard vocabulary for EAGLE3 "
+                                "draft decoding (boundary: spec-engine/capability)";
+                return PVX_ERR_NOT_SUPPORTED;
+            }
+            if (!params->eagle_companion_path || params->eagle_companion_path[0] == '\0')
+                return PVX_ERR_INVALID_ARG;
+            // Companion metadata + load + target-layer contract + vocab family
+            // are exercised typed at spec_init (per-target pair validation —
+            // capability is a property of the LOADED PAIR, not the target alone).
+            return PVX_OK;
+        }
+        case PVX_SPEC_DFLASH: {
+            pvx_spec_capabilities_t caps{};
+            pvx_result_t rc = pvx_model_spec_capabilities(model, &caps);
+            if (rc != PVX_OK) return rc;
+            if (!caps.draft) {
+                m->last_error = "model has no standard vocabulary for DFlash "
+                                "draft decoding (boundary: spec-engine/capability)";
+                return PVX_ERR_NOT_SUPPORTED;
+            }
+            if (!params->dflash_companion_path || params->dflash_companion_path[0] == '\0')
+                return PVX_ERR_INVALID_ARG;
+            // Companion metadata is validated typed at spec_init; the wiring
+            // boundary refuses afterwards (never faked).
+            m->last_error = "DFlash companion metadata contract is validated at "
+                            "spec_init, but the block-diffusion draft loop is not "
+                            "wired in this build (boundary: spec-engine/dflash-wiring)";
+            return PVX_ERR_NOT_SUPPORTED;
+        }
         default:
             return PVX_ERR_INVALID_ARG;
     }
@@ -883,6 +927,18 @@ pvx_result_t pvx_executor_spec_init(pvx_executor_t* exec,
     auto engine = PvxBLSpecEngine::create(exec->ctx_ref->owning_model,
                                           exec->ctx_ref, params,
                                           exec->ctx_ref->last_error);
+    if (engine && engine->mode() == PVX_SPEC_EAGLE3 && exec->n_tokens > 0) {
+        // ABI v7 (feature 4): EAGLE3 g rows are captured per committed position
+        // by the target-decode hook — a stream that predates the session has
+        // positions the hook never saw, so drafting would run against a
+        // phantom prefix. Fail closed at enable: init on a fresh executor
+        // (reset) or before the first prompt.
+        exec->ctx_ref->last_error =
+            "eagle3 spec requires an empty stream at enable: feature capture must "
+            "observe every committed position (n_tokens=" + std::to_string(exec->n_tokens) +
+            "); reset the executor first (boundary: spec-engine/eagle3-prefill-boundary)";
+        engine.reset();
+    }
     if (!engine) {
         // last_error carries the typed boundary message; result stays typed:
         //   config-shape violations        -> PVX_ERR_INVALID_ARG
@@ -890,8 +946,13 @@ pvx_result_t pvx_executor_spec_init(pvx_executor_t* exec,
         //   capability/wiring boundaries   -> PVX_ERR_NOT_SUPPORTED
         const std::string& err = exec->ctx_ref->last_error;
         if (err.find("draft-load") != std::string::npos ||
-            err.find("ngram-cache") != std::string::npos) return PVX_ERR_LOAD_FAILED;
+            err.find("companion-load") != std::string::npos ||
+            err.find("ngram-cache") != std::string::npos ||
+            err.find("companion-context") != std::string::npos) return PVX_ERR_LOAD_FAILED;
         if (err.find("draft-config") != std::string::npos ||
+            err.find("companion-config") != std::string::npos ||
+            err.find("eagle3-config") != std::string::npos ||
+            err.find("dflash-config") != std::string::npos ||
             err.find("ngram-config") != std::string::npos ||
             err.find("spec-engine/config") != std::string::npos) return PVX_ERR_INVALID_ARG;
         return PVX_ERR_NOT_SUPPORTED;
@@ -943,6 +1004,112 @@ pvx_result_t pvx_executor_generate_spec(pvx_executor_t* exec,
     return exec->spec->generate(params, out_max, on_token, user_data, out_generated);
 }
 
+// ── Batched/pool-lane spec (ABI v7 feature 5) ─────────────────────────────
+
+pvx_result_t pvx_conversation_spec_init(pvx_conversation_t* conv,
+                                        const pvx_spec_params_t* params) {
+    if (!conv || !conv->ctx_ref || !params) return PVX_ERR_INVALID_ARG;
+    std::lock_guard<std::mutex> lock(conv->ctx_ref->infer_mtx);
+
+    if (params->mode == PVX_SPEC_OFF) {
+        conv->spec.reset();
+        return PVX_OK;
+    }
+    // Plan feature 5(f): batched spec needs spare seq room — typed refusal
+    // naming the boundary (never a silent single-seq degradation).
+    if (conv->ctx_ref->n_seq_max < 2) {
+        conv->ctx_ref->last_error =
+            "batched spec requires >=2 seq slots (context n_seq_max=" +
+            std::to_string(conv->ctx_ref->n_seq_max) + "; boundary: spec-engine/batched-seq-budget)";
+        return PVX_ERR_NOT_SUPPORTED;
+    }
+    // EAGLE3: per-position feature capture is executor-lane wiring (the
+    // conversation commit sites have no capture hook) — typed refusal on
+    // this lane, never a degraded draft.
+    if (params->mode == PVX_SPEC_EAGLE3) {
+        conv->ctx_ref->last_error =
+            "eagle3 spec is wired on the sequential executor lane only; the "
+            "batched/pool conversation lane refuses typed (boundary: "
+            "spec-engine/eagle3-conversation-lane)";
+        return PVX_ERR_NOT_SUPPORTED;
+    }
+    // Fail closed when the stream predates the ring's coverage (e.g. after a
+    // checkpoint import): drafting would replay a phantom prefix.
+    if (conv->n_tokens > 0 && conv->mirror.size() != (size_t) conv->n_tokens) {
+        conv->ctx_ref->last_error =
+            "conversation mirror ring does not cover the committed stream (" +
+            std::to_string(conv->mirror.size()) + " rows vs " +
+            std::to_string(conv->n_tokens) + " tokens); the spec engine refuses to "
+            "draft against a phantom prefix (boundary: spec-engine/mirror-consistency)";
+        return PVX_ERR_NOT_SUPPORTED;
+    }
+    auto engine = PvxBLSpecEngine::create(conv->ctx_ref->owning_model,
+                                          conv->ctx_ref, params,
+                                          conv->ctx_ref->last_error);
+    if (!engine) {
+        const std::string& err = conv->ctx_ref->last_error;
+        if (err.find("draft-load") != std::string::npos ||
+            err.find("companion-load") != std::string::npos ||
+            err.find("ngram-cache") != std::string::npos ||
+            err.find("companion-context") != std::string::npos) return PVX_ERR_LOAD_FAILED;
+        if (err.find("draft-config") != std::string::npos ||
+            err.find("companion-config") != std::string::npos ||
+            err.find("eagle3-config") != std::string::npos ||
+            err.find("dflash-config") != std::string::npos ||
+            err.find("ngram-config") != std::string::npos ||
+            err.find("spec-engine/config") != std::string::npos) return PVX_ERR_INVALID_ARG;
+        return PVX_ERR_NOT_SUPPORTED;
+    }
+    engine->bind_conversation(conv);
+    conv->spec = std::move(engine);
+    return PVX_OK;
+}
+
+void pvx_conversation_spec_free(pvx_conversation_t* conv) {
+    if (!conv || !conv->ctx_ref) { return; }
+    std::lock_guard<std::mutex> lock(conv->ctx_ref->infer_mtx);
+    conv->spec.reset();
+}
+
+pvx_result_t pvx_conversation_generate_spec(pvx_conversation_t* conv,
+                                            const pvx_sampling_params_t* params,
+                                            int out_max,
+                                            pvx_spec_token_callback_t on_token,
+                                            void* user_data,
+                                            int* out_generated) {
+    if (!conv || !conv->ctx_ref || !out_generated) return PVX_ERR_INVALID_ARG;
+    // Same lock discipline as the sample/generate ops on the shared batched
+    // context: a spec round performs several target decodes (draft chain
+    // verify + commit); the cycle-gate (exclusive use) is the CALLER's
+    // contract — same as the plain sample/infer cycle. Locking here prevents
+    // cross-conversation decode interleaving INSIDE a round; plain
+    // conversations continue between rounds.
+    std::lock_guard<std::mutex> lock(conv->ctx_ref->infer_mtx);
+    if (!conv->spec) {
+        conv->ctx_ref->last_error =
+            "no spec session on this conversation; enable via pvx_conversation_spec_init "
+            "(boundary: spec-engine/session)";
+        return PVX_ERR_NOT_SUPPORTED;
+    }
+    if (conv->n_tokens == 0 || conv->last_logits.empty()) return PVX_ERR_DECODE_FAILED;
+    return conv->spec->generate(params, out_max, on_token, user_data, out_generated);
+}
+
+pvx_result_t pvx_conversation_spec_stats(pvx_conversation_t* conv,
+                                         int64_t* out_drafted,
+                                         int64_t* out_accepted) {
+    if (!conv || !conv->ctx_ref || !out_drafted || !out_accepted) return PVX_ERR_INVALID_ARG;
+    std::lock_guard<std::mutex> lock(conv->ctx_ref->infer_mtx);
+    if (!conv->spec) {
+        *out_drafted = 0;
+        *out_accepted = 0;
+        return PVX_OK;
+    }
+    *out_drafted  = conv->spec->drafted();
+    *out_accepted = conv->spec->accepted();
+    return PVX_OK;
+}
+
 // ── State save/restore ──
 // Uses llama_memory_seq_cp to copy KV to a spare seq_id, then restore by copying back
 
@@ -953,6 +1120,12 @@ pvx_result_t pvx_state_save(pvx_executor_t* exec, pvx_state_t** out_state) {
     // Snapshot the committed-stream mirror (embd rows included) so a restore
     // resumes the spec substrate against the same rows the backup KV holds.
     state->mirror = exec->mirror;
+    // ABI v7 (feature 4): EAGLE3 per-position g rows ride with the backup —
+    // restore replays the draft decoder from them (pending boundary included),
+    // never resuming against a stale deferred state.
+    if (exec->spec && exec->spec->is_eagle()) {
+        exec->spec->eagle_state_capture(state->eagle_g_rows);
+    }
     // Copy KV from seq 0 to seq 1 (backup)
     if (exec->n_tokens > 0) {
         if (exec->ctx_ref->n_seq_max < 2) {
@@ -997,6 +1170,19 @@ pvx_result_t pvx_state_restore(pvx_executor_t* exec, pvx_state_t* state) {
         if (front != 0)
             for (auto& e : exec->mirror)
                 for (auto& p : e.pos) p -= front;
+    }
+    // ABI v7 (feature 4): EAGLE3 restore — the draft decoder rebuilds from the
+    // saved g rows (full training-pair replay, boundary deferred). A mismatched
+    // or absent payload on a live session invalidates it typed (the caller
+    // must re-init spec; the next generate refuses NOT_SUPPORTED naming the
+    // boundary) — restore itself still succeeds (the stream is fine).
+    if (exec->spec && exec->spec->is_eagle()) {
+        std::vector<std::vector<float>> rows = std::move(state->eagle_g_rows);
+        if (!exec->spec->eagle_state_restore(std::move(rows))) {
+            PVX_LOG(PVX_LOG_WARN, "Spec", "eagle3 session invalidated by restore: %s",
+                    exec->spec->last_error().c_str());
+            exec->spec.reset();
+        }
     }
     // Restored KV may not include the sampled row's token — snapshot is stale.
     exec->last_batch_idx = -1;
@@ -1057,6 +1243,11 @@ pvx_result_t pvx_pool_return(pvx_pool_t* pool, pvx_conversation_t* conv) {
     std::lock_guard<std::mutex> lock(pool->mtx);
     {
         std::lock_guard<std::mutex> ilock(pool->ctx_ref->infer_mtx);
+        // ABI v7 (feature 5): the conversation's spec session dies with the
+        // lease — draft state, caches and g rows are per-conversation. Freed
+        // HERE (inside the existing lock order pool->mtx → infer_mtx) so the
+        // teardown cannot race a spec round or another lane's session.
+        conv->spec.reset();
         if (conv->n_tokens > 0) {
             llama_memory_seq_rm(conv->mem, conv->seq_id, 0, -1);
             conv->n_tokens = 0; conv->n_kv_pos = 0;
@@ -1065,6 +1256,7 @@ pvx_result_t pvx_pool_return(pvx_pool_t* pool, pvx_conversation_t* conv) {
                 pvx_kv_flush(pool->ctx_ref, conv->seq_id);
             }
         }
+        conv->mirror.clear();  // ABI v7: ring retreats with the window
     }
     conv->has_pending_prompt = false;
     conv->pending_tokens.clear();
@@ -1170,6 +1362,12 @@ pvx_result_t pvx_conversation_rewind(pvx_conversation_t* conv, int n_tokens) {
         conv->recent_tokens.resize(conv->recent_tokens.size() - n_tokens);
     else
         conv->recent_tokens.clear();
+    // ABI v7 feature 5: the conversation mirror retreats with the window
+    // (executor-lane rewind discipline — dropped positions leave the ring).
+    if ((int)conv->mirror.size() > n_tokens)
+        conv->mirror.resize(conv->mirror.size() - n_tokens);
+    else
+        conv->mirror.clear();
     conv->n_tokens -= n_tokens; conv->n_kv_pos -= n_tokens;
     // Rewound tokens include the sampled row's token — snapshot is stale.
     conv->last_batch_idx = -1;
@@ -1182,6 +1380,7 @@ pvx_result_t pvx_conversation_rewind(pvx_conversation_t* conv, int n_tokens) {
 static void conv_reset_unlocked(pvx_conversation_t* conv) {
     reset_grammar_state(&conv->grammar_state);
     conv->recent_tokens.clear();
+    conv->mirror.clear();
     if (conv->n_tokens > 0) llama_memory_seq_rm(conv->mem, conv->seq_id, 0, -1);
     conv->n_tokens = 0; conv->n_kv_pos = 0;
     conv->has_pending_prompt = false;
@@ -1202,6 +1401,9 @@ pvx_result_t pvx_conversation_save(pvx_conversation_t* conv, pvx_state_t** out_s
     if (!conv || !out_state) return PVX_ERR_INVALID_ARG;
     auto* state = new pvx_state_s();
     state->n_tokens = conv->n_tokens;
+    // ABI v7 (feature 5): snapshot the per-conversation mirror with the
+    // rewind point — the batched lane's rewind (restore) retreats the ring.
+    state->mirror = conv->mirror;
     *out_state = state;
     return PVX_OK;
 }
@@ -1218,6 +1420,11 @@ pvx_result_t pvx_conversation_restore(pvx_pool_t* pool, pvx_conversation_t* conv
                                                   state->n_tokens);
         if (rm != PVX_OK) return rm;
         conv->n_tokens = state->n_tokens; conv->n_kv_pos = state->n_tokens;
+        // ABI v7 (feature 5): the mirror retreats with the rewind point
+        // (executor-lane discipline). The conversation's spec session (if
+        // any) rebuilds its draft state from the shrunk ring at the next
+        // round — its lookup streams and draft mirror derive from the ring.
+        conv->mirror = state->mirror;
         // Rewound tokens include the sampled row's token — snapshot is stale.
         conv->last_batch_idx = -1;
         conv->last_logits.clear();
@@ -1419,6 +1626,13 @@ pvx_decode_result_t pvx_infer(pvx_context_t* ctx) {
             cp.conv->recent_tokens.insert(cp.conv->recent_tokens.end(),
                                           cp.tokens.begin() + (s - conv_start),
                                           cp.tokens.begin() + (s - conv_start) + covered);
+            // ABI v7 feature 5: per-conversation mirror ring — one entry per
+            // committed row (batched lane positions are plain 1-D).
+            for (int j = 0; j < covered; j++) {
+                pvx_conv_mirror_push_token(cp.conv,
+                                           cp.tokens[(size_t)(s - conv_start) + j],
+                                           cp.conv->n_kv_pos - covered + j);
+            }
             cp.committed += covered;
             if (e == conv_end) {
                 cp.conv->last_batch_idx = conv_end - 1 - gi;  // logits index within THIS slice
@@ -1774,6 +1988,11 @@ pvx_result_t pvx_conversation_prompt_with_images(pvx_conversation_t* conv,
                     conv->recent_tokens.insert(conv->recent_tokens.end(),
                                                conv->pending_tokens.begin() + flushed,
                                                conv->pending_tokens.begin() + flushed + n_slice);
+                    for (int j = 0; j < n_slice; j++) {
+                        pvx_conv_mirror_push_token(conv,
+                                                   conv->pending_tokens[(size_t) flushed + j],
+                                                   conv->n_kv_pos - n_slice + j);
+                    }
                     flushed += n_slice;
                 }
                 conv->pending_tokens.clear();
@@ -1831,6 +2050,19 @@ pvx_result_t pvx_conversation_prompt_with_images(pvx_conversation_t* conv,
                 }
 
                 conv->n_tokens += n_tokens; conv->n_kv_pos += n_tokens;
+                // ABI v7 feature 5: embd rows enter the conversation mirror at
+                // their pinned (plain, batched-lane) positions — the spec
+                // engine replays them by pointer exactly like the executor
+                // lane's vision mirror rows.
+                for (int j = 0; j < n_tokens; j++) {
+                    const std::array<llama_pos, 4> rp = {
+                        (llama_pos)(conv->n_kv_pos - n_tokens + j),
+                        (llama_pos)(conv->n_kv_pos - n_tokens + j),
+                        (llama_pos)(conv->n_kv_pos - n_tokens + j),
+                        (llama_pos)(conv->n_kv_pos - n_tokens + j) };
+                    pvx_conv_mirror_push_embd(conv,
+                                              embd + (size_t) j * n_embd, n_embd, rp);
+                }
                 // Image chunk token positions are embeddings — no token ids exist,
                 // so they cannot contribute to repeat-penalty history.
                 conv->last_batch_idx = n_tokens - 1;
@@ -1919,6 +2151,15 @@ pvx_result_t pvx_conversation_shift_left(pvx_conversation_t* conv, int n_tokens)
                                   conv->recent_tokens.begin() + n_tokens);
     else
         conv->recent_tokens.clear();
+
+    // ABI v7 feature 5: mirror ring — freed front positions drop out of the
+    // window; surviving entries keep pinned absolute positions (executor-lane
+    // shift_left discipline; the spec replay uses entry.pos).
+    if ((int)conv->mirror.size() > n_tokens)
+        conv->mirror.erase(conv->mirror.begin(),
+                           conv->mirror.begin() + n_tokens);
+    else
+        conv->mirror.clear();
 
     if (conv->last_batch_idx >= conv->n_tokens) { conv->last_batch_idx = -1; conv->last_logits.clear(); }
     return PVX_OK;
@@ -2397,6 +2638,18 @@ pvx_result_t pvx_executor_prompt_with_images(pvx_executor_t* exec,
                                                  const int* image_sizes,
                                                  int n_images) {
     if (!exec || !model || !text) return PVX_ERR_INVALID_ARG;
+    // ABI v7 (feature 4): EAGLE3 drafting consumes per-position target layer
+    // features; multimodal rows are skipped by the upstream eagle3 process()
+    // hook, so drafting after an image prompt cannot be kept exact — refuse
+    // the prompt typed while the session is live (free the session first, or
+    // re-init after the vision turn). Fail closed, never a degraded draft.
+    if (exec->spec && exec->spec->is_eagle()) {
+        exec->ctx_ref->last_error =
+            "eagle3 spec session active: multimodal prompts are a typed refusal "
+            "while EAGLE3 drafting runs (upstream process() skips embd rows; "
+            "free the session before image prompts) (boundary: spec-engine/eagle3-vision)";
+        return PVX_ERR_NOT_SUPPORTED;
+    }
     if (!model->mtmd_ctx) {
         model->last_error = "No mmproj loaded — cannot process images";
         return PVX_ERR_INVALID_ARG;

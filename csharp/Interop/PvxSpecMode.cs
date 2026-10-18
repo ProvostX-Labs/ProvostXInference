@@ -17,4 +17,10 @@ internal enum PvxSpecMode : int
     NgramMapK = 4,
     NgramMod = 5,
     NgramCache = 6,
+    // ABI v7 appends — companion-GGUF draft-graph modes (upstream
+    // draft-eagle3 / draft-dflash). Eagle3 wires the sequential executor
+    // lane; the batched/pool lane refuses typed. DFlash validates companion
+    // metadata and fails typed at the wiring boundary — never faked.
+    Eagle3 = 7,
+    Dflash = 8,
 }

@@ -102,8 +102,8 @@ typedef bool (*pvx_spec_token_callback_t)(int32_t token, void* user_data);
  * model) and are reported for every standard-vocab target (ABI v6). */
 #define PVX_SPEC_TYPE_DRAFT_SIMPLE 0x1u /* second draft model, any eligible target */
 #define PVX_SPEC_TYPE_MTP          0x2u /* model carries its own MTP (nextn) layers */
-#define PVX_SPEC_TYPE_EAGLE3       0x4u /* not detected / not wired this slice */
-#define PVX_SPEC_TYPE_DFLASH       0x8u /* not detected / not wired this slice */
+#define PVX_SPEC_TYPE_EAGLE3       0x4u /* ABI v7: companion draft GGUF (target_layers metadata); executor-lane wiring */
+#define PVX_SPEC_TYPE_DFLASH       0x8u /* ABI v7: dflash companion metadata validated; drafting unwired — typed boundary */
 #define PVX_SPEC_TYPE_DSPARK       0x10u /* not detected / not wired this slice */
 #define PVX_SPEC_TYPE_NGRAM        0x20u /* n-gram simple: history-pattern lookup (ABI v6) */
 #define PVX_SPEC_TYPE_NGRAM_MAP_K  0x40u /* n-gram map with value statistics (ABI v6) */
@@ -140,6 +140,14 @@ typedef enum {
     PVX_SPEC_NGRAM_MAP_K  = 4, /* n-gram -> m-gram map with accept statistics */
     PVX_SPEC_NGRAM_MOD   = 5, /* MOD: (n-1)-suffix match allowing one deviation */
     PVX_SPEC_NGRAM_CACHE = 6, /* static (file) + dynamic token-probability caches */
+    /* ABI v7 appends — companion-GGUF draft-graph modes (upstream spec-decode
+     * draft-eagle3 / draft-dflash). Eagle3 is wired on the SEQUENTIAL executor
+     * lane; the batched/pool lane refuses typed (boundary:
+     * spec-engine/eagle3-conversation-lane). DFlash validates companion
+     * metadata and fails typed at the wiring boundary (spec-engine/dflash-wiring)
+     * — never faked. */
+    PVX_SPEC_EAGLE3 = 7, /* EAGLE3 draft decoder fed (token, g_embd) pairs from target layer features */
+    PVX_SPEC_DFLASH = 8, /* DFlash block-diffusion draft (typed wiring boundary this slice) */
 } pvx_spec_mode_t;
 
 /* ABI v6 append — n-gram knobs (all modes PVX_SPEC_NGRAM_*). Zero-value
@@ -162,6 +170,13 @@ typedef struct {
     float p_min;                   /* drafter top-token confidence floor; <0 = upstream default */
     int   draft_gpu_layers;        /* -1 = same offload as target, else explicit */
     pvx_ngram_params_t ngram;      /* ABI v6 append — active iff mode is PVX_SPEC_NGRAM_* */
+    /* ABI v7 appends — zero-value = feature off (blittable struct growth).
+     * eagle_companion_path required iff mode == PVX_SPEC_EAGLE3: companion
+     * GGUF must carry eagle3.target_layers (exactly 3 entries) + compatible
+     * vocab; validated at spec_init with typed errors naming the metadata
+     * key. dflash_companion_path required iff mode == PVX_SPEC_DFLASH. */
+    const char* eagle_companion_path;
+    const char* dflash_companion_path;
 } pvx_spec_params_t;
 
 /* Capability query (see struct docs). Engines without spec support report
@@ -200,6 +215,70 @@ pvx_result_t pvx_executor_generate_spec(pvx_executor_t* exec,
                                         pvx_spec_token_callback_t on_token,
                                         void* user_data,
                                         int* out_generated);
+
+/* ══════════════════════════════════════════════════
+ *  Speculative decoding — batched/pool lane (ABI v7, feature 5)
+ * ══════════════════════════════════════════════════ */
+
+/* Enable speculative decoding on ONE pooled conversation. Mirrors the executor
+ * trio: the spec session is per-conversation (own draft state, keyed by the
+ * conversation's seq_id); the committed-stream mirror ring is maintained per
+ * conversation by every commit path (batched decode, rewind, reset, return).
+ * Requires >= 2 seq slots on the context (typed PVX_ERR_NOT_SUPPORTED naming
+ * "batched spec requires >=2 seq slots" otherwise). PVX_SPEC_EAGLE3 refuses
+ * typed on this lane (boundary: spec-engine/eagle3-conversation-lane).
+ * Enabling with a non-empty history whose mirror is inconsistent (e.g. after a
+ * checkpoint import) is a typed PVX_ERR_NOT_SUPPORTED naming
+ * spec-engine/mirror-consistency — fail closed, never draft against a phantom
+ * stream. All spec ops take the context's infer mutex (same discipline as
+ * sample ops); pool return tears the session down in the existing teardown
+ * order. */
+pvx_result_t pvx_conversation_spec_init(pvx_conversation_t* conv,
+                                         const pvx_spec_params_t* params);
+
+/* Teardown of the conversation's spec session (idempotent; pool return and
+ * context teardown also call it). */
+void pvx_conversation_spec_free(pvx_conversation_t* conv);
+
+/* Speculative token loop over one pooled conversation. Identical contract to
+ * pvx_executor_generate_spec (draft -> target-verify -> accept into the
+ * conversation's normal state; token-exact with the plain lane for identical
+ * params). Sampling uses the same pipeline as pvx_conversation_sample.
+ * PVX_ERR_NOT_SUPPORTED when no spec session is active on this conversation. */
+pvx_result_t pvx_conversation_generate_spec(pvx_conversation_t* conv,
+                                             const pvx_sampling_params_t* params,
+                                             int out_max,
+                                             pvx_spec_token_callback_t on_token,
+                                             void* user_data,
+                                             int* out_generated);
+
+/* Spec-session acceptance telemetry for one conversation (0/0 when none). */
+pvx_result_t pvx_conversation_spec_stats(pvx_conversation_t* conv,
+                                         int64_t* out_drafted,
+                                         int64_t* out_accepted);
+
+/* ══════════════════════════════════════════════════
+ *  JSON-schema → GBNF grammar converter (ABI v7, feature 11)
+ * ══════════════════════════════════════════════════ */
+
+/* Convert a JSON Schema document (RFC 8259 JSON text) into a GBNF grammar
+ * string consumable by pvx_grammar_create (pattern-port of the vendored
+ * common/json-schema-to-grammar converter — never linked, self-contained in
+ * src/pvx_json_schema_grammar.cpp).
+ *   json_schema : NUL-terminated JSON object (the schema document)
+ *   root_name   : optional rule name for the root (NULL/"" = "root")
+ *   out_gbnf    : receives a malloc'd NUL-terminated grammar (free with
+ *                 pvx_free_string); NULL on failure
+ *   out_error   : optional; receives a malloc'd typed boundary message
+ *                 (boundary: json-schema/parse | json-schema/keyword)
+ * Fail-closed contract: invalid JSON → PVX_ERR_INVALID_ARG naming the parse
+ * position; an unsupported schema KEYWORD (per-keyword port, e.g. regex
+ * "pattern") → PVX_ERR_NOT_SUPPORTED naming the keyword — never a loose
+ * best-effort grammar. KV-neutral: pure string -> string conversion. */
+pvx_result_t pvx_grammar_from_json_schema(const char* json_schema,
+                                           const char* root_name,
+                                           char** out_gbnf,
+                                           char** out_error);
 
 /* ── Decode result ── */
 typedef enum {
@@ -605,7 +684,7 @@ pvx_result_t pvx_kv_flush(pvx_context_t* ctx, int seq_id);
  * fails FAST with a clear error instead of corrupting the stack/segfaulting.
  * Bump BOTH sides in lockstep on any native signature/ABI change.
  */
-#define PVX_ABI_VERSION 6
+#define PVX_ABI_VERSION 7
 int pvx_abi_version(void);
 
 #ifdef __cplusplus

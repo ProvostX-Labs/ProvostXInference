@@ -157,9 +157,11 @@ public sealed class NativeInferenceModel : IInferenceModel
         ObjectDisposedException.ThrowIf(_disposed, this);
         var pathPtr = config.DraftModelPath is null ? IntPtr.Zero : PvxNative.AllocUTF8(config.DraftModelPath);
         var cachePtr = config.Ngram?.CachePath is null ? IntPtr.Zero : PvxNative.AllocUTF8(config.Ngram.CachePath);
+        var eaglePtr = config.EagleCompanionPath is null ? IntPtr.Zero : PvxNative.AllocUTF8(config.EagleCompanionPath);
+        var dflashPtr = config.DflashCompanionPath is null ? IntPtr.Zero : PvxNative.AllocUTF8(config.DflashCompanionPath);
         try
         {
-            var nativeParams = new PvxSpecParams(config, pathPtr, cachePtr);
+            var nativeParams = new PvxSpecParams(config, pathPtr, cachePtr, eaglePtr, dflashPtr);
             EntryPoints.ModelSpecValidate(_handle.DangerousGetHandle(), in nativeParams)
                 .ThrowIfModelError(EntryPoints, _handle.DangerousGetHandle()); // F16 + model-scoped reason
         }
@@ -167,6 +169,8 @@ public sealed class NativeInferenceModel : IInferenceModel
         {
             if (pathPtr != IntPtr.Zero) Marshal.FreeHGlobal(pathPtr);
             if (cachePtr != IntPtr.Zero) Marshal.FreeHGlobal(cachePtr);
+            if (eaglePtr != IntPtr.Zero) Marshal.FreeHGlobal(eaglePtr);
+            if (dflashPtr != IntPtr.Zero) Marshal.FreeHGlobal(dflashPtr);
         }
     }
     internal ModelConfig Config => _config;
@@ -218,6 +222,59 @@ public sealed class NativeInferenceModel : IInferenceModel
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         return NativeGrammar.Create(this, grammarStr, grammarRoot);
+    }
+
+    /// <summary>ABI v7: JSON Schema → GBNF via the native pattern-port of the
+    /// vendored converter (product code never links the vendored tree). The
+    /// produced GBNF is compiled by the existing grammar chain; the provenance
+    /// label marks the grammar as schema-derived. Fail-closed: native typed
+    /// refusals (parse position / unsupported keyword) map to
+    /// InferenceException through the standard channel — never a loose
+    /// grammar. The out_error buffer is freed on every path (it is only set on
+    /// failure; freeing it in the finally keeps the throw path leak-free).</summary>
+    public IGrammar CreateGrammarFromJsonSchema(string jsonSchema, string? rootName = null)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var gbnf = JsonSchemaToGbnf(jsonSchema, rootName);
+        return NativeGrammar.Create(this, gbnf, string.IsNullOrEmpty(rootName) ? "root" : rootName!,
+            GrammarKind.JsonSchema);
+    }
+
+    /// <summary>Raw converter surface (ABI v7): schema text → GBNF text with
+    /// no grammar compile. Fail-closed typed refusals; both native buffers are
+    /// freed on every path (out_error is set only on failure — freeing it in
+    /// the finally keeps the throw path leak-free).</summary>
+    internal string JsonSchemaToGbnf(string jsonSchema, string? rootName)
+    {
+        ArgumentNullException.ThrowIfNull(jsonSchema);
+        var root = string.IsNullOrEmpty(rootName) ? "root" : rootName;
+        IntPtr gbnfPtr = IntPtr.Zero, errPtr = IntPtr.Zero;
+        PvxResult result;
+        try
+        {
+            result = EntryPoints.GrammarFromJsonSchema(jsonSchema, root, out gbnfPtr, out errPtr);
+            if (result != PvxResult.Ok)
+            {
+                // Typed fail-closed with the converter's boundary message
+                // (json-schema/parse | json-schema/<keyword>) — the handle-less
+                // converter has no context-scoped last_error, so out_error is
+                // the typed reason channel.
+                var detail = errPtr != IntPtr.Zero ? Marshal.PtrToStringUTF8(errPtr) : null;
+                throw new InferenceException((int) result,
+                    string.IsNullOrEmpty(detail)
+                        ? $"json-schema conversion failed (boundary: json-schema)"
+                        : detail!);
+            }
+            if (gbnfPtr == IntPtr.Zero)
+                throw new InferenceException((int) PvxResult.ErrInternal,
+                    "json-schema converter returned no grammar (boundary: json-schema/convert)");
+            return Marshal.PtrToStringUTF8(gbnfPtr) ?? string.Empty;
+        }
+        finally
+        {
+            if (gbnfPtr != IntPtr.Zero) EntryPoints.FreeString(gbnfPtr);
+            if (errPtr != IntPtr.Zero) EntryPoints.FreeString(errPtr);
+        }
     }
 
     public void Dispose()

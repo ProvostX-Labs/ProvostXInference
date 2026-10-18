@@ -84,6 +84,25 @@ public interface IGgufEngineOps
     /// <summary>Speculative self-report: types supported for THIS loaded model.</summary>
     SpeculativeCapabilities SpeculativeCapabilities { get; }
 
+    /// <summary>ABI v7: JSON Schema → GBNF grammar convenience (see
+    /// IInferenceModel.CreateGrammarFromJsonSchema).</summary>
+    IGrammar CreateGrammarFromJsonSchema(string jsonSchema, string? rootName = null);
+
+    // ── ABI v7: speculative decoding on the batched/pool lane ──
+    /// <summary>Capability-gated enable of speculation on ONE pooled
+    /// conversation: the model self-report is validated first
+    /// (ValidateSpeculation), then the conversation session is enabled (which
+    /// re-validates fail-closed natively). Typed refusal — never a silent
+    /// non-spec run.</summary>
+    void EnableConversationSpeculation(IConversation conversation, SpeculativeConfig config);
+    /// <summary>Teardown of a conversation's spec session (idempotent).</summary>
+    void DisableConversationSpeculation(IConversation conversation);
+    /// <summary>Per-conversation live mirror of the active speculative config
+    /// (null when none).</summary>
+    SpeculativeConfig? ActiveConversationSpeculation(IConversation conversation);
+    /// <summary>Per-conversation spec acceptance telemetry (0/0 when none).</summary>
+    SpeculationStats ConversationSpeculationStats(IConversation conversation);
+
     /// <summary>Typed pre-validation of a speculative config (mode/path/capability).</summary>
     void ValidateSpeculation(SpeculativeConfig config);
 }

@@ -157,9 +157,11 @@ public sealed class NativeStandardExecutor : IStandardExecutor
         ObjectDisposedException.ThrowIf(_disposed, this);
         var pathPtr = config.DraftModelPath is null ? IntPtr.Zero : PvxNative.AllocUTF8(config.DraftModelPath);
         var cachePtr = config.Ngram?.CachePath is null ? IntPtr.Zero : PvxNative.AllocUTF8(config.Ngram.CachePath);
+        var eaglePtr = config.EagleCompanionPath is null ? IntPtr.Zero : PvxNative.AllocUTF8(config.EagleCompanionPath);
+        var dflashPtr = config.DflashCompanionPath is null ? IntPtr.Zero : PvxNative.AllocUTF8(config.DflashCompanionPath);
         try
         {
-            var nativeParams = new PvxSpecParams(config, pathPtr, cachePtr);
+            var nativeParams = new PvxSpecParams(config, pathPtr, cachePtr, eaglePtr, dflashPtr);
             EP.ExecutorSpecInit(_handle.DangerousGetHandle(), in nativeParams)
                 .ThrowIfError(EP, _context.RawHandle); // F16
             _activeSpeculation = config; // set only after native success
@@ -168,6 +170,8 @@ public sealed class NativeStandardExecutor : IStandardExecutor
         {
             if (pathPtr != IntPtr.Zero) System.Runtime.InteropServices.Marshal.FreeHGlobal(pathPtr);
             if (cachePtr != IntPtr.Zero) System.Runtime.InteropServices.Marshal.FreeHGlobal(cachePtr);
+            if (eaglePtr != IntPtr.Zero) System.Runtime.InteropServices.Marshal.FreeHGlobal(eaglePtr);
+            if (dflashPtr != IntPtr.Zero) System.Runtime.InteropServices.Marshal.FreeHGlobal(dflashPtr);
         }
     }
 

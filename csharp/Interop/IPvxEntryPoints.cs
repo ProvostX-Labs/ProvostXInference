@@ -149,6 +149,16 @@ internal interface IPvxEntryPoints
     PvxResult ExecutorGenerateSpec(IntPtr executor, in PvxSamplingParams parameters,
         int outMax, IntPtr onToken, IntPtr userData, out int generated);
 
+    // ── ABI v7: batched/pool-lane speculative decoding ──
+    PvxResult ConversationSpecInit(IntPtr conversation, in PvxSpecParams parameters);
+    void ConversationSpecFree(IntPtr conversation);
+    PvxResult ConversationGenerateSpec(IntPtr conversation, in PvxSamplingParams parameters,
+        int outMax, IntPtr onToken, IntPtr userData, out int generated);
+    PvxResult ConversationSpecStats(IntPtr conversation, out long drafted, out long accepted);
+
+    // ── ABI v7: JSON-schema → GBNF converter (no handles — string→string) ──
+    PvxResult GrammarFromJsonSchema(string jsonSchema, string rootName, out IntPtr gbnf, out IntPtr error);
+
     // ── Handshake ──
     int AbiVersion();
 }

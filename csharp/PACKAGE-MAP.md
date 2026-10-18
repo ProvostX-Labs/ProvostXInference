@@ -1,13 +1,13 @@
 # PACKAGE-MAP.md — csharp
 
-Generated: 2026-10-18T13:45:19.591655+00:00
+Generated: 2026-10-18T17:40:07.180025+00:00
 
 ---
 
 | Package | Types | LOC | ~Tokens | Dependencies |
 |---|---|---|---|---|
-| Tests | 25 | 3010 | ~1305 | — |
-| csharp | 79 | 4719 | ~5433 | — |
+| Tests | 26 | 3297 | ~1412 | — |
+| csharp | 80 | 4956 | ~5714 | — |
 
 ---
 

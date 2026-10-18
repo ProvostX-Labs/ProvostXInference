@@ -20,7 +20,7 @@ internal sealed class FakeModuleLoader : IPvxModuleLoader
     internal sealed class FakeImage
     {
         public string Id = "";
-        public int AbiVersionValue = 6;
+        public int AbiVersionValue = PvxNative.ExpectedAbiVersion; // lockstep with the binding
         public bool HasAbiVersion = true;
         public IntPtr Handle;
         internal int ScriptedAbi;
@@ -35,7 +35,7 @@ internal sealed class FakeModuleLoader : IPvxModuleLoader
 
     public IReadOnlyList<FakeImage> Images => _images;
 
-    public FakeImage AddImage(string id, int abiVersion = 6, bool hasAbiVersion = true, string? loadPath = null)
+    public FakeImage AddImage(string id, int abiVersion = PvxNative.ExpectedAbiVersion, bool hasAbiVersion = true, string? loadPath = null)
     {
         var image = new FakeImage
         {
@@ -262,6 +262,11 @@ internal static class PvxExportTypeMap
         "pvx_executor_spec_init" => typeof(PvxAbiDelegates.PvxExecutorSpecInitDelegate),
         "pvx_executor_spec_free" => typeof(PvxAbiDelegates.PvxExecutorSpecFreeDelegate),
         "pvx_executor_generate_spec" => typeof(PvxAbiDelegates.PvxExecutorGenerateSpecDelegate),
+        "pvx_conversation_spec_init" => typeof(PvxAbiDelegates.PvxConversationSpecInitDelegate),
+        "pvx_conversation_spec_free" => typeof(PvxAbiDelegates.PvxFreeHandleDelegate),
+        "pvx_conversation_generate_spec" => typeof(PvxAbiDelegates.PvxConversationGenerateSpecDelegate),
+        "pvx_conversation_spec_stats" => typeof(PvxAbiDelegates.PvxConversationSpecStatsDelegate),
+        "pvx_grammar_from_json_schema" => typeof(PvxAbiDelegates.PvxGrammarFromJsonSchemaDelegate),
         _ => throw new InvalidOperationException($"unknown export '{exportName}'")
     };
 }

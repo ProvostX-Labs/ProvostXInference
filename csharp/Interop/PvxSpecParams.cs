@@ -24,15 +24,24 @@ internal readonly struct PvxSpecParams
     public readonly int NgramNMatch;
     public readonly IntPtr NgramCachePath;
 
+    // ABI v7 appends — companion-GGUF paths (pinned HGlobal UTF-8, caller-owned)
+    public readonly IntPtr EagleCompanionPath;
+    public readonly IntPtr DflashCompanionPath;
+
     /// <summary>Map a user config onto the native struct. SpeculativeMode values
     /// mirror pvx_spec_mode_t exactly; draftPathPtr/cachePathPtr must be pinned
     /// UTF-8 copies (IntPtr.Zero when null). <=0 / <0 sentinels mirror the
-    /// native defaults (upstream draft-simple).</summary>
-    public PvxSpecParams(SpeculativeConfig config, IntPtr draftPathPtr, IntPtr cachePathPtr)
+    /// native defaults (upstream draft-simple). ABI v7: eaglePtr/dflashPtr are
+    /// the pinned companion-GGUF paths (IntPtr.Zero when the config leaves them
+    /// null — native spec_init then types the missing-path refusal itself,
+    /// naming the boundary).</summary>
+    public PvxSpecParams(SpeculativeConfig config, IntPtr draftPathPtr, IntPtr cachePathPtr,
+        IntPtr eaglePtr, IntPtr dflashPtr)
     {
         if (config.Mode is not (SpeculativeMode.Off or SpeculativeMode.Mtp or SpeculativeMode.Draft
             or SpeculativeMode.NgramSimple or SpeculativeMode.NgramMapK
-            or SpeculativeMode.NgramMod or SpeculativeMode.NgramCache))
+            or SpeculativeMode.NgramMod or SpeculativeMode.NgramCache
+            or SpeculativeMode.Eagle3 or SpeculativeMode.Dflash))
             throw new ArgumentException($"unknown speculative mode {config.Mode}");
         Mode = (int) config.Mode;
         DraftModelPath = draftPathPtr;
@@ -46,5 +55,7 @@ internal readonly struct PvxSpecParams
         NgramMinHits = ng?.MinHits ?? 0;
         NgramNMatch = ng?.NMatch ?? 0;
         NgramCachePath = cachePathPtr;
+        EagleCompanionPath = eaglePtr;
+        DflashCompanionPath = dflashPtr;
     }
 }

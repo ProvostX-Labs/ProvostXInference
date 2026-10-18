@@ -1,6 +1,6 @@
 # csharp.API.md
 
-Types: 79  |  LOC: 4719  |  ~5433 tokens
+Types: 80  |  LOC: 4956  |  ~5714 tokens
 
 ---
 
@@ -14,6 +14,7 @@ Methods:
 Implements: IDisposable
 Properties:
   - int TokenCount { get; set; }
+  - SpeculativeConfig? ActiveSpeculation { get; set; }
 Methods:
   - void Prompt(string text)
   - void PromptTokens(int[] tokens)
@@ -28,6 +29,10 @@ Methods:
   - byte[] ExportCheckpoint()
   - void ImportCheckpoint(byte[] data)
   - void PromptWithImages(string text, IVisionEncoder vision, params byte[][] images)
+  - void EnableSpeculation(SpeculativeConfig config)
+  - void DisableSpeculation()
+  - IReadOnlyList<int> GenerateSpeculative(SamplingConfig? config, int maxTokens, Action<int>? onToken = null)
+  - SpeculationStats SpeculationStats()
 Cross-package deps: ProvostXInference.Models
 
 ### Interface: IConversationPool
@@ -112,6 +117,11 @@ Methods:
   - void RestoreConversationState(IConversationPool pool, IConversationState state)
   - byte[] ExportConversationCheckpoint(IConversation conversation)
   - void ImportConversationCheckpoint(IConversation conversation, byte[] data)
+  - IGrammar CreateGrammarFromJsonSchema(string jsonSchema, string? rootName = null)
+  - void EnableConversationSpeculation(IConversation conversation, SpeculativeConfig config)
+  - void DisableConversationSpeculation(IConversation conversation)
+  - SpeculativeConfig? ActiveConversationSpeculation(IConversation conversation)
+  - SpeculationStats ConversationSpeculationStats(IConversation conversation)
   - void ValidateSpeculation(SpeculativeConfig config)
 Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Models
 
@@ -123,7 +133,10 @@ Methods:
 Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Models
 
 ### Interface: IGrammar
+> Provenance of this grammar's GBNF text: hand-written GBNF
 Implements: IDisposable
+Properties:
+  - GrammarKind Kind { get; set; }
 
 ### Interface: IInferenceBackend
 Methods:
@@ -188,6 +201,7 @@ Methods:
   - float[] GetEmbeddings(IInferenceContext context, string text)
   - IVisionEncoder LoadVisionEncoder(string mmprojPath)
   - IGrammar CreateGrammar(string grammarStr, string grammarRoot)
+  - IGrammar CreateGrammarFromJsonSchema(string jsonSchema, string? rootName = null)
   - void ValidateSpeculation(SpeculativeConfig config)
 Cross-package deps: ProvostXInference.Models
 
@@ -388,6 +402,10 @@ Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Exceptions
 > Wraps a native pvx_pool_t. All calls dispatch on the OWNING
 Implements: IConversationPool
 Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Exceptions, ProvostXInference.Interop, ProvostXInference.SafeHandles
+
+### Class: NativeConversationSpecSession
+> Speculative session bound to ONE pooled conversation (ABI v7,
+Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Exceptions, ProvostXInference.Interop, ProvostXInference.Models
 
 ### Class: NativeConversationState
 > Wraps a conversation state (pvx_conversation_save). Token count

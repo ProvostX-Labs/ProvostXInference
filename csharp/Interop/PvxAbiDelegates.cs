@@ -90,4 +90,21 @@ internal static class PvxAbiDelegates
     internal delegate byte PvxSpecTokenCallbackDelegate(int token, IntPtr userData);
     internal delegate PvxResult PvxExecutorGenerateSpecDelegate(IntPtr executor, in PvxSamplingParams parameters,
         int outMax, IntPtr onToken, IntPtr userData, out int generated);
+
+    // ── ABI v7: batched/pool-lane speculative decoding ──
+    internal delegate PvxResult PvxConversationSpecInitDelegate(IntPtr conversation, in PvxSpecParams parameters);
+    internal delegate PvxResult PvxConversationGenerateSpecDelegate(IntPtr conversation, in PvxSamplingParams parameters,
+        int outMax, IntPtr onToken, IntPtr userData, out int generated);
+    /// <summary>Spec-session acceptance telemetry: cumulative drafted/accepted
+    /// counters (native types 0/0 when no session is active).</summary>
+    internal delegate PvxResult PvxConversationSpecStatsDelegate(IntPtr conversation, out long drafted, out long accepted);
+
+    // ── ABI v7: JSON-schema → GBNF converter (pure string→string, KV-neutral) ──
+    /// <summary>pvx_grammar_from_json_schema: schema + optional root rule name
+    /// in, malloc'd GBNF + malloc'd typed boundary message out (both freed
+    /// with pvx_free_string; out_error is set only on failure).</summary>
+    internal delegate PvxResult PvxGrammarFromJsonSchemaDelegate(
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string jsonSchema,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string rootName,
+        out IntPtr gbnf, out IntPtr error);
 }

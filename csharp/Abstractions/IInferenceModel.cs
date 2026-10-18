@@ -17,6 +17,15 @@ public interface IInferenceModel : IDisposable
 string ApplyChatTemplate(string? template, IReadOnlyList<(string role, string content)> messages, bool addAssistant = true, int enableThinking = -1);
     IGrammar CreateGrammar(string grammarStr, string grammarRoot);
 
+    /// <summary>ABI v7: convert a JSON Schema document into a grammar
+    /// consumable by the grammar-constrained samplers (pattern-port of the
+    /// vendored JSON-schema→GBNF converter — never linked from product code).
+    /// Fail-closed: invalid JSON → typed InferenceException naming the parse
+    /// position; an unsupported schema keyword → typed InferenceException
+    /// naming the keyword — never a loose best-effort grammar. KV-neutral
+    /// (pure string→string conversion).</summary>
+    IGrammar CreateGrammarFromJsonSchema(string jsonSchema, string? rootName = null);
+
     /// <summary>
     /// Whether the model's memory supports partial-sequence truncation (rewind to
     /// an arbitrary token boundary). Hybrid architectures (attention + recurrent

@@ -25,8 +25,10 @@ internal static class PvxNative
     /// native copy was loaded instead of the current one). BL-05: 3 — speculative
     /// decoding entry points + supported-types capability report. v6 (wave 1):
     /// embd-aware spec mirror (spec+vision), n-gram spec modes + knobs,
-    /// spec_vision capability bit.</summary>
-    internal const int ExpectedAbiVersion = 6;
+    /// spec_vision capability bit. v7 (wave 2): companion-draft modes
+    /// (eagle3/dflash params append), batched/pool-lane spec trio,
+    /// JSON-schema→GBNF converter.</summary>
+    internal const int ExpectedAbiVersion = 7;
 
     /// <summary>
     /// NATIVE RESOLUTION (2026-09-27 fix, retained): load the native library

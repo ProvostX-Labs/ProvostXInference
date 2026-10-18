@@ -1,6 +1,6 @@
 # Tests.API.md
 
-Types: 25  |  LOC: 3010  |  ~1305 tokens
+Types: 26  |  LOC: 3297  |  ~1412 tokens
 
 ---
 
@@ -60,6 +60,10 @@ Cross-package deps: ProvostXInference.Decision.Abstractions, ProvostXInference.D
 > <see cref="InferenceEngine"/> facade: lifecycle, kind routing, fail-closed
 Cross-package deps: ProvostXInference.Decision.Abstractions, ProvostXInference.Decision.Engine, ProvostXInference.Engines, ProvostXInference.Exceptions, ProvostXInference.Tests.Decision, Xunit
 
+### Class: JsonSchemaGrammarTests
+> JSON-schema → GBNF converter surface (ABI v7, feature 11): the native
+Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Exceptions, ProvostXInference.Implementation, ProvostXInference.Interop, ProvostXInference.Models, ProvostXInference.Engines, ProvostXInference.Tests.Engines, Xunit
+
 ### Class: JudgeSequenceEncoderTests
 > Judge sequence encoder tests (wave 2): record → serialized training state →
 Cross-package deps: Xunit, ProvostXInference.Decision.Engine
@@ -95,7 +99,7 @@ Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Exceptions
 
 ### Class: SpecDecodeTests
 > Speculative decoding (INF BL-05) — mirrors the native spec tests:
-Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Exceptions, ProvostXInference.Implementation, ProvostXInference.Models, Xunit
+Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Exceptions, ProvostXInference.Implementation, ProvostXInference.Interop, ProvostXInference.Models, ProvostXInference.Engines, ProvostXInference.Tests.Engines, Xunit
 
 ### Class: StallSafePrefillLiveJourneyTests
 > Integration test for the stall-safe prefill watchdog on the live

@@ -20,6 +20,7 @@ internal sealed class FakeEngineVisionEncoder : IVisionEncoder
 
 internal sealed class FakeEngineGrammar : IGrammar
 {
+    public GrammarKind Kind { get; init; } = GrammarKind.Gbnf;
     public void Dispose() { }
 }
 
@@ -48,6 +49,14 @@ internal sealed class FakeEngineConversation : IConversation
     public byte[] ExportCheckpoint() => new byte[] { 1, 2, 3 };
     public void ImportCheckpoint(byte[] data) => Imports.Add(data);
     public void PromptWithImages(string text, IVisionEncoder vision, params byte[][] images) { }
+
+    // ABI v7: batched/pool-lane spec doubles
+    public SpeculativeConfig? ActiveSpeculation { get; private set; }
+    public void EnableSpeculation(SpeculativeConfig config) => ActiveSpeculation = config;
+    public void DisableSpeculation() => ActiveSpeculation = null;
+    public IReadOnlyList<int> GenerateSpeculative(SamplingConfig? config, int maxTokens, Action<int>? onToken = null) =>
+        new List<int>();
+    public ProvostXInference.Models.SpeculationStats SpeculationStats() => ProvostXInference.Models.SpeculationStats.None;
     public void Dispose() => Disposed = true;
 }
 
@@ -111,6 +120,8 @@ internal sealed class FakeEngineModel : IInferenceModel
         string.Concat(messages.Select(m => $"[{m.role}] {m.content}"));
 
     public IGrammar CreateGrammar(string grammarStr, string grammarRoot) => new FakeEngineGrammar();
+    public IGrammar CreateGrammarFromJsonSchema(string jsonSchema, string? rootName = null) =>
+        new FakeEngineGrammar { Kind = GrammarKind.JsonSchema };
     public bool PartialRewindSupported => true;
     public SpeculativeCapabilities SpeculativeCapabilities => SpeculativeCapabilities.None;
     public void ValidateSpeculation(SpeculativeConfig config) { }

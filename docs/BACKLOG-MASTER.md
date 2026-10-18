@@ -89,6 +89,46 @@
   contract working). ProvostXLLM flip: spec/session tests 60/62 (2 pre-existing live-
   server-fixture failures, no loaded model). LDC PASS both roots.
 
+### BL-36 · Upstream parity wave 2 (ABI v7): EAGLE3/DFlash companion modes, batched-lane spec, JSON-schema→GBNF
+- Source: owner order 2026-10-18 17:43 (upstream-parity plan wave 2, docs/plans/UPSTREAM-PARITY-PLAN.md)
+- Spec: companion-draft modes behind `pvx_spec_mode_t` appends (PVX_SPEC_EAGLE3 /
+  PVX_SPEC_DFLASH): EAGLE3 pattern-port of the vendored draft-eagle3 (draft decoder fed
+  (token, g_embd) pairs from the target's captured layer features — `eagle3.target_layers`
+  metadata validated typed at spec_init naming the key; deferred-boundary state rides the
+  state chain additively); DFlash metadata precheck + typed NOT_SUPPORTED wiring boundary
+  (never faked, MTP_AUTO precedent). Batched/pool-lane spec trio per conversation
+  (`pvx_conversation_spec_init/_generate_spec/_stats/_free`, `infer_mtx` discipline, pool
+  return teardown order, ≥2 seq slots typed refusal). JSON-schema→GBNF converter
+  (`pvx_grammar_from_json_schema`, pure string→string pattern-port; invalid JSON →
+  INVALID_ARG naming the parse position, unsupported keyword → NOT_SUPPORTED naming the
+  keyword; golden pin vs tests/fixtures/decision-envelope.gbnf). ABI v7 append-only; C#
+  `ExpectedAbiVersion=7` lockstep in the same commit.
+- Scope: include/pvxinference.h, include/pvx_internal.h, src/pvx_spec_engine.{h,cpp},
+  src/pvx_json_schema_grammar.cpp (new), src/pvxinference.cpp, CMakeLists.txt, tests/
+  (test_basic.cpp legs 25–32, fixtures), csharp/ (interop delegates/structs/handle-table,
+  models SpeculativeMode/Config/SpeculationStats/GrammarKind, abstractions IConversation/
+  IInferenceModel/IGrammar, implementation NativeConversationSpecSession (new, one per
+  file) + Native{Conversation,Grammar,InferenceModel,StandardExecutor}, engines
+  IGgufEngineOps/GgufEngineOps facade, tests SpecDecode/JsonSchemaGrammar/StallWatchdog/
+  EngineTestDoubles), docs (ARCHITECTURE ×2 as-is ABI v7).
+- Acceptance: native ctest green incl. new legs (eagle3/dflash typed, conversation spec
+  exactness ×4 modes + churn + rewind + fail-closed, json-schema roundtrip); C# build
+  0/0 (Debug+Release) + full suite green incl. new capability-gating matrices + typed
+  refusals + converter fixture pin; KV/context regression sweep green; live gates
+  env-gated; LDC both roots PASS; docs as-is.
+- Status: **done** 2026-10-18 — branch wave1-upstream-parity. Native ctest 2/2 (basic
+  32/32: rewind/shift/state/copy/pool legs green — [3] partial_rewind_capability,
+  [4] partial_rewind_refused_on_hybrid, [6] pool, [9] state_save_restore, [12] pool_reuse,
+  [14] shift_left, [15] kv_copy, [28] conversation_spec_rewind_continue; new wave-2 legs
+  [25]–[32]; ngram suite 14/14). C# build 0/0 (Debug+Release); full suite 206/206
+  (194 baseline + 12 new) default-env + live targeted 21/21 (Llama-3.2-3B: ngram 4-mode
+  token-exactness, conversation spec lane token-exact + typed refusals + stats, eagle3/
+  dflash typed refusals, JSON-schema converter byte-exact vs fixture). Live harness:
+  draft+vision BYTE-EXACT 24/24 (Qwen3.5-4B + mmproj + Qwen3.5-0.8B draft). NOT verified
+  live: EAGLE3 drafting (no EAGLE3 companion GGUF on this machine — enabling types the
+  refusal at the metadata/load boundary, the fail-closed contract working). LDC both
+  roots regenerated + enforcement PASS.
+
 ### Ongoing verification duty
 - Every repo state keeps: native Release build 0 errors, ctest green, C# suite green, LDC regenerated + enforcement PASS. Any public-surface change regenerates LDC artifacts in the SAME commit.
 

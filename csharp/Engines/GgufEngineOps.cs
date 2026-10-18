@@ -95,6 +95,41 @@ public sealed class GgufEngineOps : IGgufEngineOps, IDisposable
     public SpeculativeCapabilities SpeculativeCapabilities => _model.SpeculativeCapabilities;
     public void ValidateSpeculation(SpeculativeConfig config) => _model.ValidateSpeculation(config);
 
+    /// <summary>ABI v7: JSON Schema → GBNF through the model converter
+    /// (typed refusals: parse position / unsupported keyword).</summary>
+    public IGrammar CreateGrammarFromJsonSchema(string jsonSchema, string? rootName = null) =>
+        _model.CreateGrammarFromJsonSchema(jsonSchema, rootName);
+
+    // ── ABI v7: batched/pool-lane speculation (capability-gated facade) ──
+
+    public void EnableConversationSpeculation(IConversation conversation, SpeculativeConfig config)
+    {
+        ArgumentNullException.ThrowIfNull(conversation);
+        ArgumentNullException.ThrowIfNull(config);
+        // Capability self-report first (typed refusal naming the boundary);
+        // the conversation enable re-validates fail-closed natively anyway.
+        _model.ValidateSpeculation(config);
+        conversation.EnableSpeculation(config);
+    }
+
+    public void DisableConversationSpeculation(IConversation conversation)
+    {
+        ArgumentNullException.ThrowIfNull(conversation);
+        conversation.DisableSpeculation();
+    }
+
+    public SpeculativeConfig? ActiveConversationSpeculation(IConversation conversation)
+    {
+        ArgumentNullException.ThrowIfNull(conversation);
+        return conversation.ActiveSpeculation;
+    }
+
+    public SpeculationStats ConversationSpeculationStats(IConversation conversation)
+    {
+        ArgumentNullException.ThrowIfNull(conversation);
+        return conversation.SpeculationStats();
+    }
+
     /// <summary>Teardown owned by the engine: pool first, then context; model is NOT disposed here.</summary>
     public void Dispose()
     {

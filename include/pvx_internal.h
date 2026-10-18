@@ -151,6 +151,31 @@ struct pvx_grammar_state_s {
     ~pvx_grammar_state_s() { if (chain) llama_sampler_free(chain); }
 };
 
+// ── Embd-aware mirror entry ring (ABI v6 wave 1, spec-mirror substrate) ──
+//
+// One entry per COMMITTED KV position on the standard executor's stream
+// (positions are the executor's own seq-0 window). A token row carries the
+// committed token id; a multimodal row carries the projected embedding slice
+// (mtmd output) with id == LLAMA_TOKEN_NULL — the pattern of the vendored
+// draft-simple batch builder: token rows feed the draft by id, embd rows by
+// pointer, and a draft whose input width differs from the target's receives
+// a ZERO row plus a one-time warning (never an abort; the target still
+// verifies the real row). Positions are pinned per entry (absolute KV
+// positions, stable across shift_left which only frees the front).
+//
+// INVARIANT (spec-engine mirror-consistency guard): mirror.size() == n_tokens
+// and the covered positions are exactly [n_kv_pos - n_tokens, n_kv_pos)
+// (contiguous ascending, entry.pos pinned). Every site that advances or
+// retreats the executor's committed window updates the ring in the same
+// operation — there is no second code path.
+struct pvx_mirror_entry_t {
+    llama_token id = LLAMA_TOKEN_NULL; // LLAMA_TOKEN_NULL => embd row
+    // Pinned position array, section-major [t, y, x, z] (M-RoPE order; for
+    // non-M-RoPE streams all four equal the plain KV position).
+    std::array<llama_pos, 4> pos = { 0, 0, 0, 0 };
+    std::vector<float> embd;            // row payload iff id == LLAMA_TOKEN_NULL
+};
+
 struct pvx_conversation_s {
     llama_seq_id seq_id;
     llama_context* ctx;
@@ -164,6 +189,21 @@ struct pvx_conversation_s {
     bool has_pending_prompt = false;
     std::vector<llama_token> pending_tokens;
     int last_batch_idx = -1;
+
+    // ABI v7 (feature 5, batched-lane spec): per-conversation committed-stream
+    // mirror ring — the conversation-lane twin of pvx_executor_s::mirror,
+    // maintained by every conversation commit path (batched decode commit,
+    // vision text/embd decodes, rewind, shift, reset, pool return, state
+    // save/restore). Invariant mirror.size() == n_tokens enforced by the spec
+    // engine's mirror-consistency guard before every round.
+    std::vector<pvx_mirror_entry_t> mirror;
+
+    // ABI v7 (feature 5): per-conversation spec session; created lazily via
+    // pvx_conversation_spec_init, torn down in pool return / reset paths and
+    // by the conversation destructor (unique_ptr: complete type where
+    // pvx_conversation_s instances are deleted — pvxinference.cpp includes
+    // pvx_spec_engine.h).
+    std::unique_ptr<class PvxBLSpecEngine> spec;
 
     // Snapshot of the last committed token's logits row, copied at decode
     // time. llama_get_logits_ith() rows are only addressable while their
@@ -188,31 +228,6 @@ struct pvx_pool_s {
     std::vector<std::unique_ptr<pvx_conversation_s>> conversations;
     std::stack<pvx_conversation_t*> available;
     std::mutex mtx;
-};
-
-// ── Embd-aware mirror entry ring (ABI v6 wave 1, spec-mirror substrate) ──
-//
-// One entry per COMMITTED KV position on the standard executor's stream
-// (positions are the executor's own seq-0 window). A token row carries the
-// committed token id; a multimodal row carries the projected embedding slice
-// (mtmd output) with id == LLAMA_TOKEN_NULL — the pattern of the vendored
-// draft-simple batch builder: token rows feed the draft by id, embd rows by
-// pointer, and a draft whose input width differs from the target's receives
-// a ZERO row plus a one-time warning (never an abort; the target still
-// verifies the real row). Positions are pinned per entry (absolute KV
-// positions, stable across shift_left which only frees the front).
-//
-// INVARIANT (spec-engine mirror-consistency guard): mirror.size() == n_tokens
-// and the covered positions are exactly [n_kv_pos - n_tokens, n_kv_pos)
-// (contiguous ascending, entry.pos pinned). Every site that advances or
-// retreats the executor's committed window updates the ring in the same
-// operation — there is no second code path.
-struct pvx_mirror_entry_t {
-    llama_token id = LLAMA_TOKEN_NULL; // LLAMA_TOKEN_NULL => embd row
-    // Pinned position array, section-major [t, y, x, z] (M-RoPE order; for
-    // non-M-RoPE streams all four equal the plain KV position).
-    std::array<llama_pos, 4> pos = { 0, 0, 0, 0 };
-    std::vector<float> embd;            // row payload iff id == LLAMA_TOKEN_NULL
 };
 
 struct pvx_executor_s {
@@ -264,6 +279,49 @@ struct pvx_state_s {
     // the same rows the backup KV holds — including multimodal rows whose
     // embeddings are not recoverable from KV alone.
     std::vector<pvx_mirror_entry_t> mirror;
+    // ABI v7 (feature 4, EAGLE3): per-position encoder-output g rows, aligned
+    // with the committed stream [0, n_tokens). Present iff the saved executor
+    // carried an active EAGLE3 session; absent (empty) in legacy checkpoints
+    // and conversation-lane states. Restore with an active EAGLE3 session but
+    // a mismatched/absent payload invalidates the session typed (the caller
+    // must re-init spec) — never resumes against a stale deferred boundary.
+    std::vector<std::vector<float>> eagle_g_rows;
+};
+
+// Conversation-lane mirror push helpers (ABI v7 feature 5) — the twins of
+// pvx_mirror_push_token/push_embd for pvx_conversation_s::mirror.
+inline void pvx_conv_mirror_push_token(pvx_conversation_t* c, llama_token id, llama_pos pos) {
+    pvx_mirror_entry_t ent;
+    ent.id = id;
+    ent.pos = { pos, pos, pos, pos };
+    c->mirror.push_back(std::move(ent));
+}
+
+inline void pvx_conv_mirror_push_embd(pvx_conversation_t* c, const float* row, int n_embd,
+                                       const std::array<llama_pos, 4>& pos) {
+    pvx_mirror_entry_t ent;
+    ent.id  = LLAMA_TOKEN_NULL;
+    ent.pos = pos;
+    ent.embd.assign(row, row + n_embd);
+    c->mirror.push_back(std::move(ent));
+}
+
+// ── Spec-session stream view (ABI v7 feature 5) ──────────────────────────
+// The spec engine operates on ONE committed stream through this indirection:
+// the executor lane binds its fields (seq 0), the batched/pool lane binds a
+// conversation's fields (seq = conv->seq_id). All verify-loop mechanics —
+// mirror replay, target batches, KV repair, bookkeeping — read/write through
+// the pointers, so both lanes share the exact same loop code (token-exactness
+// between lanes follows from having literally one implementation).
+struct pvx_spec_stream_s {
+    pvx_context_t* ctx = nullptr;              // target context wrapper
+    llama_seq_id   seq = 0;                    // target KV sequence id
+    int* n_tokens = nullptr;
+    int* n_kv_pos = nullptr;
+    std::vector<llama_token>* recent_tokens = nullptr;
+    std::vector<float>* last_logits = nullptr;
+    std::vector<pvx_mirror_entry_t>* mirror = nullptr;
+    const char* lane = "executor";             // diagnostics only
 };
 
 #endif // PVX_INTERNAL_H

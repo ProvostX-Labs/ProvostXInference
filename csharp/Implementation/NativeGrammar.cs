@@ -11,12 +11,22 @@ namespace ProvostXInference.Implementation;
 public sealed class NativeGrammar : IGrammar
 {
     private readonly GrammarSafeHandle _handle;
+    private readonly GrammarKind _kind;
     private bool _disposed;
 
-    internal NativeGrammar(GrammarSafeHandle handle) { _handle = handle; }
+    internal NativeGrammar(GrammarSafeHandle handle, GrammarKind kind = GrammarKind.Gbnf)
+    {
+        _handle = handle;
+        _kind = kind;
+    }
     internal IntPtr RawHandle => _handle.DangerousGetHandle();
 
-    public static NativeGrammar Create(IInferenceModel model, string grammarStr, string grammarRoot)
+    /// <summary>Provenance label (ABI v7): Gbnf for hand-written GBNF,
+    /// JsonSchema for schema-converted grammars. Pure label.</summary>
+    public GrammarKind Kind => _kind;
+
+    public static NativeGrammar Create(IInferenceModel model, string grammarStr, string grammarRoot,
+        GrammarKind kind = GrammarKind.Gbnf)
     {
         var nativeModel = (NativeInferenceModel)model;
         var raw = nativeModel.EntryPoints.GrammarCreate(nativeModel.RawHandle, grammarStr, grammarRoot);
@@ -24,7 +34,7 @@ public sealed class NativeGrammar : IGrammar
             throw new InferenceException(1, "Failed to parse grammar");
         var handle = new GrammarSafeHandle(nativeModel.EntryPoints);
         handle.SetHandleSafe(raw);
-        return new NativeGrammar(handle);
+        return new NativeGrammar(handle, kind);
     }
 
     public void Dispose()

@@ -20,6 +20,7 @@ public sealed class NativeConversation : IConversation
     private IPvxEntryPoints EP => _entryPoints;
     private bool _returned;
     private bool _disposed;
+    private NativeConversationSpecSession? _specSession; // ABI v7 (lazy — created on first EnableSpeculation)
 
     internal NativeConversation(IntPtr handle, NativeConversationPool pool, IPvxEntryPoints entryPoints)
     {
@@ -30,7 +31,14 @@ public sealed class NativeConversation : IConversation
 
     internal IntPtr RawHandle => _handle;
 
-    internal void MarkReturned() => _returned = true;
+    internal void MarkReturned()
+    {
+        _returned = true;
+        // ABI v7: pool return tears the native spec session down in the
+        // existing teardown order — drop the managed mirror with it.
+        _specSession?.OnReturned();
+        _specSession = null;
+    }
 
     public int TokenCount => EP.ConversationTokenCount(_handle);
 
@@ -149,6 +157,56 @@ public sealed class NativeConversation : IConversation
         {
             foreach (var p in ptrs) if (p != IntPtr.Zero) Marshal.FreeHGlobal(p);
         }
+    }
+
+    // ── ABI v7: batched/pool-lane speculative decoding (one session per conversation) ──
+
+    public SpeculativeConfig? ActiveSpeculation => _specSession?.ActiveConfig;
+
+    public void EnableSpeculation(SpeculativeConfig config)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_returned) throw new InvalidOperationException(
+            "speculation cannot be enabled on a conversation already returned to the pool");
+        _specSession ??= new NativeConversationSpecSession(_handle, EP, _pool.Context.RawHandle);
+        _specSession.Enable(config); // typed native refusal propagates, mirror untouched
+    }
+
+    public void DisableSpeculation()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        _specSession?.Disable(); // idempotent natively; no session = no-op
+    }
+
+    public IReadOnlyList<int> GenerateSpeculative(SamplingConfig? config, int maxTokens, Action<int>? onToken = null)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var nativeParams = NativeStandardExecutor.ToNativeSampling(config ?? new SamplingConfig());
+        var tokens = new List<int>();
+        // Reverse pinvoke: synchronous on the calling thread — the local
+        // delegate reference keeps the stub alive for the call's duration.
+        // Byte return: the C ABI expects a 1-byte C99 bool ("continue").
+        PvxAbiDelegates.PvxSpecTokenCallbackDelegate cb = (token, _) =>
+        {
+            tokens.Add(token);
+            onToken?.Invoke(token);
+            return 1;
+        };
+        var cbPtr = System.Runtime.InteropServices.Marshal.GetFunctionPointerForDelegate(cb);
+        // Typed refusal when no spec session is active on this conversation —
+        // never a silent plain-sample fallback.
+        EP.ConversationGenerateSpec(_handle, in nativeParams, maxTokens,
+            cbPtr, IntPtr.Zero, out var generated).ThrowIfError(EP, _pool.Context.RawHandle); // F16
+        System.GC.KeepAlive(cb);
+        return tokens;
+    }
+
+    public SpeculationStats SpeculationStats()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        EP.ConversationSpecStats(_handle, out var drafted, out var accepted)
+            .ThrowIfError(EP, _pool.Context.RawHandle); // F16
+        return new SpeculationStats(drafted, accepted);
     }
 
     public void Dispose()

@@ -106,6 +106,11 @@ internal sealed class PvxHandleEntryPoints : IPvxEntryPoints
     private readonly PvxAbiDelegates.PvxExecutorSpecInitDelegate _executorSpecInit;
     private readonly PvxAbiDelegates.PvxExecutorSpecFreeDelegate _executorSpecFree;
     private readonly PvxAbiDelegates.PvxExecutorGenerateSpecDelegate _executorGenerateSpec;
+    private readonly PvxAbiDelegates.PvxConversationSpecInitDelegate _conversationSpecInit; // ABI v7
+    private readonly PvxAbiDelegates.PvxFreeHandleDelegate _conversationSpecFree; // ABI v7 (void)
+    private readonly PvxAbiDelegates.PvxConversationGenerateSpecDelegate _conversationGenerateSpec; // ABI v7
+    private readonly PvxAbiDelegates.PvxConversationSpecStatsDelegate _conversationSpecStats; // ABI v7
+    private readonly PvxAbiDelegates.PvxGrammarFromJsonSchemaDelegate _grammarFromJsonSchema; // ABI v7
     private readonly PvxAbiDelegates.PvxAbiVersionDelegate _abiVersion;
 
     public PvxHandleEntryPoints(IntPtr image, IPvxModuleLoader loader)
@@ -204,6 +209,11 @@ internal sealed class PvxHandleEntryPoints : IPvxEntryPoints
         _executorSpecInit = Bind<PvxAbiDelegates.PvxExecutorSpecInitDelegate>(loader, image, "pvx_executor_spec_init");
         _executorSpecFree = Bind<PvxAbiDelegates.PvxExecutorSpecFreeDelegate>(loader, image, "pvx_executor_spec_free");
         _executorGenerateSpec = Bind<PvxAbiDelegates.PvxExecutorGenerateSpecDelegate>(loader, image, "pvx_executor_generate_spec");
+        _conversationSpecInit = Bind<PvxAbiDelegates.PvxConversationSpecInitDelegate>(loader, image, "pvx_conversation_spec_init");
+        _conversationSpecFree = Bind<PvxAbiDelegates.PvxFreeHandleDelegate>(loader, image, "pvx_conversation_spec_free");
+        _conversationGenerateSpec = Bind<PvxAbiDelegates.PvxConversationGenerateSpecDelegate>(loader, image, "pvx_conversation_generate_spec");
+        _conversationSpecStats = Bind<PvxAbiDelegates.PvxConversationSpecStatsDelegate>(loader, image, "pvx_conversation_spec_stats");
+        _grammarFromJsonSchema = Bind<PvxAbiDelegates.PvxGrammarFromJsonSchemaDelegate>(loader, image, "pvx_grammar_from_json_schema");
         _abiVersion = Bind<PvxAbiDelegates.PvxAbiVersionDelegate>(loader, image, "pvx_abi_version");
     }
 
@@ -385,6 +395,13 @@ internal sealed class PvxHandleEntryPoints : IPvxEntryPoints
     public PvxResult ExecutorSpecInit(IntPtr executor, in PvxSpecParams parameters) => _executorSpecInit(executor, parameters);
     public void ExecutorSpecFree(IntPtr executor) => _executorSpecFree(executor);
     public PvxResult ExecutorGenerateSpec(IntPtr executor, in PvxSamplingParams parameters, int outMax, IntPtr onToken, IntPtr userData, out int generated) => _executorGenerateSpec(executor, parameters, outMax, onToken, userData, out generated);
+
+    // ── ABI v7: batched/pool lane + JSON-schema converter ──
+    public PvxResult ConversationSpecInit(IntPtr conversation, in PvxSpecParams parameters) => _conversationSpecInit(conversation, parameters);
+    public void ConversationSpecFree(IntPtr conversation) => _conversationSpecFree(conversation);
+    public PvxResult ConversationGenerateSpec(IntPtr conversation, in PvxSamplingParams parameters, int outMax, IntPtr onToken, IntPtr userData, out int generated) => _conversationGenerateSpec(conversation, parameters, outMax, onToken, userData, out generated);
+    public PvxResult ConversationSpecStats(IntPtr conversation, out long drafted, out long accepted) => _conversationSpecStats(conversation, out drafted, out accepted);
+    public PvxResult GrammarFromJsonSchema(string jsonSchema, string rootName, out IntPtr gbnf, out IntPtr error) => _grammarFromJsonSchema(jsonSchema, rootName, out gbnf, out error);
 
     // ── Handshake ──
 

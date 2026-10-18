@@ -32,13 +32,18 @@ composes backend adapters into one uniform engine object; nothing below leaks up
 
 ## Native core (src/, include/)
 
-### C API (pvxinference.h) — ABI v6
+### C API (pvxinference.h) — ABI v7
 Flat C API, 70+ exports. Opaque handles: `pvx_model_t`, `pvx_context_t`, `pvx_pool_t`,
 `pvx_conversation_t`, `pvx_executor_t`, `pvx_state_t`, `pvx_grammar_t`, mmproj wrapper.
 The ABI version is handshake-checked against the C# binding's `ExpectedAbiVersion` at
-engine open — mismatch refuses to load (fail-closed, never best-effort). v6 (wave 1) is
-append-only: `pvx_spec_mode_t` gains the n-gram modes, `pvx_spec_params_t` appends
-`pvx_ngram_params_t`, `pvx_spec_capabilities_t` appends `spec_vision`.
+engine open — mismatch refuses to load (fail-closed, never best-effort). v6 (wave 1) was
+append-only: `pvx_spec_mode_t` gained the n-gram modes, `pvx_spec_params_t` appends
+`pvx_ngram_params_t`, `pvx_spec_capabilities_t` appends `spec_vision`. v7 (wave 2) is
+append-only too: `pvx_spec_mode_t` gains `PVX_SPEC_EAGLE3`/`PVX_SPEC_DFLASH`,
+`pvx_spec_params_t` appends the eagle/dflash companion paths, and the new surfaces are
+the batched/pool-lane spec trio (`pvx_conversation_spec_init/_generate_spec/_spec_stats`),
+the per-conversation spec-session teardown hook (`pvx_conversation_spec_free`), and the
+pure JSON-schema→GBNF converter (`pvx_grammar_from_json_schema`, string→string, KV-neutral).
 
 - **`pvxinference.cpp`** — core: model load, tokenize, chat template, context, conversation
   pool, batched + executor inference, sampling, KV ops (save/restore/copy/rewind/shift),
@@ -63,6 +68,29 @@ append-only: `pvx_spec_mode_t` gains the n-gram modes, `pvx_spec_params_t` appen
 - **`pvx_ngram.*`** — pattern-port of the vendored n-gram drafters (simple, map-k with
   accept statistics, mod hashed-suffix table, static+dynamic token-prob caches with
   save/load/merge) against stable llama.h types only; the frozen tree is never included.
+- **`pvx_spec_engine.*` (ABI v7 companion modes)** — EAGLE3 (upstream draft-eagle3
+  pattern-port): the draft decoder consumes (token, g_embd) pairs, g rows are the
+  EAGLE3 encoder output of the target's captured layer features
+  (`eagle3.target_layers`, exactly 3 entries, plus compatible vocab family — validated
+  typed at spec_init naming the metadata key); deferred-boundary `pending_g_last` state
+  rides the existing executor state chain additively (versioned length-prefixed payload:
+  an EAGLE3-enabled restore of a checkpoint without EAGLE3 state types the refusal and
+  demands re-init). DFlash: companion metadata is validated at the metadata boundary,
+  then the unwired drafting boundary refuses typed NOT_SUPPORTED (`dflash-wiring`),
+  MTP_AUTO precedent — never faked. Both refuse typed on the batched/pool lane.
+- **`pvx_json_schema_grammar.*`** (ABI v7) — pattern-port of the vendored
+  `common/json-schema-to-grammar` converter (JSON Schema → GBNF, pure string→string,
+  feeds the existing grammar chain; the frozen tree is never linked into product code).
+  Fail-closed per keyword: invalid JSON → INVALID_ARG naming the parse position; an
+  unsupported schema keyword (e.g. regex `pattern`) → NOT_SUPPORTED naming the keyword —
+  never a best-effort loose grammar.
+- **Batched/pool-lane speculative decoding (ABI v7)** — the executor trio mirrored
+  per-conversation (`pvx_conversation_spec_init/generate_spec/spec_stats` + `spec_free`):
+  per-seq draft state keyed by the conversation's seq_id, spec ops under the same
+  `infer_mtx` discipline as sample ops, pool return tears the session down in the
+  existing teardown order, pool `seq_max` budgeted for the draft-side KV. Fail-closed:
+spec init on a pool with `seq_max < 2` types the refusal; generation without a session
+  types NOT_SUPPORTED — never a silent plain run.
 
 ### Embeddings — architecture-routed
 Routing is by the model's own architecture (`llama_model_has_encoder/has_decoder`); typed

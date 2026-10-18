@@ -350,6 +350,11 @@ internal sealed class FakeConversation : IConversation
     public byte[] ExportCheckpoint() => Array.Empty<byte>();
     public void ImportCheckpoint(byte[] data) { }
     public void PromptWithImages(string text, IVisionEncoder vision, params byte[][] images) { }
+    public SpeculativeConfig? ActiveSpeculation => null;
+    public void EnableSpeculation(SpeculativeConfig config) { }
+    public void DisableSpeculation() { }
+    public IReadOnlyList<int> GenerateSpeculative(SamplingConfig? config, int maxTokens, Action<int>? onToken = null) => Array.Empty<int>();
+    public ProvostXInference.Models.SpeculationStats SpeculationStats() => ProvostXInference.Models.SpeculationStats.None;
     public void Dispose() { }
 }
 

@@ -46,6 +46,7 @@ add_library(pvxinference SHARED
     src/pvx_backend.cpp
     src/pvx_spec_engine.cpp
     src/pvx_ngram.cpp
+    src/pvx_json_schema_grammar.cpp
 )
 
 # Specialist module naming (BL-02 stage 1): the CI matrix builds ALL FIVE
@@ -127,9 +128,12 @@ target_link_libraries(pvxinference_tests
 target_include_directories(pvxinference_tests
     PRIVATE
         ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_SOURCE_DIR}/llama.cpp/ggml/include
+        ${CMAKE_BINARY_DIR}/ggml/include
 )
 
 add_test(NAME pvx_tests COMMAND pvxinference_tests)
+set_tests_properties(pvx_tests PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
 add_test(NAME pvx_stress_tests COMMAND pvxinference_stress_tests)
 

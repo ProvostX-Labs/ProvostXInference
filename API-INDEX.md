@@ -1,11 +1,11 @@
 # API-INDEX.md — ProvostXInference
 
-Generated: 2026-10-18T13:45:29.893294+00:00
-Packages: 3  |  Types: 1877
+Generated: 2026-10-18T17:39:52.319185+00:00
+Packages: 3  |  Types: 1880
 
 ---
 
-## Tests (25 types, ~3010 LOC)
+## Tests (26 types, ~3297 LOC)
 
 - 🟡 DecisionEngineOpsTests  (Tests)
 - 🟡 DecisionEngineRequestTests  (Tests)
@@ -21,6 +21,7 @@ Packages: 3  |  Types: 1877
 - 🟡 InferenceEngineBuilderTests  (Tests)
 - 🟡 InferenceEngineFactoryTests  (Tests)
 - 🟡 InferenceEngineTests  (Tests)
+- 🟡 JsonSchemaGrammarTests  (Tests)
 - 🟡 JudgeSequenceEncoderTests  (Tests)
 - 🟡 JudgeTokenizerTests  (Tests)
 - 🟡 ModelEngineSelectionTests  (Tests)
@@ -33,7 +34,7 @@ Packages: 3  |  Types: 1877
 - 🟡 StallSafePrefillLiveJourneyTests  (Tests)
 - 🟡 StallWatchdogTests  (Tests)
 
-## csharp (79 types, ~4719 LOC)
+## csharp (80 types, ~4956 LOC)
 
 - 🔵 IChunkWallClock  (csharp)
 - 🔵 IConversation : IDisposable  (csharp)
@@ -97,6 +98,7 @@ Packages: 3  |  Types: 1877
 - 🟡 JudgeTokenizer  (csharp)  deps: [string]
 - 🟡 NativeConversation : IConversation  (csharp)
 - 🟡 NativeConversationPool : IConversationPool  (csharp)
+- 🟡 NativeConversationSpecSession  (csharp)
 - 🟡 NativeConversationState : IConversationState  (csharp)
 - 🟡 NativeGrammar : IGrammar  (csharp)
 - 🟡 NativeInferenceBackend : IInferenceBackend  (csharp)
@@ -115,7 +117,7 @@ Packages: 3  |  Types: 1877
 - 🟡 StallRecoveryLadder  (csharp)  deps: [StallWatchdogConfig]
 - 🟡 SystemChunkWallClock : IChunkWallClock  (csharp)  deps: [TimeProvider]
 
-## ProvostXInference (native C++) (1773 types, ~755000 LOC)
+## ProvostXInference (native C++) (1774 types, ~758463 LOC)
 
 - struct (global)::acl_deleter (acl_tensor.h) 
 - class ov::AlignEltwiseOperandRanks (align_eltwise_ranks.h) 
@@ -1603,11 +1605,12 @@ Packages: 3  |  Types: 1877
 - struct (global)::pvx_backend_profile (pvx_internal.h) 
 - struct (global)::pvx_context_s (pvx_internal.h) 
 - struct (global)::pvx_grammar_state_s (pvx_internal.h) 
+- struct (global)::pvx_mirror_entry_t (pvx_internal.h) 
 - struct (global)::pvx_conversation_s (pvx_internal.h) 
 - struct (global)::pvx_pool_s (pvx_internal.h) 
-- struct (global)::pvx_mirror_entry_t (pvx_internal.h) 
 - struct (global)::pvx_executor_s (pvx_internal.h) 
 - struct (global)::pvx_state_s (pvx_internal.h) 
+- struct (global)::pvx_spec_stream_s (pvx_internal.h) 
 - enum (global)::pvx_backend_type_e (pvx_internal.h) 
 - struct pvx::ngram_simple_config (pvx_ngram.h) 
 - class pvx::ngram_mod (pvx_ngram.h) 
