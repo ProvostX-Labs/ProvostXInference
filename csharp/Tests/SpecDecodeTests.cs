@@ -506,6 +506,127 @@ public class SpecDecodeTests
         Assert.Null(conv.ActiveSpeculation); // mirror dropped with the session
     }
 
+// ═══════════════════════════════════════════════
+// 4. ABI v7 live legs (BL-36 evidence) — env-gated, typed skip when absent
+// ═══════════════════════════════════════════════
+
+    /// <summary>LIVE EAGLE3 leg (BL-36 evidence): genuine target+companion pair,
+    /// token-exact vs the plain greedy loop (24 tokens, byte-identical) with
+    /// REAL drafting (session created; streaming == returned ids). Re-provision
+    /// with the verified pair: Qwen/Qwen3-8B-GGUF (Qwen3-8B-Q4_K_M.gguf) +
+    /// williamliao/Qwen3-8B-EAGLE3-Speculator-GGUF
+    /// (Qwen3-8B-speculator.eagle3-F16.gguf; eagle3.target_layers [2,18,33]).
+    /// Env: PVX_EAGLE3_TARGET_PATH + PVX_EAGLE3_DRAFT_PATH — absent = typed
+    /// skip (never a silent pass).</summary>
+    [Fact]
+    public void Eagle3_Live_TokenExact_EnvGated()
+    {
+        var tgt = Environment.GetEnvironmentVariable("PVX_EAGLE3_TARGET_PATH");
+        var dft = Environment.GetEnvironmentVariable("PVX_EAGLE3_DRAFT_PATH")
+                  ?? Environment.GetEnvironmentVariable("PVX_EAGLE_DRAFT_PATH");
+        if (tgt is null || dft is null || !File.Exists(tgt) || !File.Exists(dft))
+            return; // typed skip: no genuine pair provisioned
+
+        const int nGen = 24;
+        const string prompt = "The colors of the rainbow, in order, are: red, orange, yellow, green, blue, indigo and";
+        var greedy = new SamplingConfig
+        {
+            Temperature = 0.0f, TopK = 1, TopP = 1.0f, RepeatPenalty = 1.0f, MaxTokens = nGen,
+        };
+
+        // plain greedy reference
+        IReadOnlyList<int> plain;
+        using (var model = NativeInferenceModel.Load(new ModelConfig { Path = tgt, GpuLayers = 99 }))
+        using (var ctx = (NativeInferenceContext) model.CreateContext(new ContextConfig
+        {
+            ContextSize = 2048, BatchSize = 512, SeqMax = 1,
+        }))
+        using (var exec = ctx.CreateExecutor())
+        {
+            exec.Prompt(prompt);
+            Assert.Equal(InferResult.Ok, exec.Infer());
+            var acc = new List<int>();
+            for (int i = 0; i < nGen; i++)
+            {
+                var t = exec.Sample(greedy);
+                if (ctx.IsEos(t)) break;
+                acc.Add(t);
+                exec.PromptTokens(new[] { t });
+                Assert.Equal(InferResult.Ok, exec.Infer());
+            }
+            plain = acc;
+        }
+
+        // EAGLE3 spec session on a fresh pair: enable FIRST (empty stream)
+        using (var model = NativeInferenceModel.Load(new ModelConfig { Path = tgt, GpuLayers = 99 }))
+        using (var ctx = (NativeInferenceContext) model.CreateContext(new ContextConfig
+        {
+            ContextSize = 2048, BatchSize = 512, SeqMax = 1,
+        }))
+        using (var exec = (NativeStandardExecutor) ctx.CreateExecutor())
+        {
+            exec.EnableSpeculation(new SpeculativeConfig
+            {
+                Mode = SpeculativeMode.Eagle3,
+                EagleCompanionPath = dft,
+                DraftMax = 8,
+            });
+            Assert.NotNull(exec.ActiveSpeculation);
+            exec.Prompt(prompt);
+            Assert.Equal(InferResult.Ok, exec.Infer());
+
+            var streamed = new List<int>();
+            var specTokens = exec.GenerateSpeculative(greedy, nGen, t => streamed.Add(t));
+            Assert.Equal(streamed, specTokens.ToList());
+            // TOKEN-EXACT vs the plain loop (byte-identical prefix)
+            Assert.Equal(plain.Take(specTokens.Count).ToList(), specTokens.ToList());
+            Assert.True(specTokens.Count >= 1);
+        }
+    }
+
+    /// <summary>LIVE DFlash/DSpark leg (BL-36 evidence): the honest typed
+    /// boundary against a genuine LiquidAI pair — the REAL sidecar passes the
+    /// companion metadata precheck, then enable refuses typed at the
+    /// dflash-wiring boundary (drafting is NOT claimed; never faked, never a
+    /// silent plain run). Re-provision with the verified pair:
+    /// LiquidAI/LFM2.5-1.2B-Instruct-GGUF (LFM2.5-1.2B-Instruct-Q4_0.gguf) +
+    /// LiquidAI/LFM2.5-1.2B-Instruct-DSpark-GGUF
+    /// (LFM2.5-1.2B-Instruct-DSpark-Q4_K_M.gguf; arch dflash,
+    /// dflash.target_layers i32[5]). Env: PVX_DFLASH_TARGET_PATH +
+    /// PVX_DFLASH_DRAFT_PATH — absent = typed skip.</summary>
+    [Fact]
+    public void Dflash_Live_TypedWiringRefusal_EnvGated()
+    {
+        var tgt = Environment.GetEnvironmentVariable("PVX_DFLASH_TARGET_PATH");
+        var dft = Environment.GetEnvironmentVariable("PVX_DFLASH_DRAFT_PATH");
+        if (tgt is null || dft is null || !File.Exists(tgt) || !File.Exists(dft))
+            return; // typed skip: no genuine pair provisioned
+
+        using var model = NativeInferenceModel.Load(new ModelConfig { Path = tgt, GpuLayers = 99 });
+        using var ctx = (NativeInferenceContext) model.CreateContext(new ContextConfig
+        {
+            ContextSize = 2048, BatchSize = 512, SeqMax = 1,
+        });
+        using var exec = (NativeStandardExecutor) ctx.CreateExecutor();
+
+        // the REAL sidecar passes the metadata precheck; enable then refuses
+        // typed at the wiring boundary — never a silent fallback
+        var ex = Assert.Throws<InferenceException>(() => exec.EnableSpeculation(
+            new SpeculativeConfig
+            {
+                Mode = SpeculativeMode.Dflash,
+                DflashCompanionPath = dft,
+            }));
+        Assert.Equal(7, ex.ErrorCode); // PVX_ERR_NOT_SUPPORTED
+        Assert.Contains("dflash-wiring", ex.Message);
+        Assert.Null(exec.ActiveSpeculation); // no phantom session
+
+        // generation without a session: typed refusal, never a plain run
+        var genEx = Assert.Throws<InferenceException>(() =>
+            exec.GenerateSpeculative(new SamplingConfig { Temperature = 0.0f, TopK = 1 }, 4));
+        Assert.Equal(7, genEx.ErrorCode);
+    }
+
     /// <summary>Facade view: EnableConversationSpeculation is capability-gated
     /// (model self-report validation first) and the convenience surface wires
     /// through to the conversation (pure doubles — mirrors the fake-based ops

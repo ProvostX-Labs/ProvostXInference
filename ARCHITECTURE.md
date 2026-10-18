@@ -75,9 +75,28 @@ pure JSON-schema→GBNF converter (`pvx_grammar_from_json_schema`, string→stri
   typed at spec_init naming the metadata key); deferred-boundary `pending_g_last` state
   rides the existing executor state chain additively (versioned length-prefixed payload:
   an EAGLE3-enabled restore of a checkpoint without EAGLE3 state types the refusal and
-  demands re-init). DFlash: companion metadata is validated at the metadata boundary,
+  demands re-init). Live-verified (2026-10-18) against the genuine Qwen3-8B +
+  williamliao EAGLE3-speculator pair — three round bugs the live run corrected,
+  kept as-is now: (a) the capture hook drops the drafted-but-unverified chain
+  cells before the decoder training batch (draft-KV restore-to-committed-prefix
+  pattern, upstream TAG_SPEC_AVOID_DRAFT_REEVAL — without the drop the training
+  batch starts at pos_first while the draft KV still ends at the chain tail and
+  llama's Y = X+1 consecutiveness check aborts); (b) the verify chain is bounded
+  per ROUND by the remaining out_max budget (a call-wide cap alone let the last
+  rounds overrun out_max); (c) a deferred-boundary-only capture (single-row
+  commit, bridge skipped) adds no pairs and decodes NOTHING (an empty batch is
+  llama's n_tokens == 0 refusal). Executor-lane acceptance telemetry:
+  `pvx_executor_spec_stats` — its definition shipped without the header
+  declaration (C++-mangled export, unreachable from the C ABI); the declaration
+  is restored (extern "C" linkage, no ABI-version change). DFlash: companion
+  metadata is validated at the metadata boundary,
   then the unwired drafting boundary refuses typed NOT_SUPPORTED (`dflash-wiring`),
-  MTP_AUTO precedent — never faked. Both refuse typed on the batched/pool lane.
+  MTP_AUTO precedent — never faked (live-verified against the genuine LiquidAI
+  LFM2.5-1.2B-Instruct target + DSpark sidecar pair: the real sidecar — arch
+  dflash, dflash.target_layers i32[5] — passes the metadata precheck, the
+  enable refuses typed naming spec-engine/dflash-wiring, no phantom session;
+  block-diffusion drafting is NOT claimed). Both refuse typed on the
+  batched/pool lane.
 - **`pvx_json_schema_grammar.*`** (ABI v7) — pattern-port of the vendored
   `common/json-schema-to-grammar` converter (JSON Schema → GBNF, pure string→string,
   feeds the existing grammar chain; the frozen tree is never linked into product code).

@@ -1234,51 +1234,129 @@ static void test_spec_eagle3_companion_typed() {
     sp.eagle_companion_path = "x.gguf";
     ASSERT(pvx_model_spec_validate(m, &sp) == PVX_OK);
 
-    // live leg: PVX_EAGLE_DRAFT_PATH names a genuine eagle3 companion GGUF;
-    // absent (the default on this machine) = typed skip.
-    const char* live = getenv("PVX_EAGLE_DRAFT_PATH");
-    if (!live || !file_exists(live)) {
-        fprintf(stderr, "live-skip: no genuine eagle3 companion (PVX_EAGLE_DRAFT_PATH unset)\n");
-    } else {
-        sp.eagle_companion_path = live;
-        pvx_result_t rc = pvx_executor_spec_init(exec, &sp);
-        if (rc == PVX_OK) {
-            // genuine companion: exactness vs plain greedy. EAGLE3 requires an
-            // empty stream at enable (prefill-boundary): enable FIRST, then
-            // prompt+infer (the capture hook rides the commit path), then
-            // generate; compare against a plain-greedy twin.
-            const char* prompt = "The colors of the rainbow, in order, are: red, orange, yellow, green, blue, indigo and";
-            pvx_sampling_params_t smp = {};
-            smp.temperature = 0.0f; smp.top_k = 1; smp.top_p = 1.0f; smp.repeat_penalty = 1.0f;
-            ASSERT(pvx_executor_prompt(exec, prompt) == PVX_OK);
-            ASSERT(pvx_executor_infer(exec) == PVX_DECODE_OK);
-            // plain reference on a fresh context
-            pvx_context_t* ca = make_ctx(m, 1, 1024);
-            pvx_executor_t* ea = nullptr; ASSERT(pvx_executor_create(ca, &ea) == PVX_OK);
-            ASSERT(pvx_executor_prompt(ea, prompt) == PVX_OK);
-            ASSERT(pvx_executor_infer(ea) == PVX_DECODE_OK);
-            int32_t ref[16];
-            ASSERT(gen_plain_loop(ea, &smp, 16, ref) == 16);
-            pvx_executor_free(ea); pvx_free_context(ca);
-            // eagle3 stream
-            int32_t out[16]; int n = 0;
-            struct Cap { int32_t* v; int i; };
-            Cap cap{out, 0};
-            ASSERT(pvx_executor_generate_spec(exec, &smp, 16,
-                    (pvx_spec_token_callback_t)+[](int32_t t, void* ud) -> bool {
-                        Cap* c = (Cap*) ud; c->v[c->i++] = t; return true;
-                    }, &cap, &n) == PVX_OK);
-            ASSERT(n == 16);
-            ASSERT(memcmp(ref, out, sizeof(ref)) == 0);
-        } else {
-            // typed refusal on a non-eagle3 file: honest boundary, not a fake
-            ASSERT(rc == PVX_ERR_LOAD_FAILED || rc == PVX_ERR_NOT_SUPPORTED);
-            fprintf(stderr, "live-skip: eagle3 companion refused typed (rc=%d)\n", (int) rc);
-        }
-    }
+    // (the LIVE EAGLE3 leg moved to test_spec_eagle3_live_pair below: it needs
+    // the MATCHING target model, not the standard fixture target — env pair
+    // PVX_EAGLE3_TARGET_PATH / PVX_EAGLE3_DRAFT_PATH)
     if (exec) pvx_executor_free(exec);
     if (ctx) pvx_free_context(ctx);
     pvx_free_model(m);
+}
+
+static void test_spec_eagle3_live_pair() {
+    // LIVE EAGLE3 leg (BL-36 evidence): a genuine target+companion pair.
+    // Re-provision with the verified pair (repo + file names, relative notes):
+    //   target    Qwen/Qwen3-8B-GGUF            file Qwen3-8B-Q4_K_M.gguf (~5.03 GB)
+    //   companion williamliao/Qwen3-8B-EAGLE3-Speculator-GGUF
+    //             file Qwen3-8B-speculator.eagle3-F16.gguf (~2.05 GB; RedHatAI
+    //             speculator conversion; eagle3.target_layers [2,18,33])
+    // Env-gated: PVX_EAGLE3_TARGET_PATH + PVX_EAGLE3_DRAFT_PATH (legacy alias
+    // PVX_EAGLE_DRAFT_PATH still honored for the draft). Absent = typed skip.
+    const char* tgt = getenv("PVX_EAGLE3_TARGET_PATH");
+    const char* dft = getenv("PVX_EAGLE3_DRAFT_PATH");
+    if (!dft) dft = getenv("PVX_EAGLE_DRAFT_PATH");
+    if (!tgt || !dft || !file_exists(tgt) || !file_exists(dft)) {
+        fprintf(stderr, "live-skip: no genuine eagle3 pair "
+                "(PVX_EAGLE3_TARGET_PATH/PVX_EAGLE3_DRAFT_PATH unset)\n");
+        return;
+    }
+    pvx_model_params_t mp = {}; mp.model_path = tgt; mp.gpu_layers = 99; mp.flash_attn = true;
+    pvx_model_t* m = nullptr; ASSERT(pvx_load_model(&mp, &m) == PVX_OK);
+    const int n_gen = 24;
+    const char* prompt = "The colors of the rainbow, in order, are: red, orange, yellow, green, blue, indigo and";
+    pvx_sampling_params_t smp = {};
+    smp.temperature = 0.0f; smp.top_k = 1; smp.top_p = 1.0f; smp.repeat_penalty = 1.0f;
+    smp.max_tokens = n_gen; smp.ignore_eos = false;
+
+    // plain greedy reference on a fresh context
+    pvx_context_t* ca = make_ctx(m, 1, 2048);
+    pvx_executor_t* ea = nullptr; ASSERT(pvx_executor_create(ca, &ea) == PVX_OK);
+    ASSERT(pvx_executor_prompt(ea, prompt) == PVX_OK);
+    ASSERT(pvx_executor_infer(ea) == PVX_DECODE_OK);
+    int32_t ref[32];
+    ASSERT(gen_plain_loop(ea, &smp, n_gen, ref) == n_gen);
+    pvx_executor_free(ea); pvx_free_context(ca);
+
+    // EAGLE3 requires an empty stream at enable (prefill-boundary): enable
+    // FIRST (companion metadata + vocab compat validated typed), then
+    // prompt+infer (the capture hook rides the commit path), then generate.
+    pvx_context_t* cb = make_ctx(m, 1, 2048);
+    pvx_executor_t* eb = nullptr; ASSERT(pvx_executor_create(cb, &eb) == PVX_OK);
+    pvx_spec_params_t sp = {};
+    sp.mode = PVX_SPEC_EAGLE3;
+    sp.eagle_companion_path = dft;
+    sp.draft_max = 8;
+    ASSERT(pvx_executor_spec_init(eb, &sp) == PVX_OK);
+    ASSERT(pvx_executor_prompt(eb, prompt) == PVX_OK);
+    ASSERT(pvx_executor_infer(eb) == PVX_DECODE_OK);
+    int32_t out[32]; int n = 0;
+    struct Cap { int32_t* v; int i; };
+    Cap cap{out, 0};
+    ASSERT(pvx_executor_generate_spec(eb, &smp, n_gen,
+            (pvx_spec_token_callback_t)+[](int32_t t, void* ud) -> bool {
+                Cap* c = (Cap*) ud; c->v[c->i++] = t; return true;
+            }, &cap, &n) == PVX_OK);
+    ASSERT(n == n_gen);
+    ASSERT(memcmp(ref, out, sizeof(int32_t) * (size_t) n_gen) == 0); // byte-identical
+
+    // REAL drafting evidence (not silent degradation): accepted > 0.
+    int64_t drafted = 0, accepted = 0;
+    ASSERT(pvx_executor_spec_stats(eb, &drafted, &accepted) == PVX_OK);
+    ASSERT(drafted > 0);
+    ASSERT(accepted > 0);
+    fprintf(stderr, "live: eagle3 exact %d/%d tokens, drafted=%lld accepted=%lld "
+            "(accept-rate %.1f%%) ", n, n_gen, (long long) drafted,
+            (long long) accepted, 100.0 * (double) accepted / (double) drafted);
+    pvx_executor_free(eb); pvx_free_context(cb); pvx_free_model(m);
+}
+
+static void test_spec_dflash_live_pair() {
+    // LIVE DFlash/DSpark leg (BL-36 evidence): the honest typed-boundary
+    // contract against a genuine LiquidAI pair. Re-provision (repo + file):
+    //   target  LiquidAI/LFM2.5-1.2B-Instruct-GGUF       file LFM2.5-1.2B-Instruct-Q4_0.gguf (~0.70 GB; arch lfm2)
+    //   sidecar LiquidAI/LFM2.5-1.2B-Instruct-DSpark-GGUF file LFM2.5-1.2B-Instruct-DSpark-Q4_K_M.gguf (~0.18 GB;
+    //           arch dflash, dflash.target_layers i32[5], markov head = DSpark)
+    // Env-gated: PVX_DFLASH_TARGET_PATH + PVX_DFLASH_DRAFT_PATH. Absent = skip.
+    // pvx does NOT wire block-diffusion drafting (ABI v7 typed boundary
+    // slice): the REAL sidecar must pass the metadata precheck, then the enable
+    // refuses typed at spec-engine/dflash-wiring — never faked, never silent.
+    const char* tgt = getenv("PVX_DFLASH_TARGET_PATH");
+    const char* dft = getenv("PVX_DFLASH_DRAFT_PATH");
+    if (!tgt || !dft || !file_exists(tgt) || !file_exists(dft)) {
+        fprintf(stderr, "live-skip: no genuine dflash pair "
+                "(PVX_DFLASH_TARGET_PATH/PVX_DFLASH_DRAFT_PATH unset)\n");
+        return;
+    }
+    pvx_model_params_t mp = {}; mp.model_path = tgt; mp.gpu_layers = 99; mp.flash_attn = true;
+    pvx_model_t* m = nullptr; ASSERT(pvx_load_model(&mp, &m) == PVX_OK);
+
+    // validate: metadata precheck accepts the REAL sidecar, then the wiring
+    // boundary refuses typed (both legs must name dflash-wiring).
+    pvx_spec_params_t sp = {};
+    sp.mode = PVX_SPEC_DFLASH;
+    sp.dflash_companion_path = dft;
+    ASSERT(pvx_model_spec_validate(m, &sp) == PVX_ERR_NOT_SUPPORTED);
+    ASSERT(strstr(pvx_model_last_error(m), "dflash-wiring") != nullptr);
+
+    pvx_context_t* ctx = make_ctx(m, 1, 2048);
+    pvx_executor_t* exec = nullptr; ASSERT(pvx_executor_create(ctx, &exec) == PVX_OK);
+    ASSERT(pvx_executor_spec_init(exec, &sp) == PVX_ERR_NOT_SUPPORTED);
+    ASSERT(strstr(pvx_last_error(ctx), "dflash-wiring") != nullptr);
+
+    // no phantom session: generate refuses typed, never a silent plain run
+    pvx_sampling_params_t smp = {};
+    smp.temperature = 0.0f; smp.top_k = 1; smp.top_p = 1.0f; smp.repeat_penalty = 1.0f;
+    int n = 0;
+    ASSERT(pvx_executor_generate_spec(exec, &smp, 4, nullptr, nullptr, &n)
+            == PVX_ERR_NOT_SUPPORTED);
+
+    // the pair is real: the LFM2.5 target itself generates greedy tokens
+    ASSERT(pvx_executor_prompt(exec, "The colors of the rainbow, in order, are: red, orange, yellow, green, blue, indigo and") == PVX_OK);
+    ASSERT(pvx_executor_infer(exec) == PVX_DECODE_OK);
+    int32_t ref[8];
+    ASSERT(gen_plain_loop(exec, &smp, 8, ref) == 8);
+    fprintf(stderr, "live: dflash typed wiring refusal on the genuine pair; "
+            "target plain greedy 8/8 ");
+    pvx_executor_free(exec); pvx_free_context(ctx); pvx_free_model(m);
 }
 
 static void test_json_schema_grammar_roundtrip() {
@@ -1403,6 +1481,8 @@ int main() {
     TEST(conversation_spec_fail_closed);
     TEST(spec_dflash_metadata_typed);
     TEST(spec_eagle3_companion_typed);
+    TEST(spec_eagle3_live_pair);
+    TEST(spec_dflash_live_pair);
     TEST(json_schema_grammar_roundtrip);
     fprintf(stderr, "\n=== %d/%d passed, %d skipped ===\n", tests_passed, tests_run, tests_skipped);
     return 0;

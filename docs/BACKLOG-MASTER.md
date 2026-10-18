@@ -128,6 +128,46 @@
   live: EAGLE3 drafting (no EAGLE3 companion GGUF on this machine — enabling types the
   refusal at the metadata/load boundary, the fail-closed contract working). LDC both
   roots regenerated + enforcement PASS.
+- Live verification (2026-10-18 evening, owner order): BOTH companion legs verified
+  with real HF pairs (downloaded ~7.96 GB ≤ 8 GB budget into the owner-sanctioned
+  models dir; sizes verified byte-exact vs HF metadata; RAM-gated loads, 95% free).
+  EAGLE3 REAL DRAFTING: Qwen/Qwen3-8B-GGUF (Qwen3-8B-Q4_K_M.gguf, 5.03 GB) +
+  williamliao/Qwen3-8B-EAGLE3-Speculator-GGUF (Qwen3-8B-speculator.eagle3-F16.gguf,
+  2.05 GB; eagle3.target_layers [2,18,33]) — spec ON vs plain greedy (N=24, temp 0,
+  top_k 1, ignore_eos in both legs) BYTE-IDENTICAL 24/24 tokens; spec stats
+  drafted=95 accepted=9 (accept-rate 9.5% — real drafting, no silent degradation).
+  The live run surfaced FOUR native defects, all fixed + full rerun green:
+  1) `pvx_executor_spec_stats` shipped without its header declaration — C++-mangled
+     export unreachable from the C ABI (declaration restored, symbol extern "C");
+  2) eagle3 capture did not drop the drafted-but-unverified chain cells before the
+     decoder training batch — llama's Y = X+1 consecutiveness check aborted round 1
+     ("training write failed": draft KV pos_max 30 vs batch start 24) — the
+     restore-to-committed-prefix drop added (upstream TAG_SPEC_AVOID_DRAFT_REEVAL);
+  3) the verify chain was bounded by a call-wide cap only — the last rounds overran
+     out_max (26 emitted for N=24) — per-ROUND budget bound added;
+  4) deferred-boundary-only captures (single-row plain-step commits, bridge skipped)
+     decoded an EMPTY training batch — llama refuses n_tokens == 0 — batch.size() > 0
+     guard added (upstream pattern).
+  DFLASH leg: LiquidAI/LFM2.5-1.2B-Instruct-GGUF (LFM2.5-1.2B-Instruct-Q4_0.gguf,
+  0.70 GB, arch lfm2) + LiquidAI/LFM2.5-1.2B-Instruct-DSpark-GGUF
+  (LFM2.5-1.2B-Instruct-DSpark-Q4_K_M.gguf, 0.18 GB, arch dflash,
+  dflash.target_layers i32[5]) — the honest typed boundary verified LIVE: the genuine
+  sidecar PASSES the metadata precheck, then `pvx_model_spec_validate` AND
+  `pvx_executor_spec_init` both refuse typed PVX_ERR_NOT_SUPPORTED naming
+  spec-engine/dflash-wiring; no phantom session (generate_spec typed refusal); the
+  real target generates plain greedy 8/8. Block-diffusion drafting is NOT claimed
+  (ABI v7 typed wiring boundary — never faked; the finding stands: our vendored
+  upstream dflash/DSpark wiring is not ported, and no GGUF pair can make pvx draft
+  dflash this slice).
+  Permanent env-gated tests: native `spec_eagle3_live_pair` / `spec_dflash_live_pair`
+  and C# `Eagle3_Live_TokenExact_EnvGated` / `Dflash_Live_TypedWiringRefusal_EnvGated`
+  (PVX_EAGLE3_TARGET_PATH / PVX_EAGLE3_DRAFT_PATH, PVX_DFLASH_TARGET_PATH /
+  PVX_DFLASH_DRAFT_PATH; typed skip when unset; no absolute paths; exact HF repo+file
+  names in the doc comments for re-provisioning). Full regression after the fixes:
+  native ctest 3/3 — basic 34/34 passed 0 skipped (incl. both live legs) with standard
+  fixtures (Llama-3.2-3B, Qwen3.5-4B hybrid + mmproj, Llama-1B draft, MiniLM embed) +
+  ngram 14/14 + stress; C# build 0/0 + full suite 208/208 (206 baseline + 2 new)
+  default-env + targeted live 2/2 env-set; LDC both roots regenerated + PASS.
 
 ### Ongoing verification duty
 - Every repo state keeps: native Release build 0 errors, ctest green, C# suite green, LDC regenerated + enforcement PASS. Any public-surface change regenerates LDC artifacts in the SAME commit.

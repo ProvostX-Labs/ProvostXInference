@@ -1,6 +1,6 @@
 # RELATIONSHIP-GRAPH.md — csharp
 
-Generated: 2026-10-18T17:40:07.179412+00:00
+Generated: 2026-10-18T18:14:10.554533+00:00
 Edges: 33  |  Packages: 2
 
 ---

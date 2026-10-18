@@ -200,6 +200,14 @@ pvx_result_t pvx_executor_spec_init(pvx_executor_t* exec,
 /* Teardown of the spec session (idempotent; pvx_executor_free also calls it). */
 void pvx_executor_spec_free(pvx_executor_t* exec);
 
+/* Spec-session acceptance telemetry for this executor (0/0 when none).
+ * ABI v7 live-verification fix (BL-36): the definition previously shipped
+ * without this declaration, exporting a C++-mangled symbol unreachable from
+ * the C ABI — the header contract (extern "C" linkage) is restored here. */
+pvx_result_t pvx_executor_spec_stats(pvx_executor_t* exec,
+                                     int64_t* out_drafted,
+                                     int64_t* out_accepted);
+
 /* Speculative token loop over the executor's current prompt+history: draft →
  * target-verify → accept all accepted tokens into the executor's normal state
  * (n_tokens, recent_tokens, KV) until EOG (unless params->ignore_eos is set,

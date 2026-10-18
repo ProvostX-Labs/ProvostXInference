@@ -1,11 +1,11 @@
 # API-INDEX.md — csharp
 
-Generated: 2026-10-18T17:40:07.178974+00:00
+Generated: 2026-10-18T18:14:10.554109+00:00
 Packages: 2  |  Types: 106
 
 ---
 
-## Tests (26 types, ~3297 LOC)
+## Tests (26 types, ~3381 LOC)
 
 - 🟡 DecisionEngineOpsTests  (Tests)
 - 🟡 DecisionEngineRequestTests  (Tests)

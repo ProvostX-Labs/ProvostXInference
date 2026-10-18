@@ -1,11 +1,11 @@
 # API-INDEX.md — ProvostXInference
 
-Generated: 2026-10-18T17:39:52.319185+00:00
+Generated: 2026-10-18T18:14:10.482488+00:00
 Packages: 3  |  Types: 1880
 
 ---
 
-## Tests (26 types, ~3297 LOC)
+## Tests (26 types, ~3381 LOC)
 
 - 🟡 DecisionEngineOpsTests  (Tests)
 - 🟡 DecisionEngineRequestTests  (Tests)
@@ -117,7 +117,7 @@ Packages: 3  |  Types: 1880
 - 🟡 StallRecoveryLadder  (csharp)  deps: [StallWatchdogConfig]
 - 🟡 SystemChunkWallClock : IChunkWallClock  (csharp)  deps: [TimeProvider]
 
-## ProvostXInference (native C++) (1774 types, ~758463 LOC)
+## ProvostXInference (native C++) (1774 types, ~758574 LOC)
 
 - struct (global)::acl_deleter (acl_tensor.h) 
 - class ov::AlignEltwiseOperandRanks (align_eltwise_ranks.h) 

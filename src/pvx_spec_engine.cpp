@@ -1316,8 +1316,24 @@ bool PvxBLSpecEngine::eagle_process_target_rows(llama_pos pos_first, int n_rows,
     llama_batch_ext* dec = llama_batch_ext_init(m_ctx_dft);
     if (!dec) return false;
     bool ok = false;
+    int n_pairs = 0; // empty batch = deferred boundary only (n_rows == 1,
+                     // bridge skipped): upstream guards batch.size() > 0 before
+                     // llama_process — decoding 0 rows is an error (live-verified
+                     // on the Qwen3-8B pair's final plain_step round).
     do {
         llama_memory_t dmem = llama_get_memory(m_ctx_dft);
+        if (!dmem) break;
+        // Drop the drafted-but-unverified chain cells [pos_first, ...) before
+        // the training batch rewrites those positions from the verified
+        // stream: upstream restores the draft context to the committed prefix
+        // before process() (TAG_SPEC_AVOID_DRAFT_REEVAL — always re-evaluate).
+        // The seed cell at pos_first-1 STAYS, so the bridge condition below
+        // (pos_first-1 > dft_pos_max) correctly skips. Without the drop, the
+        // training batch would start at pos_first while the draft KV still
+        // ends at the chain tail — llama's Y = X+1 consecutiveness check
+        // aborts the decode (live-verified on the Qwen3-8B pair: draft KV
+        // pos_max 30 vs training batch start 24).
+        if (!llama_memory_seq_rm(dmem, 0, (llama_pos) pos_first, -1)) break;
         if (pos_first > 0 &&
             (llama_pos) (pos_first - 1) > llama_memory_seq_pos_max(dmem, 0)) {
             const int32_t idx = llama_batch_ext_add_token(dec, 0, row_ids[0]);
@@ -1327,6 +1343,7 @@ bool PvxBLSpecEngine::eagle_process_target_rows(llama_pos pos_first, int n_rows,
             if (idx < 0 || !llama_batch_ext_set_embd_token(dec, idx, le)) break;
             const llama_pos p[4] = { pos_first - 1, pos_first - 1, pos_first - 1, pos_first - 1 };
             if (!llama_batch_ext_set_pos(dec, idx, p)) break;
+            n_pairs++;
         }
         for (int k = 0; k + 1 < n_rows; k++) {
             const int32_t idx = llama_batch_ext_add_token(dec, 0, row_ids[k + 1]);
@@ -1338,8 +1355,9 @@ bool PvxBLSpecEngine::eagle_process_target_rows(llama_pos pos_first, int n_rows,
             const llama_pos p[4] = { pk, pk, pk, pk };
             if (!llama_batch_ext_set_pos(dec, idx, p)) break;
             if (!llama_batch_ext_set_output_logits(dec, idx, false)) break;
+            n_pairs++;
         }
-        if (llama_process(m_ctx_dft, LLAMA_PROCESS_TYPE_DECODE, dec) != 0) break;
+        if (n_pairs > 0 && llama_process(m_ctx_dft, LLAMA_PROCESS_TYPE_DECODE, dec) != 0) break;
         ok = true;
     } while (false);
     llama_batch_ext_free(dec);
@@ -1512,7 +1530,12 @@ pvx_result_t PvxBLSpecEngine::generate_eagle(const pvx_sampling_params_t* params
         const llama_token c = spec_sample(m_stream.last_logits->data(), ctx->vocab,
                                           params, *m_stream.recent_tokens);
         if (c < 0) return PVX_ERR_DECODE_FAILED;
-        if (stop_at_eog(c) || chain_cap == 0) {
+        // PER-ROUND budget: the round commits c + the accepted chain, so the
+        // chain may never exceed out_max - generated - 1 (the call-wide cap
+        // alone lets the last rounds overrun out_max — live-verified on the
+        // Qwen3-8B pair: 26 emitted for out_max 24).
+        const int round_cap = std::min(chain_cap, out_max - generated - 1);
+        if (stop_at_eog(c) || round_cap <= 0) {
             const pvx_result_t rc = plain_step(c);
             if (out_generated) *out_generated = generated;
             if (rc != PVX_OK || stopped) return rc;
@@ -1533,7 +1556,7 @@ pvx_result_t PvxBLSpecEngine::generate_eagle(const pvx_sampling_params_t* params
         std::vector<llama_token> chain;
         std::vector<float> prenorm((size_t) m_eagle_n_embd_dec);
         llama_pos next_pos = pb + 1;
-        for (int i = 0; i < chain_cap; i++) {
+        for (int i = 0; i < round_cap; i++) {
             const float* d_logits = llama_get_logits_ith(m_ctx_dft, 0);
             const float* pn = llama_get_embeddings_nextn_ith(m_ctx_dft, 0);
             if (!d_logits || !pn) {
@@ -1547,7 +1570,7 @@ pvx_result_t PvxBLSpecEngine::generate_eagle(const pvx_sampling_params_t* params
             if (llama_vocab_is_eog(ctx->vocab, d_top.token)) break;
             chain.push_back(d_top.token);
             m_n_drafted++;
-            if ((int) chain.size() >= chain_cap) break;
+            if ((int) chain.size() >= round_cap) break;
             if (!eagle_pair_decode(chain.back(), prenorm.data(), next_pos)) {
                 ctx->last_error = "eagle3 chain decode failed";
                 return PVX_ERR_INTERNAL;
