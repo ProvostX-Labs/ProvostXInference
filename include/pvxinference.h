@@ -187,7 +187,8 @@ void pvx_executor_spec_free(pvx_executor_t* exec);
 
 /* Speculative token loop over the executor's current prompt+history: draft →
  * target-verify → accept all accepted tokens into the executor's normal state
- * (n_tokens, recent_tokens, KV) until EOG or out_max generated tokens.
+ * (n_tokens, recent_tokens, KV) until EOG (unless params->ignore_eos is set,
+ * which samples past EOG exactly like the plain pipeline) or out_max tokens.
  * on_token (nullable) streams every accepted token; return false to stop early.
  * out_generated receives the number of generated tokens.
  * PVX_ERR_NOT_SUPPORTED when no spec session is active on this executor.

@@ -768,6 +768,35 @@ static void test_spec_vision_exactness() {
             // Incompatible draft vocab is a typed refusal, not a test failure.
             fprintf(stderr, "(draft+vision skipped: spec_init rc=%d) ", (int) rc);
         }
+        if (rc == PVX_OK) {
+            // Full-budget contract for the live fixture pair (Qwen3.5-4B target
+            // + Qwen3.5-0.8B draft via PVX_DRAFT_MODEL_PATH): the greedy stream
+            // after this image prompt begins with an EOG token, so the plain
+            // leg above runs its fixed budget EOG-blind while the spec loop
+            // stops at EOG — the prefix contract above covers that shape.
+            // With ignore_eos BOTH loops must agree on the FULL budget: the
+            // spec loop samples past EOG exactly like the plain pipeline and
+            // the stream stays byte-exact (on the hybrid target drafting
+            // degrades to plain exact steps — verify-batch rollback is
+            // unavailable; output correctness must not). Fresh context: the
+            // prefix leg above already advanced cc.
+            pvx_context_t* cd = make_ctx(model, 1, 4096);
+            pvx_executor_t* ed = nullptr; ASSERT(pvx_executor_create(cd, &ed) == PVX_OK);
+            ASSERT(pvx_executor_prompt_with_images(ed, model, prompt.c_str(), imgs, sizes, 1) == PVX_OK);
+            ASSERT(pvx_executor_infer(ed) == PVX_DECODE_OK);
+            pvx_spec_params_t spd2 = spd; // same draft pair as above
+            ASSERT(pvx_executor_spec_init(ed, &spd2) == PVX_OK);
+            pvx_sampling_params_t sp2 = sp; sp2.ignore_eos = true;
+            int32_t outd2[n_gen]; CapCtx capd2{outd2, 0}; int nd2 = 0;
+            ASSERT(pvx_executor_generate_spec(ed, &sp2, n_gen,
+                    (pvx_spec_token_callback_t)+[](int32_t t, void* ud) -> bool {
+                        CapCtx* c = (CapCtx*) ud; c->v[c->i++] = t; return true;
+                    }, &capd2, &nd2) == PVX_OK);
+            ASSERT(nd2 == n_gen);
+            ASSERT(capd2.i == (size_t) nd2);
+            for (int i = 0; i < nd2; i++) ASSERT(ref[i] == outd2[i]);
+            pvx_executor_free(ed); pvx_free_context(cd);
+        }
         pvx_executor_free(ec); pvx_free_context(cc);
     } else {
         fprintf(stderr, "(no draft model; draft+vision leg skipped) ");

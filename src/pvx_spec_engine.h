@@ -73,9 +73,11 @@ public:
 
     // Speculative token loop continuing from the executor state: the prefill
     // must be complete (executor entry point enforces a non-empty
-    // last_logits); loops draft → verify → commit until EOG, out_max
-    // generated tokens, stream-stop, or typed failure. Committed tokens land
-    // in the executor state exactly as the plain loop would commit them.
+    // last_logits); loops draft → verify → commit until EOG (unless the
+    // sampling params set ignore_eos — then EOG tokens are sampled through
+    // exactly like the plain pipeline), out_max generated tokens, stream-stop,
+    // or typed failure. Committed tokens land in the executor state exactly
+    // as the plain loop would commit them.
     pvx_result_t generate(const pvx_sampling_params_t* params,
                           int out_max,
                           pvx_spec_token_callback_t on_token,

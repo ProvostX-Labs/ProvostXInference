@@ -621,11 +621,40 @@ pvx_result_t PvxBLSpecEngine::generate(const pvx_sampling_params_t* params,
 
     const bool is_ngram = m_mode != PVX_SPEC_DRAFT;
     const int n_vocab = llama_vocab_n_tokens(ctx->vocab);
+    // EOG terminates the stream exactly like the plain pipeline: unless the
+    // caller asked to sample past EOG (ignore_eos). The sampler seam already
+    // honors ignore_eos (spec_sample == do_sample); the loop's termination
+    // checks must honor it too or spec ON would stop where plain greedy
+    // continues (token-exactness breaks for the whole emitted stream).
+    const bool ignore_eos = params->ignore_eos;
+    auto stop_at_eog = [&](llama_token t) {
+        return !ignore_eos && llama_vocab_is_eog(ctx->vocab, t);
+    };
     // Chain bound (upstream n_draft_max rule): remaining budget minus 1 so the
     // commit token always fits; never wider than the target's batch.
     int chain_cap = std::min(m_draft_max,
                              std::min((int) llama_n_batch(ctx->ctx) - 1,
                                       out_max - 1));
+    // Hybrid/recurrent target: the KV repair rewinds the recurrent state via
+    // trailing snapshots, bounded by n_rs_seq — upstream's server rule (drafts
+    // must not exceed llama_n_rs_seq(ctx_tgt); server-context.cpp). Upstream
+    // never seq_rm-repairs a recurrent target: it checkpoint/restores instead
+    // (server-context.cpp:4562-4576) — pvx does not port that path, so with no
+    // snapshot ring (pvx default) drafting is bounded to zero: every round
+    // falls through to the plain single-token step. Output stays token-exact,
+    // generation continues — poor drafting, correct stream (the documented
+    // wave-1 posture for width/recurrent-degraded drafting).
+    if (llama_model_is_recurrent(m_model_tgt->model) ||
+        llama_model_is_hybrid(m_model_tgt->model)) {
+        const int rs_cap = (int) llama_n_rs_seq(ctx->ctx);
+        if (rs_cap < chain_cap) {
+            pvx_log(PVX_LOG_WARN, "Spec",
+                    "drafting disabled: hybrid/recurrent target memory cannot roll back "
+                    "verify batches (llama_n_rs_seq=%d, upstream checkpoint-repair not wired); "
+                    "plain exact steps only", rs_cap);
+        }
+        chain_cap = std::min(chain_cap, rs_cap);
+    }
     if (chain_cap < 0) chain_cap = 0; // tiny budget/batch: drafting off, fallback steps still run
 
     int generated = 0;
@@ -722,7 +751,7 @@ pvx_result_t PvxBLSpecEngine::generate(const pvx_sampling_params_t* params,
                 ngram_after_round(stream, 0);
             }
             if (on_token && !on_token(t, user_data)) break;
-            if (llama_vocab_is_eog(ctx->vocab, t)) break;
+            if (stop_at_eog(t)) break;
             continue;
         }
 
@@ -763,7 +792,7 @@ pvx_result_t PvxBLSpecEngine::generate(const pvx_sampling_params_t* params,
                 accepted.push_back(draft[i]);
                 m_n_accepted++;
                 feed.push_back(draft[i]);
-                if (llama_vocab_is_eog(ctx->vocab, draft[i])) {
+                if (stop_at_eog(draft[i])) {
                     // Mid-chain EOG: accepted, nothing commits past an EOG.
                     eog_row = i;
                     break;
@@ -816,7 +845,7 @@ pvx_result_t PvxBLSpecEngine::generate(const pvx_sampling_params_t* params,
                     if (out_generated) *out_generated = generated;
                     return PVX_OK;
                 }
-                if (llama_vocab_is_eog(ctx->vocab, t)) {
+                if (stop_at_eog(t)) {
                     if (out_generated) *out_generated = generated;
                     return PVX_OK;
                 }
@@ -866,14 +895,14 @@ pvx_result_t PvxBLSpecEngine::generate(const pvx_sampling_params_t* params,
                 if (out_generated) *out_generated = generated;
                 return PVX_OK;
             }
-            if (llama_vocab_is_eog(ctx->vocab, t)) {
+            if (stop_at_eog(t)) {
                 if (out_generated) *out_generated = generated;
                 return PVX_OK;
             }
         }
         generated++;
         if (on_token && !on_token(commit, user_data)) break;
-        if (llama_vocab_is_eog(ctx->vocab, commit)) break;
+        if (stop_at_eog(commit)) break;
     }
 
     if (out_generated) *out_generated = generated;
