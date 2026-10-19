@@ -1,11 +1,11 @@
 # API-INDEX.md — csharp
 
-Generated: 2026-10-18T19:08:51.804377+00:00
-Packages: 2  |  Types: 114
+Generated: 2026-10-19T07:58:21.299974+00:00
+Packages: 2  |  Types: 119
 
 ---
 
-## Tests (27 types, ~3652 LOC)
+## Tests (28 types, ~3694 LOC)
 
 - 🟡 DecisionEngineOpsTests  (Tests)
 - 🟡 DecisionEngineRequestTests  (Tests)
@@ -32,10 +32,11 @@ Packages: 2  |  Types: 114
 - 🟡 SmokeTests  (Tests)
 - 🟡 SpecDecodeTests  (Tests)
 - 🟡 StallSafePrefillLiveJourneyTests  (Tests)
+- 🟡 StallWatchdogOpsTests  (Tests)
 - 🟡 StallWatchdogTests  (Tests)
 - 🟡 Wave3FeatureTests  (Tests)
 
-## csharp (87 types, ~5476 LOC)
+## csharp (91 types, ~5512 LOC)
 
 - 🔵 IChunkWallClock  (csharp)
 - 🔵 IConversation : IDisposable  (csharp)
@@ -58,6 +59,7 @@ Packages: 2  |  Types: 114
 - 🔵 IInferenceState : IDisposable  (csharp)
 - 🔵 IPrefillStallDetector  (csharp)
 - 🔵 ISpeculationSuspender  (csharp)
+- 🔵 IStallRecoveryLadder  (csharp)
 - 🔵 IStandardExecutor : IDisposable  (csharp)
 - 🔵 ITtsSession : IDisposable  (csharp)
 - 🔵 IVisionEncoder : IDisposable  (csharp)
@@ -74,6 +76,8 @@ Packages: 2  |  Types: 114
 - 🟡 EncoderEngineOps : IEncoderEngineOps, IDisposable  (csharp)  deps: [IInferenceModel, IVisionEncoder]
 - 🟡 EncoderEngineRequestBuilder  (csharp)  deps: [string]
 - 🟡 EngineKindMismatchException : InferenceException  (csharp)  deps: [string]
+- 🟡 EngineLogging  (csharp)
+- 🟡 EngineMaintenance  (csharp)
 - 🟣 EngineStats  (csharp)  deps: [long, long, long, long, long, long]
 - 🟣 EpAttempt  (csharp)  deps: [string, Action]
 - 🟡 ExecutionProviderChain  (csharp)
@@ -121,6 +125,7 @@ Packages: 2  |  Types: 114
 - 🟡 PvxEngineSelector  (csharp)
 - 🟡 QuietInferenceLogger : IInferenceLogger  (csharp)
 - 🟡 RollingPrefillStallDetector : IPrefillStallDetector  (csharp)  deps: [StallWatchdogConfig]
-- 🟡 StallRecoveryLadder  (csharp)  deps: [StallWatchdogConfig]
+- 🟡 StallRecoveryLadder : IStallRecoveryLadder  (csharp)  deps: [StallWatchdogConfig]
+- 🟡 StallWatchdogOps  (csharp)
 - 🟡 SystemChunkWallClock : IChunkWallClock  (csharp)  deps: [TimeProvider]
 - 🟣 TtsResult  (csharp)  deps: [float, int]

@@ -201,9 +201,9 @@ to the context-scoped function). `PVX_LOG` structured logging: zero-overhead whe
 |-----------|---------|
 | `Interop` | P/Invoke + per-handle dispatch: `PvxNative`, `PvxAbiDelegates`, `PvxEngineHandle`, `PvxDispatchRouter`/`Registry`, `NativeModuleLoader`; injected seams `IPvxModuleLoader`, `IPvxEntryPoints`, `IPvxFileExistence`, `IOSProbe` |
 | `SafeHandles` | One SafeHandle per native resource — guaranteed `pvx_free_*` cleanup |
-| `Abstractions` | `IInferenceModel/Context/State`, `IConversation(Pool)`, `IStandardExecutor`, `IGrammar`, `IVisionEncoder`, `IInferenceBackend`, watchdog seams `IPrefillStallDetector`/`IChunkWallClock`/`ISpeculationSuspender` |
+| `Abstractions` | `IInferenceModel/Context/State`, `IConversation(Pool)`, `IStandardExecutor`, `IGrammar`, `IVisionEncoder`, `IInferenceBackend`, watchdog seams `IPrefillStallDetector`/`IChunkWallClock`/`ISpeculationSuspender`/`IStallRecoveryLadder` |
 | `Implementation` | Native* wrappers; `StandardEngineActivator`, `PvxDefaultEngineSelector`, stall-safe prefill classes |
-| `Engines` | Caller-facing facade: `IInferenceEngine`, `InferenceEngine(Builder/Factory)`, request records + ops views |
+| `Engines` | Caller-facing facade: `IInferenceEngine`, `InferenceEngine(Builder/Factory)`, request records + ops views + the black-box helper facades `EngineLogging` (native log routing), `EngineMaintenance` (GGUF EOG metadata repair), `StallWatchdogOps` (sole construction seam for detector/ladder/wall-clock) |
 | `Decision` | ONNX judge execution — `DecisionSession`, `IDecisionSessionFactory`, `JudgeTokenizer`, `JudgeSequenceEncoder`, `JudgeNumericsGate`, `ExecutionProviderChain` |
 | `Models` | Config records: `ModelConfig`, `ContextConfig`, `SamplingConfig`, `SpeculativeConfig`, `StallWatchdogConfig`, `BackendInfo`, engine selection types |
 | `Exceptions` | `InferenceException`, `InvalidEngineRequestException`, `EngineKindMismatchException`, `PrefillStallUnrecoveredException`, `PvxResultExtensions` |
@@ -281,3 +281,23 @@ Watchdog disabled = single plain commit, zero overhead. Config: `stall_watchdog`
 **Status:** native ctest green (Release metal), C# 189/189, LDC PASS. Repo history starts at
 the 2026-10-18 as-is state.
 **Updated:** 2026-10-18
+
+## Black-box facade directive (owner, 2026-10-19)
+
+The caller (ProvostXLLM) consumes ProvostXInference ONLY through the engine/builder/factory
+facade surface; everything else in this repo is a CLOSED BLACK BOX to it. To make that
+consumable without leaking internals, three facade views landed in `csharp/Engines`
+(pure delegation, no logic added):
+
+- `StallWatchdogOps` — sole construction seam for the stall-watchdog helper family;
+  returns `IPrefillStallDetector` / `IStallRecoveryLadder` / `IChunkWallClock`
+  (the ladder interface is new in `csharp/Abstractions/IStallRecoveryLadder.cs`;
+  `Implementation.StallRecoveryLadder` now implements it).
+- `EngineMaintenance` — file-level engine-bound maintenance (GGUF EOG/special-token
+  metadata repair) without a loaded engine object in hand.
+- `EngineLogging` — process-wide native log routing (file sink / managed handler /
+  level), previously reachable only via the `Logging` namespace.
+
+Effect: callers no longer reference `Implementation`, `Interop`, `SafeHandles`, or
+`Logging` namespaces at all. Native tree: UNTOUCHED by this directive (no native
+changes needed — the C API surface is unchanged).

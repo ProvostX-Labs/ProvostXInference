@@ -1,6 +1,6 @@
 # Tests.API.md
 
-Types: 27  |  LOC: 3652  |  ~1474 tokens
+Types: 28  |  LOC: 3694  |  ~1524 tokens
 
 ---
 
@@ -104,6 +104,10 @@ Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Exceptions
 ### Class: StallSafePrefillLiveJourneyTests
 > Integration test for the stall-safe prefill watchdog on the live
 Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Implementation, ProvostXInference.Models, Xunit
+
+### Class: StallWatchdogOpsTests
+> Facade tests (owner black-box directive 2026-10-19):
+Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Engines, ProvostXInference.Models, Xunit
 
 ### Class: StallWatchdogTests
 > Unit tests for the stall-safe prefill watchdog (INF BL-33):

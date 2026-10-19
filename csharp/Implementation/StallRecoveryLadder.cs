@@ -1,3 +1,4 @@
+using ProvostXInference.Abstractions;
 using ProvostXInference.Models;
 
 namespace ProvostXInference.Implementation;
@@ -7,7 +8,7 @@ namespace ProvostXInference.Implementation;
 /// a given 0-based retry attempt and fails closed when the budget is
 /// exhausted (the caller is expected to throw the typed unrecovered error
 /// then — the ladder itself never invents steps).</summary>
-public sealed class StallRecoveryLadder
+public sealed class StallRecoveryLadder : IStallRecoveryLadder
 {
     private readonly IReadOnlyList<PrefillRecoveryStep> _steps;
     private readonly int _maxRetries;

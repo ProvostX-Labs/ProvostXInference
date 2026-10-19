@@ -1,7 +1,7 @@
 # RELATIONSHIP-GRAPH.md — csharp
 
-Generated: 2026-10-18T19:08:51.804812+00:00
-Edges: 34  |  Packages: 2
+Generated: 2026-10-19T07:58:21.301301+00:00
+Edges: 35  |  Packages: 2
 
 ---
 
@@ -42,4 +42,5 @@ Edges: 34  |  Packages: 2
 - OsExecutionProviderDefaultSource ──implements──► IExecutionProviderDefaultSource (csharp)
 - QuietInferenceLogger ──implements──► IInferenceLogger (csharp)
 - RollingPrefillStallDetector ──implements──► IPrefillStallDetector (csharp)
+- StallRecoveryLadder ──implements──► IStallRecoveryLadder (csharp)
 - SystemChunkWallClock ──implements──► IChunkWallClock (csharp)
