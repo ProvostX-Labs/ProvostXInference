@@ -104,9 +104,8 @@ the stats export is a snapshot (`pvx_executor_stats`/`pvx_conversation_stats`,
   typed at spec_init naming the metadata key); deferred-boundary `pending_g_last` state
   rides the existing executor state chain additively (versioned length-prefixed payload:
   an EAGLE3-enabled restore of a checkpoint without EAGLE3 state types the refusal and
-  demands re-init). Live-verified (2026-10-18) against the genuine Qwen3-8B +
-  williamliao EAGLE3-speculator pair — three round bugs the live run corrected,
-  kept as-is now: (a) the capture hook drops the drafted-but-unverified chain
+  demands re-init). Live-verified against a genuine Qwen3-8B +
+  community EAGLE3-speculator pair; three round invariants, kept as-is now: (a) the capture hook drops the drafted-but-unverified chain
   cells before the decoder training batch (draft-KV restore-to-committed-prefix
   pattern, upstream TAG_SPEC_AVOID_DRAFT_REEVAL — without the drop the training
   batch starts at pos_first while the draft KV still ends at the chain tail and
@@ -120,7 +119,7 @@ the stats export is a snapshot (`pvx_executor_stats`/`pvx_conversation_stats`,
   is restored (extern "C" linkage, no ABI-version change). DFlash: companion
   metadata is validated at the metadata boundary,
   then the unwired drafting boundary refuses typed NOT_SUPPORTED (`dflash-wiring`),
-  MTP_AUTO precedent — never faked (live-verified against the genuine LiquidAI
+  MTP_AUTO precedent — never faked (live-verified against a genuine
   LFM2.5-1.2B-Instruct target + DSpark sidecar pair: the real sidecar — arch
   dflash, dflash.target_layers i32[5] — passes the metadata precheck, the
   enable refuses typed naming spec-engine/dflash-wiring, no phantom session;
@@ -248,7 +247,7 @@ Watchdog disabled = single plain commit, zero overhead. Config: `stall_watchdog`
 
 ## Test coverage & evidence
 
-- **Native:** basic + stress C++ suites (`tests/`), Release metal build, `ctest` green —
+- **Native:** basic + stress C++ suites (`tests/`), Release build, `ctest` green —
   stress covers NULL args, empty inputs, pool exhaustion, double-return, KV boundaries,
   sampling extremes, race stress (grammar mutex, pool churn).
 - **C#:** full suite green (189/189 at last run), one test class per type, all native seams
@@ -257,7 +256,7 @@ Watchdog disabled = single plain commit, zero overhead. Config: `stall_watchdog`
 - **Live capability matrix:** `TEST-MATRIX-2026-10-18.md` — 6 models (dense, hybrid-GDN,
   MoE/Flash-Next, 3B, MiniLM encoder, judge-ONNX) × all lanes (load, sequential gen,
   continuous batching, KV ops, rewind, speculative, grammar, tool calls, vision, embeddings),
-  executed on the Release metal build.
+  executed on the Release build.
 - **LDC:** API-INDEX.md + RELATIONSHIP-GRAPH.md regenerated + enforcement PASS in the same
   commit as any public-surface change.
 
@@ -278,33 +277,27 @@ Watchdog disabled = single plain commit, zero overhead. Config: `stall_watchdog`
 - `docs/CAPABILITY.md` — capability matrix; `TEST-EVIDENCE-spec.md` — evidence policy
 - `CMakeLists.txt`, `.github/workflows/` — build + CI
 
-**Status:** native ctest green (Release metal), C# 189/189, LDC PASS. Repo history starts at
-the 2026-10-18 as-is state.
-**Updated:** 2026-10-18
+**Status:** as-is — native ctest green (Release build), C# suite green, LDC PASS.
 
-## Black-box facade directive (owner, 2026-10-19)
+## Black-box consumption contract
 
-The caller (ProvostXLLM) consumes ProvostXInference ONLY through the engine/builder/factory
+The caller (ProvostXLLM) consumes this library ONLY through the engine/builder/factory
 facade surface; everything else in this repo is a CLOSED BLACK BOX to it. To make that
-consumable without leaking internals, three facade views landed in `csharp/Engines`
+consumable without leaking internals, three facade views live in `csharp/Engines`
 (pure delegation, no logic added):
 
 - `StallWatchdogOps` — sole construction seam for the stall-watchdog helper family;
   returns `IPrefillStallDetector` / `IStallRecoveryLadder` / `IChunkWallClock`
-  (the ladder interface is new in `csharp/Abstractions/IStallRecoveryLadder.cs`;
-  `Implementation.StallRecoveryLadder` now implements it).
+  (the ladder interface is `csharp/Abstractions/IStallRecoveryLadder.cs`;
+  `Implementation.StallRecoveryLadder` implements it).
 - `EngineMaintenance` — file-level engine-bound maintenance (GGUF EOG/special-token
   metadata repair) without a loaded engine object in hand.
 - `EngineLogging` — process-wide native log routing (file sink / managed handler /
   level), previously reachable only via the `Logging` namespace.
 
-Effect: callers no longer reference `Implementation`, `Interop`, `SafeHandles`, or
-`Logging` namespaces at all. Native tree: UNTOUCHED by this directive (no native
-changes needed — the C API surface is unchanged).
-
-**Addendum (black-box close-out, cont.):** `Decision.Engine.DecisionSessionFactory` ctor lost its
-optional `IInferenceLogger` parameter (moved to a settable `Logger` property, quiet default) — a
-parameterless construction by a facade-only caller must not drag the `Logging` namespace into the
-caller's compiled metadata (the ctor's member-ref signature does exactly that; surfaced by the
-ProvostXLLM closed allow-list arch-test). No caller passed a logger anywhere (verified by grep
-across both repos).
+Effect: callers never reference `Implementation`, `Interop`, `SafeHandles`, or `Logging`
+namespaces at all. The native tree is untouched by this contract (the C API surface is
+unchanged). `Decision.Engine.DecisionSessionFactory` therefore constructs parameterless —
+the logger is a settable `Logger` property (quiet default) — so a facade-only caller's
+compiled metadata never drags the `Logging` namespace in (a ctor parameter's member-ref
+signature would do exactly that). No caller passes a logger through the ctor.

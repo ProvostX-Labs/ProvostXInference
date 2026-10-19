@@ -19,14 +19,21 @@ Caller (ProvostXLLM) — touches ONLY this:
 Engines/          IInferenceEngine, InferenceEngine, InferenceEngineBuilder,
                  InferenceEngineFactory, EngineRequest records + Builders,
                  Gguf/Decision/EncoderEngineOps (+ I*EngineOps), EngineKind,
-                 GgufModelLoader (IGgufModelLoader)
+                 GgufModelLoader (IGgufModelLoader), plus the black-box helper
+                 facades StallWatchdogOps / EngineMaintenance / EngineLogging
+                 (pure delegation; the only construction seam for the stall
+                 watchdog family and the only Logging-surface entry point)
    │
 Decision/         DecisionSession + Factory, JudgeTokenizer, JudgeSequenceEncoder,
-                 JudgeNumericsGate, ExecutionProviderChain (ONNX = implementation detail)
+                 JudgeNumericsGate, ExecutionProviderChain (ONNX = implementation
+                 detail). DecisionSessionFactory constructs parameterless — the
+                 logger is a settable Logger property so a facade-only caller's
+                 compiled metadata never drags the Logging namespace in
    │
 Abstractions/     IInferenceModel, IInferenceContext, IConversationPool, IConversation,
                  IStandardExecutor, IInferenceBackend, IInferenceState, IVisionEncoder,
-                 IInferenceModel, IPrefillStallDetector, IChunkWallClock, ISpeculationSuspender
+                 IInferenceModel, IPrefillStallDetector, IChunkWallClock,
+                 ISpeculationSuspender, IStallRecoveryLadder
    │
 Implementation/   NativeInferenceModel, NativeInferenceContext, NativeConversationPool,
                  NativeConversation, NativeStandardExecutor, NativeInferenceBackend,
