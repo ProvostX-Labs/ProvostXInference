@@ -1,6 +1,6 @@
 # csharp.API.md
 
-Types: 87  |  LOC: 5476  |  ~6479 tokens
+Types: 91  |  LOC: 5532  |  ~6642 tokens
 
 ---
 
@@ -245,6 +245,14 @@ Cross-package deps: ProvostXInference.Models
 Methods:
   - void Suspend()
 
+### Interface: IStallRecoveryLadder
+> Facade view of the stall-recovery ladder (INF BL-33): owns the
+Properties:
+  - int MaxRetries { get; set; }
+Methods:
+  - PrefillRecoveryStep? StepFor(int attempt)
+Cross-package deps: ProvostXInference.Models
+
 ### Interface: IStandardExecutor
 > Read-only live state: the speculative session this executor is
 Implements: IDisposable
@@ -325,7 +333,7 @@ Constructor:
 > Creates <see cref="DecisionSession"/>s for a judge model file: builds the ORT
 Implements: IDecisionSessionFactory
 Constructor:
-  - DecisionSessionFactory(ExecutionProviderOptionsApplier? optionsApplier = null, IInferenceLogger? logger = null)
+  - DecisionSessionFactory(ExecutionProviderOptionsApplier? optionsApplier = null)
 Cross-package deps: ProvostXInference.Decision.Abstractions, ProvostXInference.Logging
 
 ### Class: DecisionTestSupport
@@ -349,6 +357,12 @@ Cross-package deps: ProvostXInference.Models
 Implements: InferenceException
 Constructor:
   - EngineKindMismatchException(string message)
+
+### Class: EngineLogging
+> Facade view of the native logging bridge (owner black-box directive
+
+### Class: EngineMaintenance
+> Facade view of the offline engine-maintenance utilities (owner black-box
 
 ### Class: ExecutionProviderChain
 > Execution providers for decision (judge) models. The chain is parsed and
@@ -534,9 +548,14 @@ Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Models
 
 ### Class: StallRecoveryLadder
 > Recovery ladder for the stall-safe prefill layer (INF BL-33).
+Implements: IStallRecoveryLadder
 Constructor:
   - StallRecoveryLadder(StallWatchdogConfig config)
-Cross-package deps: ProvostXInference.Models
+Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Models
+
+### Class: StallWatchdogOps
+> Facade factory for the stall-watchdog helper family (INF BL-33, owner
+Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Models
 
 ### Class: SystemChunkWallClock
 > Production wall clock backed by the injected <see cref="TimeProvider"/>

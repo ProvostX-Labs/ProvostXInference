@@ -1,7 +1,7 @@
 # RELATIONSHIP-GRAPH.md — ProvostXInference
 
-Generated: 2026-10-18T19:08:52.908172+00:00
-Edges: 34  |  Packages: 2
+Generated: 2026-10-19T15:55:21.839227+00:00
+Edges: 35  |  Packages: 2
 
 ---
 
@@ -42,6 +42,7 @@ Edges: 34  |  Packages: 2
 - OsExecutionProviderDefaultSource ──implements──► IExecutionProviderDefaultSource (csharp)
 - QuietInferenceLogger ──implements──► IInferenceLogger (csharp)
 - RollingPrefillStallDetector ──implements──► IPrefillStallDetector (csharp)
+- StallRecoveryLadder ──implements──► IStallRecoveryLadder (csharp)
 - SystemChunkWallClock ──implements──► IChunkWallClock (csharp)
 ## ProvostXInference (native C++ — header include edges)
 

@@ -1,6 +1,6 @@
 # Tests.API.md
 
-Types: 27  |  LOC: 3652  |  ~1474 tokens
+Types: 29  |  LOC: 3745  |  ~1563 tokens
 
 ---
 
@@ -76,6 +76,10 @@ Cross-package deps: Xunit, ProvostXInference.Decision.Engine
 > Model-config engine field (BL-02 stage 1): ModelConfig selects WHICH
 Cross-package deps: ProvostXInference.Implementation, ProvostXInference.Interop, ProvostXInference.Models, Xunit
 
+### Class: PvxContextParamsMarshalTests
+> Pins the blittable C# mirror of pvx_context_params_t to the
+Cross-package deps: ProvostXInference.Interop, Xunit
+
 ### Class: PvxDispatchRegistryTests
 > Dispatch registry: activation swaps the logical-name route (consulted only
 Implements: IDisposable
@@ -104,6 +108,10 @@ Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Exceptions
 ### Class: StallSafePrefillLiveJourneyTests
 > Integration test for the stall-safe prefill watchdog on the live
 Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Implementation, ProvostXInference.Models, Xunit
+
+### Class: StallWatchdogOpsTests
+> Facade tests (owner black-box directive 2026-10-19):
+Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Engines, ProvostXInference.Models, Xunit
 
 ### Class: StallWatchdogTests
 > Unit tests for the stall-safe prefill watchdog (INF BL-33):

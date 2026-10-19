@@ -84,7 +84,7 @@ public sealed class NativeInferenceModel : IInferenceModel
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var nativeParams = new PvxContextParams(config.ContextSize, config.BatchSize,
-            config.SeqMax, (PvxPoolingType)config.PoolingType);
+            config.SeqMax, (PvxPoolingType)config.PoolingType, config.NRsSeq);
         EntryPoints.CreateContext(_handle.DangerousGetHandle(), in nativeParams, out var raw).ThrowIfError(EntryPoints, _handle.DangerousGetHandle());
         var ctxHandle = new ContextSafeHandle(EntryPoints);
         ctxHandle.SetHandleSafe(raw);

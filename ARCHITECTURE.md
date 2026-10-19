@@ -169,7 +169,13 @@ spec init on a pool with `seq_max < 2` types the refusal; generation without a s
   every commit); state save/restore carries the `h_hist` rows additively (mismatch on
   restore invalidates the session typed, re-init required); kv `shift_left` refuses
   typed. `llama_model_n_layer_nextn(head) == 0` (head GGUF without nextn tensors) is a
-  typed refusal naming the boundary — never faked.
+  typed refusal naming the boundary — never faked. The TARGET context carries the
+  recurrent-state snapshot ring via `pvx_context_params_t.n_rs_seq` (ABI v8 wave-4
+  append; upstream `llama_context_params.n_rs_seq`) — 0 = llama default (no
+  snapshots, hybrid targets then refuse partial rewind per the existing contract);
+  the C# binding mirrors it (`PvxContextParams` 5th field, size-pinned by
+  `PvxContextParamsMarshalTests`; `ContextConfig.NRsSeq` pass-through) and the LLM
+  layer AUTO-sizes it (8 while `spec_mode draft_mtp` is active).
 
 ### Embeddings — architecture-routed
 Routing is by the model's own architecture (`llama_model_has_encoder/has_decoder`); typed

@@ -1,11 +1,11 @@
 # API-INDEX.md — ProvostXInference
 
-Generated: 2026-10-18T19:08:52.906686+00:00
-Packages: 3  |  Types: 1888
+Generated: 2026-10-19T15:55:21.837722+00:00
+Packages: 3  |  Types: 1894
 
 ---
 
-## Tests (27 types, ~3652 LOC)
+## Tests (29 types, ~3745 LOC)
 
 - 🟡 DecisionEngineOpsTests  (Tests)
 - 🟡 DecisionEngineRequestTests  (Tests)
@@ -25,6 +25,7 @@ Packages: 3  |  Types: 1888
 - 🟡 JudgeSequenceEncoderTests  (Tests)
 - 🟡 JudgeTokenizerTests  (Tests)
 - 🟡 ModelEngineSelectionTests  (Tests)
+- 🟡 PvxContextParamsMarshalTests  (Tests)
 - 🟡 PvxDispatchRegistryTests : IDisposable  (Tests)
 - 🟡 PvxDispatchRouterTests  (Tests)
 - 🟡 PvxEngineFileResolverTests  (Tests)
@@ -32,10 +33,11 @@ Packages: 3  |  Types: 1888
 - 🟡 SmokeTests  (Tests)
 - 🟡 SpecDecodeTests  (Tests)
 - 🟡 StallSafePrefillLiveJourneyTests  (Tests)
+- 🟡 StallWatchdogOpsTests  (Tests)
 - 🟡 StallWatchdogTests  (Tests)
 - 🟡 Wave3FeatureTests  (Tests)
 
-## csharp (87 types, ~5476 LOC)
+## csharp (91 types, ~5532 LOC)
 
 - 🔵 IChunkWallClock  (csharp)
 - 🔵 IConversation : IDisposable  (csharp)
@@ -58,6 +60,7 @@ Packages: 3  |  Types: 1888
 - 🔵 IInferenceState : IDisposable  (csharp)
 - 🔵 IPrefillStallDetector  (csharp)
 - 🔵 ISpeculationSuspender  (csharp)
+- 🔵 IStallRecoveryLadder  (csharp)
 - 🔵 IStandardExecutor : IDisposable  (csharp)
 - 🔵 ITtsSession : IDisposable  (csharp)
 - 🔵 IVisionEncoder : IDisposable  (csharp)
@@ -69,11 +72,13 @@ Packages: 3  |  Types: 1888
 - 🟡 DecisionHeaderReader : IDecisionHeaderReader  (csharp)
 - 🟡 DecisionRecord  (csharp)
 - 🟡 DecisionSession : IDisposable  (csharp)  deps: [JudgeTokenizer, JudgeSequenceSpec, InferenceSession, string]
-- 🟡 DecisionSessionFactory : IDecisionSessionFactory  (csharp)  deps: [ExecutionProviderOptionsApplier? optionsApplier =, IInferenceLogger? logger =]
+- 🟡 DecisionSessionFactory : IDecisionSessionFactory  (csharp)  deps: [ExecutionProviderOptionsApplier? optionsApplier =]
 - 🟡 DecisionTestSupport  (csharp)
 - 🟡 EncoderEngineOps : IEncoderEngineOps, IDisposable  (csharp)  deps: [IInferenceModel, IVisionEncoder]
 - 🟡 EncoderEngineRequestBuilder  (csharp)  deps: [string]
 - 🟡 EngineKindMismatchException : InferenceException  (csharp)  deps: [string]
+- 🟡 EngineLogging  (csharp)
+- 🟡 EngineMaintenance  (csharp)
 - 🟣 EngineStats  (csharp)  deps: [long, long, long, long, long, long]
 - 🟣 EpAttempt  (csharp)  deps: [string, Action]
 - 🟡 ExecutionProviderChain  (csharp)
@@ -121,11 +126,12 @@ Packages: 3  |  Types: 1888
 - 🟡 PvxEngineSelector  (csharp)
 - 🟡 QuietInferenceLogger : IInferenceLogger  (csharp)
 - 🟡 RollingPrefillStallDetector : IPrefillStallDetector  (csharp)  deps: [StallWatchdogConfig]
-- 🟡 StallRecoveryLadder  (csharp)  deps: [StallWatchdogConfig]
+- 🟡 StallRecoveryLadder : IStallRecoveryLadder  (csharp)  deps: [StallWatchdogConfig]
+- 🟡 StallWatchdogOps  (csharp)
 - 🟡 SystemChunkWallClock : IChunkWallClock  (csharp)  deps: [TimeProvider]
 - 🟣 TtsResult  (csharp)  deps: [float, int]
 
-## ProvostXInference (native C++) (1774 types, ~760358 LOC)
+## ProvostXInference (native C++) (1774 types, ~761361 LOC)
 
 - struct (global)::acl_deleter (acl_tensor.h) 
 - class ov::AlignEltwiseOperandRanks (align_eltwise_ranks.h) 
