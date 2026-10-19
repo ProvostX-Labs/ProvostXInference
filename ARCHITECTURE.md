@@ -301,3 +301,10 @@ consumable without leaking internals, three facade views landed in `csharp/Engin
 Effect: callers no longer reference `Implementation`, `Interop`, `SafeHandles`, or
 `Logging` namespaces at all. Native tree: UNTOUCHED by this directive (no native
 changes needed — the C API surface is unchanged).
+
+**Addendum (black-box close-out, cont.):** `Decision.Engine.DecisionSessionFactory` ctor lost its
+optional `IInferenceLogger` parameter (moved to a settable `Logger` property, quiet default) — a
+parameterless construction by a facade-only caller must not drag the `Logging` namespace into the
+caller's compiled metadata (the ctor's member-ref signature does exactly that; surfaced by the
+ProvostXLLM closed allow-list arch-test). No caller passed a logger anywhere (verified by grep
+across both repos).

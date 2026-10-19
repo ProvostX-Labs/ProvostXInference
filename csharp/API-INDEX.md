@@ -1,6 +1,6 @@
 # API-INDEX.md — csharp
 
-Generated: 2026-10-19T07:58:21.299974+00:00
+Generated: 2026-10-19T08:09:09.932630+00:00
 Packages: 2  |  Types: 119
 
 ---
@@ -36,7 +36,7 @@ Packages: 2  |  Types: 119
 - 🟡 StallWatchdogTests  (Tests)
 - 🟡 Wave3FeatureTests  (Tests)
 
-## csharp (91 types, ~5512 LOC)
+## csharp (91 types, ~5516 LOC)
 
 - 🔵 IChunkWallClock  (csharp)
 - 🔵 IConversation : IDisposable  (csharp)
@@ -71,7 +71,7 @@ Packages: 2  |  Types: 119
 - 🟡 DecisionHeaderReader : IDecisionHeaderReader  (csharp)
 - 🟡 DecisionRecord  (csharp)
 - 🟡 DecisionSession : IDisposable  (csharp)  deps: [JudgeTokenizer, JudgeSequenceSpec, InferenceSession, string]
-- 🟡 DecisionSessionFactory : IDecisionSessionFactory  (csharp)  deps: [ExecutionProviderOptionsApplier? optionsApplier =, IInferenceLogger? logger =]
+- 🟡 DecisionSessionFactory : IDecisionSessionFactory  (csharp)  deps: [ExecutionProviderOptionsApplier? optionsApplier =]
 - 🟡 DecisionTestSupport  (csharp)
 - 🟡 EncoderEngineOps : IEncoderEngineOps, IDisposable  (csharp)  deps: [IInferenceModel, IVisionEncoder]
 - 🟡 EncoderEngineRequestBuilder  (csharp)  deps: [string]

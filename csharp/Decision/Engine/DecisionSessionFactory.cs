@@ -20,12 +20,22 @@ namespace ProvostXInference.Decision.Engine;
 public sealed class DecisionSessionFactory : IDecisionSessionFactory
 {
     private readonly ExecutionProviderOptionsApplier _optionsApplier;
-    private readonly IInferenceLogger _logger;
+    private IInferenceLogger? _logger;
 
-    public DecisionSessionFactory(ExecutionProviderOptionsApplier? optionsApplier = null, IInferenceLogger? logger = null)
+    /// <summary>Optional logger for EP-walk diagnostics (owner black-box close-out
+    /// 2026-10-19: the logger moved from a ctor parameter to this property — the
+    /// ctor signature must stay free of Logging-namespace types so callers that
+    /// construct the factory parameterless do not drag the Logging namespace
+    /// into their compiled metadata). Defaults to the quiet no-op logger.</summary>
+    public IInferenceLogger Logger
+    {
+        get => _logger ??= new QuietInferenceLogger();
+        set => _logger = value;
+    }
+
+    public DecisionSessionFactory(ExecutionProviderOptionsApplier? optionsApplier = null)
     {
         _optionsApplier = optionsApplier ?? new ExecutionProviderOptionsApplier();
-        _logger = logger ?? new QuietInferenceLogger();
     }
 
     /// <summary>ORT execution-provider name for a configured chain entry. Pure function.</summary>

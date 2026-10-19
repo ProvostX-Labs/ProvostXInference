@@ -1,6 +1,6 @@
 # csharp.API.md
 
-Types: 91  |  LOC: 5512  |  ~6650 tokens
+Types: 91  |  LOC: 5516  |  ~6642 tokens
 
 ---
 
@@ -333,7 +333,7 @@ Constructor:
 > Creates <see cref="DecisionSession"/>s for a judge model file: builds the ORT
 Implements: IDecisionSessionFactory
 Constructor:
-  - DecisionSessionFactory(ExecutionProviderOptionsApplier? optionsApplier = null, IInferenceLogger? logger = null)
+  - DecisionSessionFactory(ExecutionProviderOptionsApplier? optionsApplier = null)
 Cross-package deps: ProvostXInference.Decision.Abstractions, ProvostXInference.Logging
 
 ### Class: DecisionTestSupport
