@@ -420,6 +420,11 @@ std::unique_ptr<PvxBLSpecEngine> PvxBLSpecEngine::create(pvx_model_t* model,
         }
         llama_model_params mp = llama_model_default_params();
         if (params->draft_gpu_layers >= 0) mp.n_gpu_layers = params->draft_gpu_layers;
+        // CRITICAL: the MTP head GGUF is nextn-only — the loader SKIPS every
+        // blk.N.nextn.* tensor unless load_mtp is set (nextn_flags()/TENSOR_SKIP).
+        // Without this the head context build GGML_ASSERTs "MTP block missing"
+        // and aborts the process (graph_mtp eh_proj/enorm/hnorm/hc_head_norm null).
+        mp.load_mtp = true;
         engine->m_model_dft = llama_model_load_from_file(params->mtp_draft_path, mp);
         if (!engine->m_model_dft) {
             out_error = std::string("MTP head draft failed to load (boundary: "
@@ -1822,8 +1827,15 @@ bool PvxBLSpecEngine::mtp_pair_decode(llama_token tok, const float* h_row,
     do {
         const int32_t idx = llama_batch_ext_add_token(ext, 0, tok);
         if (idx < 0) break;
+        // ABI v8 wave-4 fix: the MTP head graph consumes the paired h row as
+        // a STATE embedding (upstream draft()/process() set_embd_state path,
+        // speculative.cpp:1637) — llm_graph_input_embd_h reads ubatch->embd_state.
+        // A plain input embd (set_embd_token) fails width validation: the head's
+        // token embd is 2560-wide while the h row is n_embd_out (10240) — the
+        // live 2026-10-19 catch-up log "set_token_embd: embedding size mismatch,
+        // got 10240, expected 2560".
         const llama_embd le = { h_row, 1, (size_t) m_mtp_n_embd };
-        if (!llama_batch_ext_set_embd_token(ext, idx, le)) break;
+        if (!llama_batch_ext_set_embd_state(ext, idx, le)) break;
         const llama_pos p[4] = { pos, pos, pos, pos };
         if (!llama_batch_ext_set_pos(ext, idx, p)) break;
         if (!llama_batch_ext_set_output_logits(ext, idx, output_logits)) break;
@@ -1888,8 +1900,10 @@ bool PvxBLSpecEngine::mtp_process_target_rows(llama_pos pos_first, int n_rows,
                     ? m_mtp_zeros.data() : m_mtp_h_hist[(size_t) (p - 1)].data();
                 const int32_t idx = llama_batch_ext_add_token(ext, 0, row_ids[off + j]);
                 if (idx < 0) break;
+                // ABI v8 wave-4 fix: state-embedding pairing (see mtp_pair_decode) —
+                // upstream process() pairs each committed row via set_embd_state.
                 const llama_embd le = { h_pair, 1, (size_t) m_mtp_n_embd };
-                if (!llama_batch_ext_set_embd_token(ext, idx, le)) break;
+                if (!llama_batch_ext_set_embd_state(ext, idx, le)) break;
                 const llama_pos pq[4] = { p, p, p, p };
                 if (!llama_batch_ext_set_pos(ext, idx, pq)) break;
                 if (!llama_batch_ext_set_output_logits(ext, idx, false)) break;
@@ -1975,8 +1989,9 @@ bool PvxBLSpecEngine::mtp_state_restore(std::vector<std::vector<float>>&& rows) 
                     ? m_mtp_zeros.data() : m_mtp_h_hist[(size_t) (p - 1)].data();
                 const int32_t idx = llama_batch_ext_add_token(ext, 0, (*m_stream.mirror)[p].id);
                 if (idx < 0) break;
+                // ABI v8 wave-4 fix: state-embedding pairing (see mtp_pair_decode).
                 const llama_embd le = { h_pair, 1, (size_t) m_mtp_n_embd };
-                if (!llama_batch_ext_set_embd_token(ext, idx, le)) break;
+                if (!llama_batch_ext_set_embd_state(ext, idx, le)) break;
                 const llama_pos pq[4] = { p, p, p, p };
                 if (!llama_batch_ext_set_pos(ext, idx, pq)) break;
                 if (!llama_batch_ext_set_output_logits(ext, idx, false)) break;
