@@ -64,6 +64,12 @@ and the stats export is a snapshot copy-out. v8 wave 4 (draft-mtp, owner order
 SEPARATE self-contained MTP head GGUF (upstream `-md --spec-type draft-mtp`),
 distinct from `draft_model_path` (draft-simple only) and from
 `PVX_SPEC_MTP_AUTO` (embedded nextn, which stays a typed wiring boundary).
+Embedded-nextn FILE CONVENTION (live-verified 2026-10-19): `load_mtp` reads the
+nextn projections from the SAME GGUF, named at the LAST TRUNK layer index
+(`blk.{n_layer-1}.nextn.*` — NOT upstream's `blk.{n_layer}.*`), and wants only the
+6 projection tensors (eh_proj/enorm/hnorm/hc_head_norm/hc_head_down/hc_head_up);
+`qwen4exp.attention.compress_ratios` must stay n_layer_all-long (do NOT extend for
+the nextn layer). See memory/2026-10-19-mtp-merge-fix.md for the merge tooling.
 The stats export remains a snapshot (`pvx_executor_stats`/`pvx_conversation_stats`,
 `pvx_stats_t` copy-out counters, spec telemetry mirrors the spec stats).
 
@@ -216,6 +222,13 @@ gpu_layers is reloaded; if even that fails, `*model` is null and is not freed.
   (rewind/reset/shift/export) and pool-return hold the SAME lock in a fixed order
   (pool → infer) as lease — no inverted lock pairs.
 - `pvx_state_save` clears the backup seq before copying (seq_cp MERGES).
+- **Backup mechanism constraint (2026-10-20):** save-state backs up KV by copying
+  seq0 → seq1, so it REQUIRES `n_seq_max >= 2` and types `PVX_ERR_NOT_SUPPORTED`
+  with one slot (the LLM `seq_max` knob AUTO=1 full-context posture disables
+  save/rewind; ≥2 arms it and the fork halves per-sequence capacity
+  `n_ctx_seq = n_ctx/n_seq_max`). Known backlog: seq1-free backup (byte-level
+  state serialization or rs-snapshot restore) to make full context and save/rewind
+  coexist.
 - Model destruction ordering: per-model `active_context_count` + condition variable;
   `pvx_free_model` blocks until all its contexts are freed (prevents Metal device-before-buffers
   aborts); contexts of different models free concurrently.
