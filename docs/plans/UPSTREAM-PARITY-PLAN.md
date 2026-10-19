@@ -88,7 +88,7 @@ facade (csharp/Engines) stays the only caller surface.
   `llama_set_adapter_cvec` line 741), control vectors (`common_control_vector_load` in
   `common/common.cpp:1224`, applied via `llama_set_adapter_cvec` from `common.cpp:1451`),
   `llama_state_seq_get/set_data(_ext)` for per-seq state (EAGLE3 deferred-boundary
-  serialize/restore), `ggml` RPC backend (`ggml/src/ggml-rpc`).
+  serialize/restore).
 - Spike `vision-spec-decode` README was **not found on disk** (`.tmp/` paths absent in the
   workspace); its conclusions as captured in the task brief are treated as requirements input:
   image path advances `n_kv_pos` by `n_img_tokens` **without** appending to `recent_tokens`,
@@ -500,34 +500,6 @@ counters alongside accepted; prefill-stall counters surface (never hide watchdog
 
 **(g)** Determinism-neutral: stats snapshot after known workload == fixture. **(h)** S.
 **(i)** Tier 3.
-
----
-
-## 13. ggml-RPC remote-offload lane — evaluation & recommendation only
-
-**Upstream.** `ggml/src/ggml-rpc`: backend type where host offloads compute to a remote
-ggml server (TCP), full or partial layers; `n_ctx`/KV stays local; weights + activations stream.
-
-**Analysis.**
-- **Pro:** uniform Metal/CUDA/remote handling inside ggml; would let the weaker Mac borrow the
-  stronger one's GPU without any ProvostX-specific protocol.
-- **Contra:** (1) KV traffic — with remote-offloaded compute, **every decode step streams
-  activations both ways**; llama.cpp RPC is weights-offload-shaped, not KV-cache-shaped — our
-  own cross-Mac path moves *state blobs* (existing `pvx_conversation_export` /
-  `llama_state_seq_*`) at conversation boundaries, which is dramatically cheaper for our
-  long-conversation workload. (2) Latency: RPC per-token round-trips over TCP vs local Metal
-  would *regress* tokens/s for the common case. (3) Complexity: ggml-RPC is a second
-  scheduling lane interacting with `pvx_backend`'s probe/fallback logic (`pvx_create_context_safe`
-  progressive fallback would need RPC-specific failure taxonomy — an entire backend wave for
-  a lane we may never use). (4) We already have a working SSH/TB5 transport and a
-  state-export surface to build any future remote lane on.
-
-**Recommendation:** **do not integrate ggml-RPC** in this parity program. Keep it in the
-backlog as a spike-tier investigation (sizes: S spike — benchmark a hand-built ggml-rpc
-server pair against the local-metal baseline before any design work). If a future use case
-emerges ("run 70B on the big Mac from the small Mac"), prefer the **state-export +
-remote-engine** shape (move the conversation to a full engine on the strong host) over
-per-token RPC offload. No ABI surface reserved.
 
 ---
 
