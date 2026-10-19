@@ -1,11 +1,11 @@
 # API-INDEX.md — csharp
 
-Generated: 2026-10-19T08:09:09.932630+00:00
+Generated: 2026-10-19T15:41:11.555469+00:00
 Packages: 2  |  Types: 119
 
 ---
 
-## Tests (28 types, ~3694 LOC)
+## Tests (28 types, ~3711 LOC)
 
 - 🟡 DecisionEngineOpsTests  (Tests)
 - 🟡 DecisionEngineRequestTests  (Tests)
@@ -36,7 +36,7 @@ Packages: 2  |  Types: 119
 - 🟡 StallWatchdogTests  (Tests)
 - 🟡 Wave3FeatureTests  (Tests)
 
-## csharp (91 types, ~5516 LOC)
+## csharp (91 types, ~5528 LOC)
 
 - 🔵 IChunkWallClock  (csharp)
 - 🔵 IConversation : IDisposable  (csharp)

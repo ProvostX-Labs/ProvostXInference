@@ -1244,6 +1244,137 @@ static void test_spec_eagle3_companion_typed() {
     pvx_free_model(m);
 }
 
+static void test_spec_mtp_draft_typed() {
+    // ABI v8 wave 4 (upstream draft-mtp): fail-closed boundary legs — every
+    // un-honorable configuration is a TYPED refusal naming the boundary,
+    // never a silent disable.
+    if (!file_exists(MODEL_PATH)) SKIP("model file not found");
+    pvx_model_params_t mp = {}; mp.model_path = MODEL_PATH; mp.gpu_layers = 99; mp.flash_attn = true;
+    pvx_model_t* m = nullptr; ASSERT(pvx_load_model(&mp, &m) == PVX_OK);
+
+    // validate: missing path typed INVALID_ARG; with a path shape-OK.
+    pvx_spec_params_t sp = {};
+    sp.mode = PVX_SPEC_MTP_DRAFT;
+    ASSERT(pvx_model_spec_validate(m, &sp) == PVX_ERR_INVALID_ARG);
+    sp.mtp_draft_path = "x-mtp-head.gguf";
+    ASSERT(pvx_model_spec_validate(m, &sp) == PVX_OK);
+
+    // executor enable: metadata-only fake qwen4exp head (right arch, no
+    // tensors) passes the arch surface but the real load types LOAD_FAILED.
+    const char* tmpdir = getenv("PVX_TEST_TMP");
+    const std::string meta1 = std::string(tmpdir ? tmpdir : "/tmp") + "/pvx_mtp_head_meta.gguf";
+    {
+        gguf_context* g = gguf_init_empty();
+        gguf_set_val_str(g, "general.architecture", "qwen4exp");
+        ASSERT(gguf_write_to_file(g, meta1.c_str(), true));
+        gguf_free(g);
+    }
+    pvx_context_t* ctx = make_ctx(m, 1, 1024);
+    pvx_executor_t* exec = nullptr; ASSERT(pvx_executor_create(ctx, &exec) == PVX_OK);
+    sp.mtp_draft_path = meta1.c_str();
+    ASSERT(pvx_executor_spec_init(exec, &sp) == PVX_ERR_LOAD_FAILED);
+    ASSERT(strstr(pvx_last_error(ctx), "mtp-head-load") != nullptr);
+
+    // wrong-arch head (a real llama model carries no nextn layers): typed
+    // NOT_SUPPORTED naming the nextn boundary — never faked as a draft head.
+    sp.mtp_draft_path = MODEL_PATH;
+    ASSERT(pvx_executor_spec_init(exec, &sp) == PVX_ERR_NOT_SUPPORTED);
+    ASSERT(strstr(pvx_last_error(ctx), "mtp-head-nextn") != nullptr);
+
+    // (the EMPTY-STREAM enable requirement is exercised in the LIVE leg below —
+    // it needs a genuinely loadable MTP head; the metadata-only fake above
+    // types LOAD_FAILED before the stream check fires.)
+    remove(meta1.c_str());
+
+    // batched/pool conversation lane: typed refusal naming the lane.
+    pvx_context_params_t cpb = {}; cpb.context_size = 1024; cpb.batch_size = 512; cpb.seq_max = 2;
+    pvx_context_t* ctxb = nullptr; ASSERT(pvx_create_context(m, &cpb, &ctxb) == PVX_OK);
+    pvx_pool_t* pool = nullptr; ASSERT(pvx_pool_create(ctxb, &pool) == PVX_OK);
+    pvx_conversation_t* conv = nullptr; ASSERT(pvx_pool_lease(pool, &conv) == PVX_OK);
+    sp = {}; sp.mode = PVX_SPEC_MTP_DRAFT; sp.mtp_draft_path = "whatever.gguf";
+    ASSERT(pvx_conversation_spec_init(conv, &sp) == PVX_ERR_NOT_SUPPORTED);
+    ASSERT(strstr(pvx_last_error(ctxb), "mtp-conversation-lane") != nullptr);
+    ASSERT(pvx_pool_return(pool, conv) == PVX_OK);
+    pvx_pool_free(pool); pvx_free_context(ctxb);
+
+    pvx_executor_free(exec); pvx_free_context(ctx); pvx_free_model(m);
+}
+
+// LIVE draft-MTP leg (ABI v8 wave 4): a genuine qwen4exp-family target + a
+// self-contained mtp head GGUF pair. Token-exactness vs plain greedy + REAL
+// drafting telemetry (drafted > 0). The target context must carry a
+// recurrent-state snapshot ring (n_rs_seq >= chain — hybrid verify repair).
+// Env-gated: PVX_MTP_TARGET_PATH + PVX_MTP_DRAFT_PATH. Absent = typed skip
+// (the primary host keeps this suite RAM-safe; the large-memory host verifies the 160GB pair live).
+static void test_spec_mtp_draft_live_pair() {
+    const char* tgt = getenv("PVX_MTP_TARGET_PATH");
+    const char* dft = getenv("PVX_MTP_DRAFT_PATH");
+    if (!tgt || !dft || !file_exists(tgt) || !file_exists(dft)) {
+        fprintf(stderr, "live-skip: no genuine mtp pair "
+                "(PVX_MTP_TARGET_PATH/PVX_MTP_DRAFT_PATH unset)\n");
+        return;
+    }
+    pvx_model_params_t mp = {}; mp.model_path = tgt; mp.gpu_layers = 99; mp.flash_attn = true;
+    pvx_model_t* m = nullptr; ASSERT(pvx_load_model(&mp, &m) == PVX_OK);
+    const int n_gen = 24;
+    const char* prompt = "The colors of the rainbow, in order, are: red, orange, yellow, green, blue, indigo and";
+    pvx_sampling_params_t smp = {};
+    smp.temperature = 0.0f; smp.top_k = 1; smp.top_p = 1.0f; smp.repeat_penalty = 1.0f;
+    smp.max_tokens = n_gen; smp.ignore_eos = false;
+
+    // plain greedy reference on a fresh context
+    pvx_context_t* ca = make_ctx(m, 1, 2048);
+    pvx_executor_t* ea = nullptr; ASSERT(pvx_executor_create(ca, &ea) == PVX_OK);
+    ASSERT(pvx_executor_prompt(ea, prompt) == PVX_OK);
+    ASSERT(pvx_executor_infer(ea) == PVX_DECODE_OK);
+    int32_t ref[32];
+    ASSERT(gen_plain_loop(ea, &smp, n_gen, ref) == n_gen);
+    pvx_executor_free(ea); pvx_free_context(ca);
+
+    // draft-MTP: enable FIRST (empty-stream requirement), then prompt+infer;
+    // the target context carries n_rs_seq (hybrid verify repair contract).
+    pvx_context_params_t cp = {};
+    cp.context_size = 2048; cp.batch_size = 512; cp.seq_max = 1;
+    cp.n_rs_seq = 16;  // ABI v8 wave 4: recurrent-state snapshot ring
+    pvx_context_t* cb = nullptr; ASSERT(pvx_create_context(m, &cp, &cb) == PVX_OK);
+    pvx_executor_t* eb = nullptr; ASSERT(pvx_executor_create(cb, &eb) == PVX_OK);
+    pvx_spec_params_t sp = {};
+    sp.mode = PVX_SPEC_MTP_DRAFT;
+    sp.mtp_draft_path = dft;
+    sp.draft_max = 2;
+    sp.p_min = -1.0f;  // greedy floor off (upstream default)
+    // enable requires an EMPTY stream (per-position capture must see every
+    // commit): a prompt-first enable types the refusal and creates nothing.
+    ASSERT(pvx_executor_prompt(eb, prompt) == PVX_OK);
+    ASSERT(pvx_executor_infer(eb) == PVX_DECODE_OK);
+    ASSERT(pvx_executor_spec_init(eb, &sp) == PVX_ERR_NOT_SUPPORTED);
+    ASSERT(strstr(pvx_last_error(cb), "mtp-stream") != nullptr);
+    pvx_executor_free(eb); pvx_free_context(cb);
+    // fresh executor for the real enable
+    pvx_context_t* cb2 = nullptr; ASSERT(pvx_create_context(m, &cp, &cb2) == PVX_OK);
+    pvx_executor_t* eb2 = nullptr; ASSERT(pvx_executor_create(cb2, &eb2) == PVX_OK);
+    ASSERT(pvx_executor_spec_init(eb2, &sp) == PVX_OK);
+    ASSERT(pvx_executor_prompt(eb2, prompt) == PVX_OK);
+    ASSERT(pvx_executor_infer(eb2) == PVX_DECODE_OK);
+    int32_t out[32]; int n = 0;
+    struct Cap { int32_t* v; int i; };
+    Cap cap{out, 0};
+    ASSERT(pvx_executor_generate_spec(eb2, &smp, n_gen,
+            (pvx_spec_token_callback_t)+[](int32_t t, void* ud) -> bool {
+                Cap* c = (Cap*) ud; c->v[c->i++] = t; return true;
+            }, &cap, &n) == PVX_OK);
+    ASSERT(n == n_gen);
+    ASSERT(memcmp(ref, out, sizeof(int32_t) * (size_t) n_gen) == 0); // byte-identical
+    int64_t drafted = 0, accepted = 0;
+    ASSERT(pvx_executor_spec_stats(eb2, &drafted, &accepted) == PVX_OK);
+    ASSERT(drafted > 0);
+    ASSERT(accepted > 0);
+    fprintf(stderr, "live: mtp-draft exact %d/%d tokens, drafted=%lld accepted=%lld "
+            "(accept-rate %.1f%%) ", n, n_gen, (long long) drafted,
+            (long long) accepted, 100.0 * (double) accepted / (double) drafted);
+    pvx_executor_free(eb2); pvx_free_context(cb2); pvx_free_model(m);
+}
+
 static void test_spec_eagle3_live_pair() {
     // LIVE EAGLE3 leg (BL-36 evidence): a genuine target+companion pair.
     // Re-provision with the verified pair (repo + file names, relative notes):
@@ -2044,6 +2175,8 @@ int main() {
     TEST(spec_eagle3_companion_typed);
     TEST(spec_eagle3_live_pair);
     TEST(spec_dflash_live_pair);
+    TEST(spec_mtp_draft_typed);
+    TEST(spec_mtp_draft_live_pair);
     TEST(json_schema_grammar_roundtrip);
     TEST(rerank_typed);
     TEST(rerank_live);

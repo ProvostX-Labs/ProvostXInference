@@ -57,8 +57,14 @@ fresh sessions replay byte-identically per (text, seed), typed refusal when the 
 has no gen-audio pipeline), LoRA adapters attach/detach on LIVE contexts
 (`pvx_adapter_load`/`pvx_context_set_lora`, weights-surface modifier — KV-neutral),
 control vectors port `common_control_vector_load` into src/
-(`pvx_control_vector_load`/`pvx_context_set_control_vector`, same KV-neutrality), and
-the stats export is a snapshot (`pvx_executor_stats`/`pvx_conversation_stats`,
+(`pvx_control_vector_load`/`pvx_context_set_control_vector`, same KV-neutrality),
+and the stats export is a snapshot copy-out. v8 wave 4 (draft-mtp, owner order
+2026-10-19 17:00) is append-only too: `pvx_spec_mode_t` gains
+`PVX_SPEC_MTP_DRAFT` (9) and `pvx_spec_params_t` appends `mtp_draft_path` — the
+SEPARATE self-contained MTP head GGUF (upstream `-md --spec-type draft-mtp`),
+distinct from `draft_model_path` (draft-simple only) and from
+`PVX_SPEC_MTP_AUTO` (embedded nextn, which stays a typed wiring boundary).
+The stats export remains a snapshot (`pvx_executor_stats`/`pvx_conversation_stats`,
 `pvx_stats_t` copy-out counters, spec telemetry mirrors the spec stats).
 
 - **`pvxinference.cpp`** — core: model load, tokenize, chat template, context, conversation
@@ -138,6 +144,32 @@ the stats export is a snapshot (`pvx_executor_stats`/`pvx_conversation_stats`,
   existing teardown order, pool `seq_max` budgeted for the draft-side KV. Fail-closed:
 spec init on a pool with `seq_max < 2` types the refusal; generation without a session
   types NOT_SUPPORTED — never a silent plain run.
+
+- **Separate-head draft-MTP (ABI v8 wave 4)** — `pvx_spec_engine.*` pattern-port of the
+  vendored `common_speculative_impl_draft_mtp` (upstream llama.cpp PR #28243, evolved):
+  the MTP head is a self-contained GGUF (own token embedding + output head + one nextn
+  block) loaded as a SECOND draft model and run on a `LLAMA_CONTEXT_TYPE_MTP` context
+  (nextn-layer-only KV, `n_rs_seq = 0`; `ctx_other` stays unset for self-contained heads
+  → independent KV — gemma4-style shared memory and step35 multi-head chains are OUT
+  of this slice). Pairing convention (DeepSeek-style): a draft row predicting stream
+  position P consumes `(embd(t_{P-1}), h_{P-1})` — `h` = the target trunk's nextn
+  embedding (`llama_set_embeddings_nextn(target, true, masked=false)`), row width =
+  `llama_model_n_embd_out` (head must match target — typed refusal at spec_init, never
+  an upstream-style assert); chain rows pair the DRAFT's own nextn output
+  (`llama_set_embeddings_nextn(draft, true, masked=true)`). Round structure mirrors the
+  EAGLE3 lane: per-committed-position `h_hist` capture hook after every target decode
+  (`mtp_process_target_rows` — catch-up decodes the committed rows into the draft KV
+  with the `(t_p, h_{p-1})` pairing, zero-h at position 0, dropping stale chain cells
+  first), seed pair-decode `(t_last, h_last)` at the next position, greedy top-1 chain
+  under `p_min`/EOG gates, ONE verify decode on the target, sample-and-match
+  acceptance (greedy-exact), KV repair, `h_hist` truncated to the committed count.
+  Sequential executor lane only — the batched/pool conversation lane and multimodal
+  prompts refuse typed (capture-hook seams are executor-lane wiring, EAGLE3
+  precedent); spec enable requires an EMPTY stream (per-position capture must observe
+  every commit); state save/restore carries the `h_hist` rows additively (mismatch on
+  restore invalidates the session typed, re-init required); kv `shift_left` refuses
+  typed. `llama_model_n_layer_nextn(head) == 0` (head GGUF without nextn tensors) is a
+  typed refusal naming the boundary — never faked.
 
 ### Embeddings — architecture-routed
 Routing is by the model's own architecture (`llama_model_has_encoder/has_decoder`); typed

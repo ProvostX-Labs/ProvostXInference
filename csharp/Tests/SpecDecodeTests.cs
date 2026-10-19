@@ -332,17 +332,17 @@ public class SpecDecodeTests
         var draftPtr = PvxNative.AllocUTF8("/x/draft.gguf");
         try
         {
-            var p1 = new PvxSpecParams(eagle, IntPtr.Zero, IntPtr.Zero, eaglePtr, IntPtr.Zero);
+            var p1 = new PvxSpecParams(eagle, IntPtr.Zero, IntPtr.Zero, eaglePtr, IntPtr.Zero, IntPtr.Zero);
             Assert.Equal((int) PvxSpecMode.Eagle3, p1.Mode);
             Assert.Equal(eaglePtr, p1.EagleCompanionPath);
             Assert.Equal(IntPtr.Zero, p1.DflashCompanionPath);
 
-            var p2 = new PvxSpecParams(dflash, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, dflashPtr);
+            var p2 = new PvxSpecParams(dflash, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, dflashPtr, IntPtr.Zero);
             Assert.Equal((int) PvxSpecMode.Dflash, p2.Mode);
             Assert.Equal(dflashPtr, p2.DflashCompanionPath);
             Assert.Equal(IntPtr.Zero, p2.EagleCompanionPath);
 
-            var p3 = new PvxSpecParams(draft, draftPtr, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
+            var p3 = new PvxSpecParams(draft, draftPtr, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
             Assert.Equal((int) PvxSpecMode.Draft, p3.Mode);
             Assert.Equal(draftPtr, p3.DraftModelPath);
 
@@ -350,6 +350,28 @@ public class SpecDecodeTests
             var offEagle = System.Runtime.InteropServices.Marshal.OffsetOf<PvxSpecParams>(nameof(PvxSpecParams.EagleCompanionPath));
             var offCache = System.Runtime.InteropServices.Marshal.OffsetOf<PvxSpecParams>(nameof(PvxSpecParams.NgramCachePath));
             Assert.True((long) offEagle >= (long) offCache, "eagle path must append after the ngram block");
+
+            // ABI v8 wave 4: mtp path growth — layout order contract (after dflash),
+            // and the draft-MTP mode maps with its OWN knob (never DraftModelPath).
+            var mtp = new SpeculativeConfig { Mode = SpeculativeMode.MtpDraft, MtpDraftPath = "/x/mtp-head.gguf" };
+            var mtpPtr = PvxNative.AllocUTF8("/x/mtp-head.gguf");
+            try
+            {
+                var p4 = new PvxSpecParams(mtp, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, mtpPtr);
+                Assert.Equal((int) PvxSpecMode.MtpDraft, p4.Mode);
+                Assert.Equal(mtpPtr, p4.MtpDraftPath);
+                Assert.Equal(IntPtr.Zero, p4.DraftModelPath); // never overloads draft-simple's knob
+                var offDflash = System.Runtime.InteropServices.Marshal.OffsetOf<PvxSpecParams>(nameof(PvxSpecParams.DflashCompanionPath));
+                var offMtp = System.Runtime.InteropServices.Marshal.OffsetOf<PvxSpecParams>(nameof(PvxSpecParams.MtpDraftPath));
+                Assert.True((long) offMtp >= (long) offDflash, "mtp path must append after the dflash path");
+                // struct layout pins the native ABI: mode block, draft+ngram scalars,
+                // paths last — wave-4 growth is append-only.
+                Assert.Equal((int) PvxSpecMode.MtpDraft, 9);
+            }
+            finally
+            {
+                System.Runtime.InteropServices.Marshal.FreeHGlobal(mtpPtr);
+            }
         }
         finally
         {
@@ -365,7 +387,7 @@ public class SpecDecodeTests
     public void SpecParams_Unknown_Mode_Refuses_Typed()
     {
         var bad = new SpeculativeConfig { Mode = (SpeculativeMode) 99 };
-        Assert.Throws<ArgumentException>(() => new PvxSpecParams(bad, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero));
+        Assert.Throws<ArgumentException>(() => new PvxSpecParams(bad, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero));
     }
 
     /// <summary>Capability-gated typed refusals for the companion modes on a

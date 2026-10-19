@@ -27,21 +27,27 @@ internal readonly struct PvxSpecParams
     // ABI v7 appends — companion-GGUF paths (pinned HGlobal UTF-8, caller-owned)
     public readonly IntPtr EagleCompanionPath;
     public readonly IntPtr DflashCompanionPath;
+    // ABI v8 wave-4 append — the SEPARATE draft-MTP head GGUF (pinned HGlobal
+    // UTF-8, caller-owned; IntPtr.Zero when the config leaves it null — native
+    // spec_init then types the missing-path refusal itself, naming the boundary).
+    public readonly IntPtr MtpDraftPath;
 
     /// <summary>Map a user config onto the native struct. SpeculativeMode values
     /// mirror pvx_spec_mode_t exactly; draftPathPtr/cachePathPtr must be pinned
     /// UTF-8 copies (IntPtr.Zero when null). <=0 / <0 sentinels mirror the
     /// native defaults (upstream draft-simple). ABI v7: eaglePtr/dflashPtr are
-    /// the pinned companion-GGUF paths (IntPtr.Zero when the config leaves them
-    /// null — native spec_init then types the missing-path refusal itself,
-    /// naming the boundary).</summary>
+    /// the pinned companion-GGUF paths; ABI v8 wave 4: mtpDraftPtr is the pinned
+    /// draft-MTP head path (IntPtr.Zero when the config leaves it null — native
+    /// spec_init then types the missing-path refusal itself, naming the
+    /// boundary).</summary>
     public PvxSpecParams(SpeculativeConfig config, IntPtr draftPathPtr, IntPtr cachePathPtr,
-        IntPtr eaglePtr, IntPtr dflashPtr)
+        IntPtr eaglePtr, IntPtr dflashPtr, IntPtr mtpDraftPtr)
     {
         if (config.Mode is not (SpeculativeMode.Off or SpeculativeMode.Mtp or SpeculativeMode.Draft
             or SpeculativeMode.NgramSimple or SpeculativeMode.NgramMapK
             or SpeculativeMode.NgramMod or SpeculativeMode.NgramCache
-            or SpeculativeMode.Eagle3 or SpeculativeMode.Dflash))
+            or SpeculativeMode.Eagle3 or SpeculativeMode.Dflash
+            or SpeculativeMode.MtpDraft))
             throw new ArgumentException($"unknown speculative mode {config.Mode}");
         Mode = (int) config.Mode;
         DraftModelPath = draftPathPtr;
@@ -57,5 +63,6 @@ internal readonly struct PvxSpecParams
         NgramCachePath = cachePathPtr;
         EagleCompanionPath = eaglePtr;
         DflashCompanionPath = dflashPtr;
+        MtpDraftPath = mtpDraftPtr;
     }
 }

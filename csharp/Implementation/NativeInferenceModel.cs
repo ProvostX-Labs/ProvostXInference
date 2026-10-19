@@ -159,9 +159,10 @@ public sealed class NativeInferenceModel : IInferenceModel
         var cachePtr = config.Ngram?.CachePath is null ? IntPtr.Zero : PvxNative.AllocUTF8(config.Ngram.CachePath);
         var eaglePtr = config.EagleCompanionPath is null ? IntPtr.Zero : PvxNative.AllocUTF8(config.EagleCompanionPath);
         var dflashPtr = config.DflashCompanionPath is null ? IntPtr.Zero : PvxNative.AllocUTF8(config.DflashCompanionPath);
+        var mtpDraftPtr = config.MtpDraftPath is null ? IntPtr.Zero : PvxNative.AllocUTF8(config.MtpDraftPath);
         try
         {
-            var nativeParams = new PvxSpecParams(config, pathPtr, cachePtr, eaglePtr, dflashPtr);
+            var nativeParams = new PvxSpecParams(config, pathPtr, cachePtr, eaglePtr, dflashPtr, mtpDraftPtr);
             EntryPoints.ModelSpecValidate(_handle.DangerousGetHandle(), in nativeParams)
                 .ThrowIfModelError(EntryPoints, _handle.DangerousGetHandle()); // F16 + model-scoped reason
         }
@@ -171,6 +172,7 @@ public sealed class NativeInferenceModel : IInferenceModel
             if (cachePtr != IntPtr.Zero) Marshal.FreeHGlobal(cachePtr);
             if (eaglePtr != IntPtr.Zero) Marshal.FreeHGlobal(eaglePtr);
             if (dflashPtr != IntPtr.Zero) Marshal.FreeHGlobal(dflashPtr);
+            if (mtpDraftPtr != IntPtr.Zero) System.Runtime.InteropServices.Marshal.FreeHGlobal(mtpDraftPtr);
         }
     }
     internal ModelConfig Config => _config;

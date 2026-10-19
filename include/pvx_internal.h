@@ -296,6 +296,14 @@ struct pvx_state_s {
     // a mismatched/absent payload invalidates the session typed (the caller
     // must re-init spec) — never resumes against a stale deferred boundary.
     std::vector<std::vector<float>> eagle_g_rows;
+    // ABI v8 wave 4 (2026-10-19): per-position nextn h rows for a separate-
+    // head draft-MTP session (mtp_draft_path), aligned with the committed
+    // stream [0, n_tokens) — the same additive-payload contract as
+    // eagle_g_rows. Absent (empty) in legacy checkpoints and in every state
+    // taken without a draft-MTP session; a restore onto a live draft-MTP
+    // session with a mismatched/absent payload invalidates it typed
+    // (re-init required) — never a phantom-prefix resume.
+    std::vector<std::vector<float>> mtp_h_rows;
 };
 
 // Conversation-lane mirror push helpers (ABI v7 feature 5) — the twins of

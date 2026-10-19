@@ -212,6 +212,7 @@ std::unique_ptr<PvxBLSpecEngine> PvxBLSpecEngine::create(pvx_model_t* model,
         }
         case PVX_SPEC_DRAFT:
         case PVX_SPEC_EAGLE3:
+        case PVX_SPEC_MTP_DRAFT:
         case PVX_SPEC_NGRAM_SIMPLE:
         case PVX_SPEC_NGRAM_MAP_K:
         case PVX_SPEC_NGRAM_MOD:
@@ -407,6 +408,94 @@ std::unique_ptr<PvxBLSpecEngine> PvxBLSpecEngine::create(pvx_model_t* model,
         return engine;
     }
 
+    // ── PVX_SPEC_MTP_DRAFT: separate self-contained MTP head GGUF ──
+    // (ABI v8 wave 4, upstream draft-mtp pattern-port). The head drafts on
+    // the target trunk's nextn embeddings (DeepSeek-style (t_{P-1}, h_{P-1})
+    // pairing), verified greedy-exact by the target — EAGLE3-lane round loop.
+    if (params->mode == PVX_SPEC_MTP_DRAFT) {
+        if (!params->mtp_draft_path || params->mtp_draft_path[0] == '\0') {
+            out_error = "PVX_SPEC_MTP_DRAFT configured without mtp_draft_path "
+                        "(boundary: spec-engine/mtp-config)";
+            return nullptr;
+        }
+        llama_model_params mp = llama_model_default_params();
+        if (params->draft_gpu_layers >= 0) mp.n_gpu_layers = params->draft_gpu_layers;
+        engine->m_model_dft = llama_model_load_from_file(params->mtp_draft_path, mp);
+        if (!engine->m_model_dft) {
+            out_error = std::string("MTP head draft failed to load (boundary: "
+                                    "spec-engine/mtp-head-load): '") +
+                        params->mtp_draft_path +
+                        "' — PVX_SPEC_MTP_DRAFT stays disabled";
+            return nullptr;
+        }
+        // The head must be an MTP head: nextn-layer blocks in the GGUF
+        // (upstream ctor derives n_mtp_layers from n_layer_nextn and
+        // GGML_ASSERTs the qwen4exp single-block contract — here typed).
+        const int n_nextn = (int) llama_model_n_layer_nextn(engine->m_model_dft);
+        if (n_nextn <= 0) {
+            out_error = std::string("MTP head has no nextn layers (n_layer_nextn=0) — not "
+                                    "an MTP head GGUF (boundary: spec-engine/mtp-head-nextn): '") +
+                        params->mtp_draft_path + "'";
+            llama_model_free(engine->m_model_dft);
+            engine->m_model_dft = nullptr;
+            return nullptr;
+        }
+        // Pairing row width contract (upstream ctor GGML_ASSERT): the head's
+        // output hidden width must equal the target trunk's nextn width.
+        engine->m_mtp_n_embd = (int) llama_model_n_embd_out(engine->m_model_dft);
+        const int n_embd_tgt = (int) llama_model_n_embd_out(model->model);
+        if (engine->m_mtp_n_embd != n_embd_tgt) {
+            out_error = "MTP head hidden width (" + std::to_string(engine->m_mtp_n_embd) +
+                        ") does not match the target trunk nextn width (" +
+                        std::to_string(n_embd_tgt) + ") — verification pairing is "
+                        "structurally impossible (boundary: spec-engine/mtp-head-width)";
+            llama_model_free(engine->m_model_dft);
+            engine->m_model_dft = nullptr;
+            return nullptr;
+        }
+        // Vocab compatibility REQUIRED (draft ids are compared against
+        // target samples — same family rule as draft-simple).
+        if (!common_speculative_are_compatible(model->model, engine->m_model_dft)) {
+            out_error = "MTP head vocab type incompatible with target (boundary: "
+                        "spec-engine/mtp-head-vocab)";
+            llama_model_free(engine->m_model_dft);
+            engine->m_model_dft = nullptr;
+            return nullptr;
+        }
+        // Head context: MTP context type (nextn-layer-only KV), single stream,
+        // no recurrent seq budget; n_ctx mirrors the target. ctx_other stays
+        // UNSET: this head is self-contained (own token embedding + output
+        // head) — gemma4-style shared-memory and step35 chain heads are out
+        // of this slice (a chain-head head GGUF would type at n_nextn > 1
+        // below with draft_max clamped upstream-style; single-block only).
+        llama_context_params cp = llama_context_default_params();
+        cp.ctx_type = LLAMA_CONTEXT_TYPE_MTP;
+        cp.n_ctx     = ctx->n_ctx;
+        cp.n_batch   = std::max<uint32_t>(llama_n_batch(ctx->ctx),
+                                          (uint32_t) (engine->m_draft_max + 1));
+        cp.n_ubatch  = cp.n_batch;
+        cp.n_seq_max = 1;
+        cp.n_rs_seq  = 0;
+        cp.flash_attn_type = model->flash_attn ? LLAMA_FLASH_ATTN_TYPE_ENABLED
+                                               : LLAMA_FLASH_ATTN_TYPE_DISABLED;
+        engine->m_ctx_dft = llama_init_from_model(engine->m_model_dft, cp);
+        if (!engine->m_ctx_dft) {
+            out_error = "MTP head context creation failed (boundary: "
+                        "spec-engine/mtp-head-context)";
+            llama_model_free(engine->m_model_dft);
+            engine->m_model_dft = nullptr;
+            return nullptr;
+        }
+        // Target trunk nextn embeddings on (compute flag only, KV-neutral);
+        // head-side nextn output on (masked — the chain pairs read it).
+        llama_set_embeddings_nextn(ctx->ctx, true, /*masked=*/ false);
+        llama_set_embeddings_nextn(engine->m_ctx_dft, true, /*masked=*/ true);
+        pvx_log(PVX_LOG_INFO, "Spec",
+                "mtp-draft session ready: n_nextn=%d n_embd=%d draft_max=%d p_min=%.3f",
+                n_nextn, engine->m_mtp_n_embd, engine->m_draft_max, engine->m_p_min);
+        return engine;
+    }
+
     // ── PVX_SPEC_DRAFT: load the draft model ──
     if (!params->draft_model_path || params->draft_model_path[0] == '\0') {
         out_error = "PVX_SPEC_DRAFT configured without draft_model_path; a draft-model "
@@ -493,6 +582,12 @@ void PvxBLSpecEngine::stream_push_token(llama_token id, llama_pos pos) {
 }
 
 PvxBLSpecEngine::~PvxBLSpecEngine() {
+    // ABI v8 wave 4: drop the target-side nextn extraction flag we set at
+    // create time — compute-side cleanup only, the target's KV/state are
+    // untouched.
+    if (m_mode == PVX_SPEC_MTP_DRAFT && m_ctx_tgt && m_ctx_tgt->ctx) {
+        llama_set_embeddings_nextn(m_ctx_tgt->ctx, false, /*masked=*/ false);
+    }
     // EAGLE3: drop the target-side extraction flags we set at create time —
     // compute-side cleanup only, the target's KV/state are untouched.
     if (m_mode == PVX_SPEC_EAGLE3 && m_ctx_tgt && m_ctx_tgt->ctx && m_model_dft) {
@@ -872,6 +967,12 @@ pvx_result_t PvxBLSpecEngine::generate(const pvx_sampling_params_t* params,
     // draft-graph family, exactly like upstream has one impl per type.
     if (m_mode == PVX_SPEC_EAGLE3) {
         return generate_eagle(params, out_max, on_token, user_data, out_generated);
+    }
+
+    // ABI v8 wave 4: draft-MTP runs its own round structure (upstream
+    // draft-mtp — the head's (t_p, h_{p-1}) pairing; one impl per family).
+    if (m_mode == PVX_SPEC_MTP_DRAFT) {
+        return generate_mtp(params, out_max, on_token, user_data, out_generated);
     }
 
     const bool is_ngram = m_mode != PVX_SPEC_DRAFT;
@@ -1688,6 +1789,463 @@ pvx_result_t PvxBLSpecEngine::generate_eagle(const pvx_sampling_params_t* params
         }
         pvx_log(PVX_LOG_DEBUG, "Spec",
                 "eagle3 round: chain=%d accepted=%d committed=%d corrected=%d pos=%d",
+                m, n_acc, committed, (int) corrected, keep);
+    }
+
+    if (out_generated) *out_generated = generated;
+    return PVX_OK;
+}
+
+// ── Separate-head draft-MTP internals (ABI v8 wave 4) ───────────────────────
+//
+// Pattern-port of the vendored common_speculative_impl_draft_mtp (upstream
+// llama.cpp PR #28243, evolved form; single self-contained head only).
+// Pairing convention (upstream draft()/process(), live-verified on qwen4exp):
+// EVERY head-context row at stream position p consumes (t_p, h_{p-1}) — the
+// token at p paired with the target trunk's nextn embedding at p-1 (zero row
+// for p == 0 — upstream pending_h zeros init). The row at p predicts t_{p+1}
+// (standard shift). Seed row = the round's commit token at its target
+// position, paired h_hist.back() (= the last committed row's h, upstream
+// pending_h); catch-up rows replay each committed position with the same
+// pairing (upstream process()); chain rows pair the HEAD's own nextn output
+// of the previous row (the head's h estimate — upstream non-shared draft()
+// set_embd_state path). No seq_rm on the head context anywhere: stale chain
+// cells are re-decoded-over with the correct committed inputs, exactly the
+// upstream process() semantics (the eagle3 lane's seq_rm drop does NOT apply
+// here — the head memory carries recurrent cells).
+
+bool PvxBLSpecEngine::mtp_pair_decode(llama_token tok, const float* h_row,
+                                      llama_pos pos, bool output_logits) {
+    llama_batch_ext* ext = llama_batch_ext_init(m_ctx_dft);
+    if (!ext) return false;
+    bool ok = false;
+    do {
+        const int32_t idx = llama_batch_ext_add_token(ext, 0, tok);
+        if (idx < 0) break;
+        const llama_embd le = { h_row, 1, (size_t) m_mtp_n_embd };
+        if (!llama_batch_ext_set_embd_token(ext, idx, le)) break;
+        const llama_pos p[4] = { pos, pos, pos, pos };
+        if (!llama_batch_ext_set_pos(ext, idx, p)) break;
+        if (!llama_batch_ext_set_output_logits(ext, idx, output_logits)) break;
+        if (llama_process(m_ctx_dft, LLAMA_PROCESS_TYPE_DECODE, ext) != 0) {
+            pvx_log(PVX_LOG_ERROR, "Spec", "mtp head decode failed at pos=%d", (int) pos);
+            break;
+        }
+        ok = true;
+    } while (false);
+    llama_batch_ext_free(ext);
+    return ok;
+}
+
+bool PvxBLSpecEngine::mtp_process_target_rows(llama_pos pos_first, int n_rows,
+                                               const llama_token* row_ids) {
+    if (m_mode != PVX_SPEC_MTP_DRAFT || n_rows <= 0) return true;
+    if (!m_ctx_dft || !row_ids) return false;
+    // Capture-order invariant: one h row per committed position — the hook
+    // fires exactly once per decoded batch, in stream order.
+    if ((size_t) pos_first != m_mtp_h_hist.size()) {
+        m_last_error = "spec-engine/mtp-capture-order: hook at pos " +
+                       std::to_string((int) pos_first) + " but h_hist holds " +
+                       std::to_string(m_mtp_h_hist.size()) + " rows";
+        pvx_log(PVX_LOG_ERROR, "Spec", "%s", m_last_error.c_str());
+        return false;
+    }
+
+    auto* tgt = m_ctx_tgt->ctx;
+    const float* h_tgt = llama_get_embeddings_nextn(tgt);
+    if (!h_tgt) {
+        m_last_error = "spec-engine/mtp-capture: target nextn embeddings not "
+                       "extracted (llama_set_embeddings_nextn contract broken)";
+        pvx_log(PVX_LOG_ERROR, "Spec", "%s", m_last_error.c_str());
+        return false;
+    }
+
+    // One h row per committed position (upstream verify_h gather).
+    m_mtp_h_hist.reserve(m_mtp_h_hist.size() + (size_t) n_rows);
+    for (int i = 0; i < n_rows; i++) {
+        m_mtp_h_hist.emplace_back(
+            h_tgt + (size_t) i * (size_t) m_mtp_n_embd,
+            h_tgt + (size_t) (i + 1) * (size_t) m_mtp_n_embd);
+    }
+
+    // Catch-up decode: the whole batch into the head context with the
+    // (t_p, h_{p-1}) pairing (zero-h row for p == 0 — upstream pending
+    // zeros), chunked by the head's n_batch. Stale chain cells above are
+    // re-decoded-over upstream-style (no seq_rm on the head context).
+    const int d_batch = (int) llama_n_batch(m_ctx_dft);
+    // h_{-1} pairing row (p == 0): zero-padded scratch (upstream pending
+    // zeros init), sized at create time.
+    if (m_mtp_zeros.empty()) m_mtp_zeros.assign((size_t) m_mtp_n_embd, 0.0f);
+    for (int off = 0; off < n_rows; off += d_batch) {
+        const int chunk = std::min(d_batch, n_rows - off);
+        llama_batch_ext* ext = llama_batch_ext_init(m_ctx_dft);
+        if (!ext) return false;
+        bool ok = false;
+        do {
+            for (int j = 0; j < chunk; j++) {
+                const llama_pos p = pos_first + off + j;
+                const float* h_pair = (p == 0)
+                    ? m_mtp_zeros.data() : m_mtp_h_hist[(size_t) (p - 1)].data();
+                const int32_t idx = llama_batch_ext_add_token(ext, 0, row_ids[off + j]);
+                if (idx < 0) break;
+                const llama_embd le = { h_pair, 1, (size_t) m_mtp_n_embd };
+                if (!llama_batch_ext_set_embd_token(ext, idx, le)) break;
+                const llama_pos pq[4] = { p, p, p, p };
+                if (!llama_batch_ext_set_pos(ext, idx, pq)) break;
+                if (!llama_batch_ext_set_output_logits(ext, idx, false)) break;
+                ok = true;  // full chunk armed
+            }
+            if (!ok) break;
+            if (llama_process(m_ctx_dft, LLAMA_PROCESS_TYPE_DECODE, ext) != 0) {
+                ok = false;
+                break;
+            }
+        } while (false);
+        llama_batch_ext_free(ext);
+        if (!ok) {
+            m_last_error = "spec-engine/mtp-catchup: head catch-up decode failed";
+            pvx_log(PVX_LOG_ERROR, "Spec", "%s", m_last_error.c_str());
+            return false;
+        }
+    }
+    pvx_log(PVX_LOG_DEBUG, "Spec", "mtp process: pos_first=%d n_rows=%d h_hist=%zu",
+            (int) pos_first, n_rows, m_mtp_h_hist.size());
+    return true;
+}
+
+void PvxBLSpecEngine::mtp_on_stream_shrunk(int new_n_tokens) {
+    if (m_mode != PVX_SPEC_MTP_DRAFT) return;
+    // Truncate the h ring; stale head cells above the boundary are
+    // re-decoded-over by later catch-ups (no seq_rm — the head memory carries
+    // recurrent cells without a snapshot ring).
+    if ((int) m_mtp_h_hist.size() > new_n_tokens) {
+        m_mtp_h_hist.resize((size_t) std::max(0, new_n_tokens));
+    }
+}
+
+void PvxBLSpecEngine::mtp_state_capture(std::vector<std::vector<float>>& out_rows) const {
+    if (m_mode != PVX_SPEC_MTP_DRAFT) return;
+    out_rows = m_mtp_h_hist;
+}
+
+bool PvxBLSpecEngine::mtp_state_restore(std::vector<std::vector<float>>&& rows) {
+    if (m_mode != PVX_SPEC_MTP_DRAFT) return false;
+    const int n = m_stream.n_tokens ? *m_stream.n_tokens : 0;
+    if ((int) rows.size() != n || !m_stream.mirror ||
+        (size_t) n != m_stream.mirror->size()) {
+        m_last_error = "spec-engine/mtp-state-mismatch: saved h rows (" +
+                       std::to_string(rows.size()) + ") do not cover the restored "
+                       "stream (" + std::to_string(n) + " tokens) — the draft-MTP "
+                       "session must be re-initialized after this restore";
+        pvx_log(PVX_LOG_WARN, "Spec", "%s", m_last_error.c_str());
+        return false;
+    }
+    for (const auto& e : *m_stream.mirror) {
+        if (e.id == LLAMA_TOKEN_NULL) {
+            m_last_error = "spec-engine/mtp-state-restore: mirror carries "
+                           "multimodal rows (vision + draft-MTP is a typed refusal)";
+            return false;
+        }
+    }
+    for (const auto& r : rows) {
+        if ((int) r.size() != m_mtp_n_embd) {
+            m_last_error = "spec-engine/mtp-state-restore: saved h row width (" +
+                           std::to_string(r.size()) + ") != head width (" +
+                           std::to_string(m_mtp_n_embd) + ")";
+            return false;
+        }
+    }
+    // Full head-context clear, then a full catch-up replay [0, n): every
+    // position re-decoded with the (t_p, h_{p-1}) pairing (no deferral —
+    // every committed position carries its own pairing row).
+    llama_memory_t dmem = llama_get_memory(m_ctx_dft);
+    if (dmem) llama_memory_seq_rm(dmem, 0, 0, -1);
+    m_mtp_h_hist = std::move(rows);
+    const int d_batch = (int) llama_n_batch(m_ctx_dft);
+    if (m_mtp_zeros.empty()) m_mtp_zeros.assign((size_t) m_mtp_n_embd, 0.0f);
+    for (int off = 0; off < n; off += d_batch) {
+        const int chunk = std::min(d_batch, n - off);
+        llama_batch_ext* ext = llama_batch_ext_init(m_ctx_dft);
+        if (!ext) return false;
+        bool ok = false;
+        do {
+            for (int j = 0; j < chunk; j++) {
+                const llama_pos p = off + j;
+                const float* h_pair = (p == 0)
+                    ? m_mtp_zeros.data() : m_mtp_h_hist[(size_t) (p - 1)].data();
+                const int32_t idx = llama_batch_ext_add_token(ext, 0, (*m_stream.mirror)[p].id);
+                if (idx < 0) break;
+                const llama_embd le = { h_pair, 1, (size_t) m_mtp_n_embd };
+                if (!llama_batch_ext_set_embd_token(ext, idx, le)) break;
+                const llama_pos pq[4] = { p, p, p, p };
+                if (!llama_batch_ext_set_pos(ext, idx, pq)) break;
+                if (!llama_batch_ext_set_output_logits(ext, idx, false)) break;
+                ok = true;
+            }
+            if (!ok) break;
+            if (llama_process(m_ctx_dft, LLAMA_PROCESS_TYPE_DECODE, ext) != 0) {
+                ok = false;
+                break;
+            }
+        } while (false);
+        llama_batch_ext_free(ext);
+        if (!ok) {
+            m_last_error = "spec-engine/mtp-state-restore: head replay decode failed";
+            pvx_log(PVX_LOG_ERROR, "Spec", "%s", m_last_error.c_str());
+            return false;
+        }
+    }
+    return true;
+}
+
+// ── draft-MTP round loop ───────────────────────────────────────────────────
+//
+// Round structure (mirrors generate_eagle; see the pairing block comment
+// above): (1) c = the target's sample from last_logits (the round's
+// always-committed token at base = n_kv_pos); (2) seed: head row
+// (c, h_hist[n_tokens-1]) at base with logits → d0 = greedy top-1; chain rows
+// (d_{i-1}, head-own nextn of the previous row) at base+i with logits; (3)
+// ONE target verify decode of [c, chain...] at [base, ...] — all logits; the
+// capture hook fires immediately (catch-up + h_hist growth); (4)
+// sample-and-match (greedy-exact), corrected = the first disagreeing sample
+// (next round's c); (5) commit [c, accepted], target KV repair to the
+// committed prefix, h_hist truncated to n_tokens.
+
+pvx_result_t PvxBLSpecEngine::generate_mtp(const pvx_sampling_params_t* params,
+                                            int out_max,
+                                            pvx_spec_token_callback_t on_token,
+                                            void* user_data,
+                                            int* out_generated) {
+    auto* ctx = m_ctx_tgt;
+    const int n_vocab = llama_vocab_n_tokens(ctx->vocab);
+    const bool ignore_eos = params->ignore_eos;
+    auto stop_at_eog = [&](llama_token t) {
+        return !ignore_eos && llama_vocab_is_eog(ctx->vocab, t);
+    };
+
+    // Chain bound: batch width + budget (minus the always-present c row).
+    int chain_cap = std::min(m_draft_max,
+                             std::min((int) llama_n_batch(ctx->ctx) - 2,
+                                      out_max - 2));
+    // Hybrid/recurrent target (qwen4exp): the verify repair rewinds the
+    // recurrent state via trailing snapshots — the chain may never exceed
+    // llama_n_rs_seq (upstream server rule; plain steps when the context was
+    // created with n_rs_seq == 0).
+    if (llama_model_is_recurrent(m_model_tgt->model) ||
+        llama_model_is_hybrid(m_model_tgt->model)) {
+        const int rs_cap = (int) llama_n_rs_seq(ctx->ctx);
+        if (rs_cap < chain_cap) {
+            pvx_log(PVX_LOG_WARN, "Spec",
+                    "mtp drafting disabled: hybrid/recurrent target memory cannot "
+                    "roll back verify batches (llama_n_rs_seq=%d, create the context "
+                    "with n_rs_seq >= chain to enable); plain exact steps only", rs_cap);
+        }
+        chain_cap = std::min(chain_cap, rs_cap - 1);
+    }
+    if (chain_cap < 0) chain_cap = 0;
+
+    int generated = 0;
+    m_n_drafted = 0;
+    m_n_accepted = 0;
+
+    bool stopped = false;
+    auto plain_step = [&](llama_token t) -> pvx_result_t {
+        const llama_pos pos = *m_stream.n_kv_pos;
+        llama_batch b = llama_batch_init(1, 0, ctx->n_seq_max);
+        b.token[0]     = t;
+        b.pos[0]       = pos;
+        b.n_seq_id[0]  = 1;
+        b.seq_id[0][0] = m_stream.seq;
+        b.logits[0]    = 1;
+        b.n_tokens     = 1;
+        const int rc = llama_decode(ctx->ctx, b);
+        llama_batch_free(b);
+        if (rc != 0) {
+            ctx->last_error = "mtp fallback decode failed (rc=" + std::to_string(rc) + ")";
+            return PVX_ERR_DECODE_FAILED;
+        }
+        if (!mtp_process_target_rows(pos, 1, &t)) return PVX_ERR_INTERNAL;
+        spec_snapshot(ctx->ctx, *m_stream.last_logits, 0);
+        stream_push_token(t, *m_stream.n_kv_pos);
+        (*m_stream.n_tokens)++;
+        (*m_stream.n_kv_pos)++;
+        m_stream.recent_tokens->push_back(t);
+        generated++;
+        if (on_token && !on_token(t, user_data)) { stopped = true; return PVX_OK; }
+        if (stop_at_eog(t)) { stopped = true; return PVX_OK; }
+        return PVX_OK;
+    };
+
+    while (generated < out_max) {
+        // Capture-order invariant: one h row per committed position.
+        if (m_mtp_h_hist.size() != (size_t) *m_stream.n_tokens) {
+            m_last_error = "spec-engine/mtp-capture-order: h_hist (" +
+                           std::to_string(m_mtp_h_hist.size()) + ") != committed (" +
+                           std::to_string(*m_stream.n_tokens) + ")";
+            ctx->last_error = m_last_error;
+            pvx_log(PVX_LOG_ERROR, "Spec", "%s", m_last_error.c_str());
+            return PVX_ERR_INTERNAL;
+        }
+
+        // 1. ── c: the target's sample from last_logits ──
+        const llama_token c = spec_sample(m_stream.last_logits->data(), ctx->vocab,
+                                          params, *m_stream.recent_tokens);
+        if (c < 0) return PVX_ERR_DECODE_FAILED;
+        // PER-ROUND budget (see generate_eagle).
+        const int round_cap = std::min(chain_cap, out_max - generated - 1);
+        if (stop_at_eog(c) || round_cap <= 0) {
+            const pvx_result_t rc = plain_step(c);
+            if (out_generated) *out_generated = generated;
+            if (rc != PVX_OK || stopped) return rc;
+            continue;
+        }
+
+        // 2. ── seed + chain (upstream draft(), single-head path) ──
+        const llama_pos base = (llama_pos) *m_stream.n_kv_pos;
+        std::vector<float> h_seed((size_t) m_mtp_n_embd);
+        memcpy(h_seed.data(), m_mtp_h_hist.back().data(),
+               (size_t) m_mtp_n_embd * sizeof(float));
+        if (!mtp_pair_decode(c, h_seed.data(), base, /*output_logits=*/ true)) {
+            ctx->last_error = "mtp seed decode failed";
+            return PVX_ERR_INTERNAL;
+        }
+        std::vector<llama_token> chain;
+        std::vector<float> h_step((size_t) m_mtp_n_embd);
+        llama_pos next_pos = base + 1;
+        for (int i = 0; i < round_cap; i++) {
+            const float* d_logits = llama_get_logits_ith(m_ctx_dft, 0);
+            const float* h_row = llama_get_embeddings_nextn_ith(m_ctx_dft, 0);
+            if (!d_logits || !h_row) {
+                ctx->last_error = "mtp head logits/h missing";
+                return PVX_ERR_INTERNAL;
+            }
+            memcpy(h_step.data(), h_row, (size_t) m_mtp_n_embd * sizeof(float));
+            const TopLogit d_top = drafter_top_logit(d_logits, n_vocab);
+            if (m_p_min > 0.0f &&
+                top_probability(d_logits, n_vocab, d_top.logit) < m_p_min) break;
+            if (llama_vocab_is_eog(ctx->vocab, d_top.token)) break;
+            chain.push_back(d_top.token);
+            m_n_drafted++;
+            if ((int) chain.size() >= round_cap) break;
+            if (!mtp_pair_decode(chain.back(), h_step.data(), next_pos,
+                                 /*output_logits=*/ true)) {
+                ctx->last_error = "mtp chain decode failed";
+                return PVX_ERR_INTERNAL;
+            }
+            next_pos++;
+        }
+        if ((int) chain.size() < m_draft_min) chain.clear();
+
+        if (chain.empty()) {
+            // Drafter cannot help (p_min floor / EOG draft / chain floor):
+            // the seed row already wrote this round's catch-up cell on the
+            // head; commit the round's single token honestly (plain pipeline).
+            const pvx_result_t rc = plain_step(c);
+            if (out_generated) *out_generated = generated;
+            if (rc != PVX_OK || stopped) return rc;
+            continue;
+        }
+
+        // 3. ── verify: ONE target decode of [c, chain...] ──
+        const int m = (int) chain.size();
+        std::vector<llama_token> verify_ids;
+        verify_ids.push_back(c);
+        verify_ids.insert(verify_ids.end(), chain.begin(), chain.end());
+        llama_batch b = llama_batch_init(m + 1, 0, ctx->n_seq_max);
+        for (int i = 0; i <= m; i++) {
+            b.token[i]     = verify_ids[i];
+            b.pos[i]       = base + i;
+            b.n_seq_id[i]  = 1;
+            b.seq_id[i][0] = m_stream.seq;
+            b.logits[i]    = 1;
+        }
+        b.n_tokens = m + 1;
+        const int rc = llama_decode(ctx->ctx, b);
+        llama_batch_free(b);
+        if (rc != 0) {
+            ctx->last_error = "mtp verify decode failed (rc=" + std::to_string(rc) + ")";
+            return PVX_ERR_DECODE_FAILED;
+        }
+        std::vector<std::vector<float>> rows(m + 1);
+        for (int i = 0; i <= m; i++) spec_snapshot(ctx->ctx, rows[i], i);
+        // capture hook IMMEDIATELY (h rows die at the next target decode)
+        if (!mtp_process_target_rows(base, m + 1, verify_ids.data())) {
+            ctx->last_error = m_last_error;
+            return PVX_ERR_INTERNAL;
+        }
+
+        // 4. ── sample-and-match ──
+        int n_acc = 0;
+        bool hit_eog = false;
+        llama_token corrected = -1;
+        {
+            std::vector<llama_token> feed = *m_stream.recent_tokens;
+            feed.push_back(c); // c commits: penalties see it in both paths
+            llama_token s = spec_sample(rows[0].data(), ctx->vocab, params, feed);
+            if (s < 0) return PVX_ERR_DECODE_FAILED;
+            int i = 0;
+            for (; i < m; i++) {
+                if (s != chain[i]) break;
+                n_acc++;
+                m_n_accepted++;
+                feed.push_back(chain[i]);
+                if (stop_at_eog(chain[i])) { hit_eog = true; break; }
+                if (i + 1 < m) {
+                    s = spec_sample(rows[i + 1].data(), ctx->vocab, params, feed);
+                    if (s < 0) return PVX_ERR_DECODE_FAILED;
+                }
+            }
+            if (!hit_eog) {
+                corrected = (n_acc == m)
+                    ? spec_sample(rows[m].data(), ctx->vocab, params, feed)
+                    : s; // first disagreeing sample — next round's c
+                if (corrected < 0) return PVX_ERR_DECODE_FAILED;
+            }
+        }
+
+        // 5. ── commit [c, accepted prefix]; target KV repair; truncate h_hist ──
+        const int committed = 1 + n_acc;
+        const int keep = base + committed;
+        if (!llama_memory_seq_rm(ctx->mem, m_stream.seq, keep, -1)) {
+            ctx->last_error = "mtp KV repair refused by memory (hybrid/recurrent "
+                              "target needs n_rs_seq >= chain — create the context "
+                              "with a recurrent snapshot ring)";
+            return PVX_ERR_REWIND_UNSUPPORTED;
+        }
+        *m_stream.last_logits = rows[n_acc]; // row of the last committed token
+        (*m_stream.n_tokens) += committed;
+        (*m_stream.n_kv_pos) += committed;
+        m_stream.recent_tokens->push_back(c);
+        for (int i = 0; i < n_acc; i++) m_stream.recent_tokens->push_back(chain[i]);
+        stream_push_token(c, base);
+        for (int i = 0; i < n_acc; i++) stream_push_token(chain[i], base + 1 + i);
+        if ((int) m_mtp_h_hist.size() > *m_stream.n_tokens) {
+            m_mtp_h_hist.resize((size_t) *m_stream.n_tokens);
+        }
+
+        // Emit the committed tokens in stream order (c first).
+        generated++;
+        if (on_token && !on_token(c, user_data)) {
+            if (out_generated) *out_generated = generated;
+            return PVX_OK;
+        }
+        if (hit_eog) {
+            if (out_generated) *out_generated = generated;
+            return PVX_OK;
+        }
+        for (int i = 0; i < n_acc; i++) {
+            generated++;
+            if (on_token && !on_token(chain[i], user_data)) {
+                if (out_generated) *out_generated = generated;
+                return PVX_OK;
+            }
+            if (stop_at_eog(chain[i])) {
+                if (out_generated) *out_generated = generated;
+                return PVX_OK;
+            }
+        }
+        pvx_log(PVX_LOG_DEBUG, "Spec",
+                "mtp round: chain=%d accepted=%d committed=%d corrected=%d pos=%d",
                 m, n_acc, committed, (int) corrected, keep);
     }
 

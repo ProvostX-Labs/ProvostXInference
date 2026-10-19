@@ -34,4 +34,11 @@ public enum SpeculativeMode
     /// draft-dflash). Requires a dflash companion GGUF (DflashCompanionPath);
     /// metadata validated, drafting unwired — typed boundary.</summary>
     Dflash = 8,
+    /// <summary>ABI v8 wave 4 — SEPARATE self-contained draft-MTP head GGUF
+    /// (upstream draft-mtp, llama.cpp PR #28243; qwen4exp-family targets).
+    /// Requires an MTP head GGUF (MtpDraftPath — never DraftModelPath);
+    /// drafts on the target trunk's nextn embeddings, verified greedy-exact by
+    /// the target. Sequential executor lane only — the batched/pool lane
+    /// refuses typed.</summary>
+    MtpDraft = 9,
 }

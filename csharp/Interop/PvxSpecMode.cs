@@ -23,4 +23,8 @@ internal enum PvxSpecMode : int
     // metadata and fails typed at the wiring boundary — never faked.
     Eagle3 = 7,
     Dflash = 8,
+    /// <summary>ABI v8 wave 4 append — separate self-contained draft-MTP head
+    /// GGUF (MtpDraftPath); embedded-nextn drafting (MtpAuto) stays a typed
+    /// wiring boundary.</summary>
+    MtpDraft = 9,
 }

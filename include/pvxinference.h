@@ -75,6 +75,16 @@ typedef struct {
     uint32_t batch_size;     /* n_batch */
     uint32_t seq_max;        /* max sequences (batch mode) */
     pvx_pooling_type_t pooling_type;  /* for embedding models */
+    /* ABI v8 wave-4 append (2026-10-19): recurrent-state snapshot ring per
+     * sequence (upstream llama_context_params.n_rs_seq). 0 = llama default
+     * (no snapshots — hybrid/recurrent targets then refuse partial seq_rm,
+     * the pre-existing pvx_model_partial_rewind_supported contract). > 0 on
+     * rs-rollback architectures (qwen35/qwen4exp/deepseek4/...) enables
+     * partial seq_rm on hybrid memories — REQUIRED for speculative-decode
+     * verify repair on those targets (the spec chains clamp to
+     * llama_n_rs_seq, upstream server rule). Non-rs-rollback archs clamp
+     * to 0 inside llama (harmless). */
+    uint32_t n_rs_seq;
 } pvx_context_params_t;
 
 /* ── Sampling params (full pipeline) ── */
@@ -153,6 +163,15 @@ typedef enum {
      * — never faked. */
     PVX_SPEC_EAGLE3 = 7, /* EAGLE3 draft decoder fed (token, g_embd) pairs from target layer features */
     PVX_SPEC_DFLASH = 8, /* DFlash block-diffusion draft (typed wiring boundary this slice) */
+    /* ABI v8 wave-4 append (2026-10-19) — SEPARATE self-contained draft-MTP head
+     * GGUF (upstream draft-mtp, llama.cpp PR #28243; qwen4exp-family targets).
+     * mtp_draft_path is REQUIRED with this mode; draft_model_path stays
+     * draft-simple-only. The head drafts on the target trunk's nextn
+     * embeddings (DeepSeek-style (t_{P-1}, h_{P-1}) pairing), verified greedy-
+     * exact by the target — upstream sample-and-match. Sequential executor
+     * lane only; PVX_SPEC_MTP_AUTO (embedded nextn) stays a typed wiring
+     * boundary (boundary: spec-engine/mtp-wiring). */
+    PVX_SPEC_MTP_DRAFT = 9,
 } pvx_spec_mode_t;
 
 /* ABI v6 append — n-gram knobs (all modes PVX_SPEC_NGRAM_*). Zero-value
@@ -182,6 +201,12 @@ typedef struct {
      * key. dflash_companion_path required iff mode == PVX_SPEC_DFLASH. */
     const char* eagle_companion_path;
     const char* dflash_companion_path;
+    /* ABI v8 wave-4 append (2026-10-19) — zero-value = feature off (blittable
+     * struct growth). mtp_draft_path is REQUIRED iff mode == PVX_SPEC_MTP_DRAFT:
+     * a SELF-CONTAINED MTP head GGUF (own token embedding + output head + nextn
+     * block). Validated typed at spec_init (nextn-layer presence, n_embd_out
+     * match vs the target trunk, vocab family) — never a silent disable. */
+    const char* mtp_draft_path;
 } pvx_spec_params_t;
 
 /* Capability query (see struct docs). Engines without spec support report

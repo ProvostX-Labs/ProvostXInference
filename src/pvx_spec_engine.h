@@ -126,6 +126,38 @@ public:
     // invalidate the session, never resume against a stale boundary.
     bool eagle_state_restore(std::vector<std::vector<float>>&& rows);
 
+    // ── draft-MTP capture hook (executor lane, ABI v8 wave 4) ──
+    // Called by commit sites right AFTER a successful target decode on the
+    // bound stream: captures the decoded batch's nextn h rows (target trunk
+    // final hidden states, one per committed position — appends to mtp_h_hist),
+    // then catch-up decodes the whole batch into the MTP head context with the
+    // upstream (t_p, h_{p-1}) pairing (zero-h row at position 0; stale drafted
+    // cells past pos_first dropped first). No-op for non-MTP-draft modes.
+    bool mtp_process_target_rows(llama_pos pos_first, int n_rows,
+                                  const llama_token* row_ids);
+
+    // The stream shrink (rewind / reset / partial restore) twin of
+    // eagle_on_stream_shrunk for the MTP-draft session: truncate mtp_h_hist
+    // to the new committed count and drop draft-side cells past the boundary.
+    // No-op for non-MTP-draft modes.
+    void mtp_on_stream_shrunk(int new_n_tokens);
+
+    // MTP-draft state handoff for pvx_state_save: fills the additive payload
+    // (one h row per committed position). No-op/absent for other modes.
+    void mtp_state_capture(std::vector<std::vector<float>>& out_rows) const;
+
+    // MTP-draft restore (additive ABI v8 wave-4 payload): reloads mtp_h_hist
+    // and replays the committed stream into the head context as catch-up
+    // pairs [0, n_tokens) — never resumes against a stale chain tail. Returns
+    // false (typed message in last_error()) when the payload does not cover
+    // the restored stream (or carries multimodal rows) — the caller must then
+    // invalidate the session.
+    bool mtp_state_restore(std::vector<std::vector<float>>&& rows);
+
+    // True when this session keeps a separate MTP head context whose h-hist
+    // must track every committed position (used by commit/shrink/save sites).
+    bool is_mtp_draft() const { return m_mode == PVX_SPEC_MTP_DRAFT; }
+
     // True when this session keeps a draft context whose KV is only repairable
     // through the mirror/g_hist (used by rewind/save sites to decide whether
     // shrink hooks must run).
@@ -154,6 +186,9 @@ private:
     static bool draft_decode(PvxBLSpecEngine& eng, llama_token tok, llama_pos pos);
     //   eagle_pair_decode — one (token, g_embd) row at pos, output enabled
     bool eagle_pair_decode(llama_token tok, const float* g_row, llama_pos pos);
+    //   mtp_pair_decode — one (token, h_row) row at pos for the MTP head
+    bool mtp_pair_decode(llama_token tok, const float* h_row, llama_pos pos,
+                         bool output_logits);
     //   stream_push_token — one token row into the bound stream's mirror ring
     void stream_push_token(llama_token id, llama_pos pos);
 
@@ -170,6 +205,16 @@ private:
                                  pvx_spec_token_callback_t on_token,
                                  void* user_data,
                                  int* out_generated);
+
+    // ── MTP-draft internals (ABI v8 wave 4) ──
+    // One round-loop of the separate-head draft-MTP mode (upstream
+    // common_speculative_impl_draft_mtp draft()/accept() adapted to the pvx
+    // verify pipeline — mirrors generate_eagle). Returns via pvx_result_t.
+    pvx_result_t generate_mtp(const pvx_sampling_params_t* params,
+                              int out_max,
+                              pvx_spec_token_callback_t on_token,
+                              void* user_data,
+                              int* out_generated);
 
     // Draft-model resources (modes PVX_SPEC_DRAFT / PVX_SPEC_EAGLE3). Teardown
     // order matters: context first, then model (backend device ownership).
@@ -210,6 +255,16 @@ private:
     // Scratch: [n_rows * n_embd_enc] feature buffer, [n_rows * n_embd_dec] g rows.
     std::vector<float> m_eagle_features_buf;
     std::vector<float> m_eagle_g_buf;
+
+    // ── draft-MTP state (mode == PVX_SPEC_MTP_DRAFT, ABI v8 wave 4) ──
+    // Pairing row width: must equal llama_model_n_embd_out on BOTH the head
+    // and the target trunk (upstream GGML_ASSERT → typed refusal at create).
+    int  m_mtp_n_embd = 0;
+    // One target-trunk nextn h row per committed position [0, n_tokens).
+    // INVariant: mtp_h_hist.size() == *m_stream.n_tokens at round boundaries.
+    std::vector<std::vector<float>> m_mtp_h_hist;
+    // h_{-1} pairing scratch (zero row, upstream pending zeros init).
+    std::vector<float> m_mtp_zeros;
 
     // n-gram state (mode == PVX_SPEC_NGRAM_*).
     pvx::ngram_simple_config m_ng_simple{};

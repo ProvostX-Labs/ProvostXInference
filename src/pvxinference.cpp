@@ -227,6 +227,9 @@ pvx_result_t pvx_create_context(pvx_model_t* model,
     cp.n_batch = params->batch_size;
     cp.n_ubatch = params->batch_size;
     cp.n_seq_max = params->seq_max > 0 ? params->seq_max : 1;
+    // ABI v8 wave-4: recurrent-state snapshot ring (0 = llama default — no
+    // snapshots; harmless on non-rs-rollback archs, llama clamps to 0).
+    cp.n_rs_seq = params->n_rs_seq;
     // Flash attention: caller drives via model params (passed to pvx_load_model)
     // KV cache type: caller drives via model params
     if (model->kv_cache_type != PVX_KV_F16) {
@@ -663,6 +666,16 @@ pvx_decode_result_t pvx_executor_infer(pvx_executor_t* exec) {
                 return PVX_DECODE_FAILED;
             }
         }
+        // ABI v8 wave 4: draft-MTP h rows (target trunk nextn embeddings) are
+        // per-committed-position — same hook discipline as EAGLE3.
+        if (exec->spec && exec->spec->is_mtp_draft()) {
+            if (!exec->spec->mtp_process_target_rows(
+                    kv_base + decoded, slice, exec->pending_tokens.data() + decoded)) {
+                exec->ctx_ref->last_error = exec->spec->last_error();
+                PVX_LOG(PVX_LOG_ERROR, "Decode", "mtp capture failed on infer slice");
+                return PVX_DECODE_FAILED;
+            }
+        }
         exec->recent_tokens.insert(exec->recent_tokens.end(),
                                    exec->pending_tokens.begin() + decoded,
                                    exec->pending_tokens.begin() + decoded + slice);
@@ -731,6 +744,10 @@ pvx_result_t pvx_executor_rewind(pvx_executor_t* exec, int n_tokens) {
     if (exec->spec && exec->spec->is_eagle()) {
         exec->spec->eagle_on_stream_shrunk(exec->n_tokens);
     }
+    // ABI v8 wave 4: draft-MTP h rows drop with the rewind likewise.
+    if (exec->spec && exec->spec->is_mtp_draft()) {
+        exec->spec->mtp_on_stream_shrunk(exec->n_tokens);
+    }
     // Rewound tokens include the sampled row's token — snapshot is stale.
     exec->last_batch_idx = -1;
     exec->last_logits.clear();
@@ -764,6 +781,11 @@ pvx_result_t pvx_executor_reset(pvx_executor_t* exec) {
     // same shrunken-stream discipline as pvx_executor_rewind.
     if (exec->spec && exec->spec->is_eagle()) {
         exec->spec->eagle_on_stream_shrunk(0);
+    }
+    // ABI v8 wave 4: draft-MTP h rows likewise (head cells go stale-by-design —
+    // re-decoded-over at the next catch-ups, no seq_rm on the head context).
+    if (exec->spec && exec->spec->is_mtp_draft()) {
+        exec->spec->mtp_on_stream_shrunk(0);
     }
     return PVX_OK;
 }
@@ -927,6 +949,22 @@ pvx_result_t pvx_model_spec_validate(const pvx_model_t* model,
                             "wired in this build (boundary: spec-engine/dflash-wiring)";
             return PVX_ERR_NOT_SUPPORTED;
         }
+        case PVX_SPEC_MTP_DRAFT: {
+            pvx_spec_capabilities_t caps{};
+            pvx_result_t rc = pvx_model_spec_capabilities(model, &caps);
+            if (rc != PVX_OK) return rc;
+            if (!caps.draft) {
+                m->last_error = "model has no standard vocabulary for draft-MTP "
+                                "decoding (boundary: spec-engine/capability)";
+                return PVX_ERR_NOT_SUPPORTED;
+            }
+            if (!params->mtp_draft_path || params->mtp_draft_path[0] == '\0')
+                return PVX_ERR_INVALID_ARG;
+            // Head nextn-layer/width/vocab contracts are exercised typed at
+            // spec_init (pair-level validation — capability is a property of
+            // the LOADED PAIR). Shape is OK here.
+            return PVX_OK;
+        }
         default:
             return PVX_ERR_INVALID_ARG;
     }
@@ -945,6 +983,18 @@ pvx_result_t pvx_executor_spec_init(pvx_executor_t* exec,
     auto engine = PvxBLSpecEngine::create(exec->ctx_ref->owning_model,
                                           exec->ctx_ref, params,
                                           exec->ctx_ref->last_error);
+    if (engine && engine->mode() == PVX_SPEC_MTP_DRAFT && exec->n_tokens > 0) {
+        // ABI v8 wave 4: draft-MTP h rows are captured per committed position
+        // (capture hook rides every commit) — enabling on a non-empty stream
+        // would leave positions uncovered forever: the same typed empty-stream
+        // requirement as EAGLE3, fail-closed.
+        exec->ctx_ref->last_error =
+            "mtp-draft session cannot start on a non-empty stream "
+            "(draft-MTP per-position capture requires enable-before-prefill) "
+            "(boundary: spec-engine/mtp-stream)";
+        exec->spec.reset();
+        return PVX_ERR_NOT_SUPPORTED;
+    }
     if (engine && engine->mode() == PVX_SPEC_EAGLE3 && exec->n_tokens > 0) {
         // ABI v7 (feature 4): EAGLE3 g rows are captured per committed position
         // by the target-decode hook — a stream that predates the session has
@@ -965,12 +1015,15 @@ pvx_result_t pvx_executor_spec_init(pvx_executor_t* exec,
         const std::string& err = exec->ctx_ref->last_error;
         if (err.find("draft-load") != std::string::npos ||
             err.find("companion-load") != std::string::npos ||
+            err.find("mtp-head-load") != std::string::npos ||
             err.find("ngram-cache") != std::string::npos ||
-            err.find("companion-context") != std::string::npos) return PVX_ERR_LOAD_FAILED;
+            err.find("companion-context") != std::string::npos ||
+            err.find("mtp-head-context") != std::string::npos) return PVX_ERR_LOAD_FAILED;
         if (err.find("draft-config") != std::string::npos ||
             err.find("companion-config") != std::string::npos ||
             err.find("eagle3-config") != std::string::npos ||
             err.find("dflash-config") != std::string::npos ||
+            err.find("mtp-config") != std::string::npos ||
             err.find("ngram-config") != std::string::npos ||
             err.find("spec-engine/config") != std::string::npos) return PVX_ERR_INVALID_ARG;
         return PVX_ERR_NOT_SUPPORTED;
@@ -1051,6 +1104,15 @@ pvx_result_t pvx_conversation_spec_init(pvx_conversation_t* conv,
             "spec-engine/eagle3-conversation-lane)";
         return PVX_ERR_NOT_SUPPORTED;
     }
+    // ABI v8 wave 4: draft-MTP per-position capture is the same executor-lane
+    // wiring — the batched/pool lane refuses typed (never a degraded draft).
+    if (params->mode == PVX_SPEC_MTP_DRAFT) {
+        conv->ctx_ref->last_error =
+            "mtp-draft spec is wired on the sequential executor lane only; the "
+            "batched/pool conversation lane refuses typed (boundary: "
+            "spec-engine/mtp-conversation-lane)";
+        return PVX_ERR_NOT_SUPPORTED;
+    }
     // Fail closed when the stream predates the ring's coverage (e.g. after a
     // checkpoint import): drafting would replay a phantom prefix.
     if (conv->n_tokens > 0 && conv->mirror.size() != (size_t) conv->n_tokens) {
@@ -1069,11 +1131,14 @@ pvx_result_t pvx_conversation_spec_init(pvx_conversation_t* conv,
         if (err.find("draft-load") != std::string::npos ||
             err.find("companion-load") != std::string::npos ||
             err.find("ngram-cache") != std::string::npos ||
-            err.find("companion-context") != std::string::npos) return PVX_ERR_LOAD_FAILED;
+            err.find("mtp-head-load") != std::string::npos ||
+            err.find("companion-context") != std::string::npos ||
+            err.find("mtp-head-context") != std::string::npos) return PVX_ERR_LOAD_FAILED;
         if (err.find("draft-config") != std::string::npos ||
             err.find("companion-config") != std::string::npos ||
             err.find("eagle3-config") != std::string::npos ||
             err.find("dflash-config") != std::string::npos ||
+            err.find("mtp-config") != std::string::npos ||
             err.find("ngram-config") != std::string::npos ||
             err.find("spec-engine/config") != std::string::npos) return PVX_ERR_INVALID_ARG;
         return PVX_ERR_NOT_SUPPORTED;
@@ -1144,6 +1209,11 @@ pvx_result_t pvx_state_save(pvx_executor_t* exec, pvx_state_t** out_state) {
     if (exec->spec && exec->spec->is_eagle()) {
         exec->spec->eagle_state_capture(state->eagle_g_rows);
     }
+    // ABI v8 wave 4: draft-MTP h rows ride with the backup the same way —
+    // restore replays the head context from them, never against a stale tail.
+    if (exec->spec && exec->spec->is_mtp_draft()) {
+        exec->spec->mtp_state_capture(state->mtp_h_rows);
+    }
     // Copy KV from seq 0 to seq 1 (backup)
     if (exec->n_tokens > 0) {
         if (exec->ctx_ref->n_seq_max < 2) {
@@ -1198,6 +1268,16 @@ pvx_result_t pvx_state_restore(pvx_executor_t* exec, pvx_state_t* state) {
         std::vector<std::vector<float>> rows = std::move(state->eagle_g_rows);
         if (!exec->spec->eagle_state_restore(std::move(rows))) {
             PVX_LOG(PVX_LOG_WARN, "Spec", "eagle3 session invalidated by restore: %s",
+                    exec->spec->last_error().c_str());
+            exec->spec.reset();
+        }
+    }
+    // ABI v8 wave 4: draft-MTP restore — same additive contract, same typed
+    // invalidation posture (the stream itself is fine; re-init spec to resume).
+    if (exec->spec && exec->spec->is_mtp_draft()) {
+        std::vector<std::vector<float>> rows = std::move(state->mtp_h_rows);
+        if (!exec->spec->mtp_state_restore(std::move(rows))) {
+            PVX_LOG(PVX_LOG_WARN, "Spec", "mtp-draft session invalidated by restore: %s",
                     exec->spec->last_error().c_str());
             exec->spec.reset();
         }
@@ -2226,6 +2306,15 @@ pvx_result_t pvx_executor_shift_left(pvx_executor_t* exec, int n_tokens) {
             "free the session first (boundary: spec-engine/eagle3-shift-left)";
         return PVX_ERR_NOT_SUPPORTED;
     }
+    // ABI v8 wave 4: draft-MTP h rows are position-indexed the same way —
+    // fail closed on front-shifts while a session is live.
+    if (exec->spec && exec->spec->is_mtp_draft()) {
+        std::lock_guard<std::mutex> lock(exec->ctx_ref->infer_mtx);
+        exec->ctx_ref->last_error =
+            "mtp-draft spec session cannot survive a front-shift (kv shift_left): "
+            "free the session first (boundary: spec-engine/mtp-shift-left)";
+        return PVX_ERR_NOT_SUPPORTED;
+    }
 
     std::lock_guard<std::mutex> lock(exec->ctx_ref->infer_mtx);
     reset_grammar_state(&exec->grammar_state);  // context shift → grammar desyncs
@@ -2706,6 +2795,18 @@ pvx_result_t pvx_executor_prompt_with_images(pvx_executor_t* exec,
             "eagle3 spec session active: multimodal prompts are a typed refusal "
             "while EAGLE3 drafting runs (upstream process() skips embd rows; "
             "free the session before image prompts) (boundary: spec-engine/eagle3-vision)";
+        return PVX_ERR_NOT_SUPPORTED;
+    }
+    // ABI v8 wave 4: the MTP capture hook consumes token-id rows only —
+    // embd (image) rows cannot pair (t_p, h_{p-1}) with the target trunk
+    // h_nextn contract kept. Upstream draft-mtp handles embd rows via
+    // set_embd_state pairing; this slice refuses typed (fail-closed, never a
+    // degraded draft) — free the session before image prompts.
+    if (exec->spec && exec->spec->is_mtp_draft()) {
+        exec->ctx_ref->last_error =
+            "mtp-draft spec session active: multimodal prompts are a typed refusal "
+            "while draft-MTP runs (the capture hook pairs token-id rows only; "
+            "free the session before image prompts) (boundary: spec-engine/mtp-vision)";
         return PVX_ERR_NOT_SUPPORTED;
     }
     if (!model->mtmd_ctx) {
@@ -3321,6 +3422,12 @@ pvx_result_t pvx_executor_prompt_with_audio(pvx_executor_t* exec,
             "eagle3 spec session active: multimodal prompts are a typed refusal "
             "while EAGLE3 drafting runs (free the session before media prompts) "
             "(boundary: spec-engine/eagle3-vision)";
+        return PVX_ERR_NOT_SUPPORTED;
+    }
+    if (exec->spec && exec->spec->is_mtp_draft()) {
+        exec->ctx_ref->last_error =
+            "mtp-draft spec session active: multimodal prompts are a typed refusal "
+            "(boundary: spec-engine/mtp-vision)";
         return PVX_ERR_NOT_SUPPORTED;
     }
     std::lock_guard<std::mutex> lock(exec->ctx_ref->infer_mtx);

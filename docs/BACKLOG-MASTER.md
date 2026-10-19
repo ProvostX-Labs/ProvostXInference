@@ -300,3 +300,10 @@
 product state (llama.cpp/GGUF-only). Completed historical backlog entries not relevant to the
 as-is product were retired; pre-reset history is archived outside every repo and is NOT
 recoverable from this git.
+
+### BL-38 · Separate-head draft-MTP spec mode (ABI v8 wave 4) — INF-04 Inference slice (owner order 2026-10-19 17:00)
+- Source: INF-04 (owner order 2026-10-19 17:00 "I want mtp to work" — Qwen3.8-Flash-Next on the large-memory host serving).
+- Spec: port the vendored `common_speculative_impl_draft_mtp` (upstream PR #28243) as `PVX_SPEC_MTP_DRAFT` (mode 9) + `mtp_draft_path` — the separate self-contained MTP head GGUF. EAGLE3-lane round structure: per-position `h_hist` capture hook (`mtp_process_target_rows`) after every target decode, `(t_{P-1}, h_{P-1})` pairing (zero-h at position 0), seed/chain pair-decodes, ONE verify decode + sample-and-match, KV repair, state save/restore additive h rows. Executor lane only (conversation lane refuses typed); empty-stream enable requirement; `n_layer_nextn(head)==0` and width/vocab mismatches are typed refusals. `PVX_SPEC_MTP_AUTO` (embedded) stays a typed wiring boundary — unchanged.
+- Scope: include/pvxinference.h, include/pvx_internal.h, src/pvx_spec_engine.{h,cpp}, src/pvxinference.cpp, csharp bindings (PvxSpecMode, PvxSpecParams, SpeculativeMode, SpeculativeConfig, 3 marshal sites), tests/test_basic.cpp, ARCHITECTURE.md, LDC artifacts. NOTHING outside.
+- Acceptance: native suite legs (typed fail-closed: missing path, metadata-only head, wrong-arch head, conversation-lane refusal, empty-stream refusal; env-gated live leg PVX_MTP_TARGET_PATH/PVX_MTP_DRAFT_PATH — typed skip off-pair) + C# binding/marshaling tests; Debug+Release 0 errors/0 warnings; LDC regen + enforcement same commit.
+- Status: done 2026-10-19 (local commit, no push). Live the large-memory host verification (160GB pair) = orchestrator.

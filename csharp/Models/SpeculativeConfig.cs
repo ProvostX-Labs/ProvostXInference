@@ -26,4 +26,11 @@ public sealed record SpeculativeConfig
     /// Dflash. Metadata is validated at spec init; the unwired drafting
     /// boundary types fail-closed.</summary>
     public string? DflashCompanionPath { get; init; }
+    /// <summary>ABI v8 wave 4: SEPARATE self-contained MTP head GGUF —
+    /// required iff Mode == MtpDraft (missing path is a typed native refusal
+    /// naming the boundary, never a silent disable). The head must carry nextn
+    /// layers (n_layer_nextn > 0), match the target trunk's hidden width, and
+    /// be vocab-compatible — all validated typed at spec init. Never used by
+    /// Draft (draft-simple) — that lane stays on DraftModelPath.</summary>
+    public string? MtpDraftPath { get; init; }
 }
