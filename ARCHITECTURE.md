@@ -155,9 +155,12 @@ spec init on a pool with `seq_max < 2` types the refusal; generation without a s
   vendored `common_speculative_impl_draft_mtp` (upstream llama.cpp PR #28243, evolved):
   the MTP head is a self-contained GGUF (own token embedding + output head + one nextn
   block) loaded as a SECOND draft model and run on a `LLAMA_CONTEXT_TYPE_MTP` context
-  (nextn-layer-only KV, `n_rs_seq = 0`; `ctx_other` stays unset for self-contained heads
-  → independent KV — gemma4-style shared memory and step35 multi-head chains are OUT
-  of this slice). Pairing convention (DeepSeek-style): a draft row predicting stream
+  (nextn-layer-only KV, `n_rs_seq = 0`). BL-42: the head context ALWAYS links the
+  target trunk via `ctx_other` (upstream ctor parity — self-contained heads ignore it);
+  shared-memory heads (`gemma4-assistant`) are SUPPORTED (no catch-up decodes, no
+  head seq_rm, all draft rows at the SAME position, state restore replays the h ring
+  only) — the remaining typed-refused class is step35-style multi-block chain heads
+  (`n_layer_nextn > 1`, needs `nextn_layer_offset` wiring). Pairing convention (DeepSeek-style): a draft row predicting stream
   position P consumes `(embd(t_{P-1}), h_{P-1})` — `h` = the target trunk's nextn
   embedding (`llama_set_embeddings_nextn(target, true, masked=false)`), row width =
   `llama_model_n_embd_out` (head must match target — typed refusal at spec_init, never
