@@ -1410,9 +1410,25 @@ static void test_spec_mtp_vision_live_pair() {
     int sizes[] = { (int) img_size };
     char* marker_str = nullptr;
     ASSERT(pvx_mtmd_marker(&marker_str) == PVX_OK);
-    const std::string prompt =
-        std::string("Describe this image in exactly ten words: ") + marker_str;
+    // LIVE LESSON (2026-10-20, the large-memory host 134GB pair): a RAW un-templated prompt
+    // after the image leaves the target's greedy argmax near-tied between
+    // ADJACENT end-marker specials (248044/248045) — the head picks the
+    // sibling, every draft rejects (accepted=0), exactness holds via the
+    // verify fallback. Proven NOT a pairing bug: chat-templated framing
+    // yields a real description distribution and genuine acceptances
+    // (drafted=15 accepted=4, exact, probe 2026-10-20). The leg therefore
+    // applies the model's chat template — the pairing claim it guards is
+    // "spec drafts accept on real multimodal distributions", not "the head
+    // reproduces degenerate end-marker near-ties".
+    const std::string v_content =
+        std::string(marker_str) + "\nDescribe this image in exactly ten words.";
     pvx_free_string(marker_str);
+    pvx_chat_message_t vm[1] = { { "user", v_content.c_str() } };
+    char* v_prompt_str = nullptr;
+    ASSERT(pvx_apply_chat_template(m, nullptr, vm, 1, /*add_assistant=*/true,
+                                    /*enable_thinking=*/0, &v_prompt_str) == PVX_OK);
+    const std::string prompt = v_prompt_str;
+    pvx_free_string(v_prompt_str);
 
     const int n_gen = 12;
     pvx_sampling_params_t smp = {};
@@ -1504,7 +1520,18 @@ static void test_spec_mtp_audio_live_pair() {
     std::vector<float> pcm((size_t) rate, 0.0f);
     for (size_t i = 0; i < pcm.size(); i++)
         pcm[i] = 0.25f * sinf((float) (2.0 * M_PI * 440.0 * i / pcm.size()));
-    const char* prompt = "Transcribe this audio: <__media__>";
+    // LIVE LESSON (2026-10-20, vision leg): raw un-templated multimodal
+    // prompts degenerate the target into end-marker near-ties (every draft
+    // rejected); the audio leg uses the model's chat template for a real
+    // transcription distribution — same fix as the vision leg.
+    const std::string a_content = std::string("<__media__>") + "\nTranscribe this audio.";
+    pvx_chat_message_t am[1] = { { "user", a_content.c_str() } };
+    char* a_prompt_str = nullptr;
+    ASSERT(pvx_apply_chat_template(m, nullptr, am, 1, /*add_assistant=*/true,
+                                    /*enable_thinking=*/0, &a_prompt_str) == PVX_OK);
+    const std::string a_prompt = a_prompt_str;
+    pvx_free_string(a_prompt_str);
+    const char* prompt = a_prompt.c_str();
 
     const int n_gen = 12;
     pvx_sampling_params_t smp = {};
