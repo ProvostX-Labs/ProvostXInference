@@ -222,13 +222,18 @@ gpu_layers is reloaded; if even that fails, `*model` is null and is not freed.
   (rewind/reset/shift/export) and pool-return hold the SAME lock in a fixed order
   (pool → infer) as lease — no inverted lock pairs.
 - `pvx_state_save` clears the backup seq before copying (seq_cp MERGES).
-- **Backup mechanism constraint (2026-10-20):** save-state backs up KV by copying
-  seq0 → seq1, so it REQUIRES `n_seq_max >= 2` and types `PVX_ERR_NOT_SUPPORTED`
-  with one slot (the LLM `seq_max` knob AUTO=1 full-context posture disables
-  save/rewind; ≥2 arms it and the fork halves per-sequence capacity
-  `n_ctx_seq = n_ctx/n_seq_max`). Known backlog: seq1-free backup (byte-level
-  state serialization or rs-snapshot restore) to make full context and save/rewind
-  coexist.
+- **Backup mechanism (implemented 2026-10-20, seq1-free):** save-state arms by slot
+  budget. With `n_seq_max >= 2` it copies seq0 → seq1 (`llama_memory_seq_cp`) and
+  restore copies back after a seq-0 clear — cheap cell-level copy, but it spends a
+  sequence slot and halves per-sequence capacity (`n_ctx_seq = n_ctx/n_seq_max`).
+  With `n_seq_max == 1` (the LLM `seq_max` knob AUTO=1 full-context posture) the
+  save now BYTE-SERIALIZES the seq-0 state instead (`llama_state_seq_get_size` /
+  `get_data` — cells + K/V rows — held in `pvx_state_s::kv_bytes`) and restore
+  replays it via `llama_state_seq_set_data` after the `seq_rm` clear. One full-state
+  copy at save time buys save/rewind at full per-session context; the old typed
+  `PVX_ERR_NOT_SUPPORTED` refusal is gone. (Verified 2026-10-20: llama-level
+  roundtrip is byte-identical and logit-exact on CPU and Metal, q8_0/F16 KV;
+  journey `SingleSlotSaveRewindJourneyTests` pins the recall.)
 - Model destruction ordering: per-model `active_context_count` + condition variable;
   `pvx_free_model` blocks until all its contexts are freed (prevents Metal device-before-buffers
   aborts); contexts of different models free concurrently.

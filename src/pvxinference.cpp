@@ -1194,7 +1194,16 @@ pvx_result_t pvx_conversation_spec_stats(pvx_conversation_t* conv,
 }
 
 // ── State save/restore ──
-// Uses llama_memory_seq_cp to copy KV to a spare seq_id, then restore by copying back
+// Two backup branches by slot budget (2026-10-20):
+//  - n_seq_max >= 2: llama_memory_seq_cp copies seq-0 KV to the spare seq 1
+//    at save time; restore clears seq 0 and copies the backup back (cheap,
+//    cell-level, but needs the second sequence slot).
+//  - n_seq_max == 1 (server seq_max AUTO): no spare slot exists, so the save
+//    byte-serializes the seq-0 state (llama_state_seq_get_size/get_data —
+//    cells + K/V rows) into the snapshot; restore replays those bytes via
+//    llama_state_seq_set_data after the seq_rm clear. Costs one full-state
+//    copy at save time but keeps save/rewind alive at full per-session
+//    context.
 
 pvx_result_t pvx_state_save(pvx_executor_t* exec, pvx_state_t** out_state) {
     if (!exec || !out_state) return PVX_ERR_INVALID_ARG;
@@ -1216,16 +1225,33 @@ pvx_result_t pvx_state_save(pvx_executor_t* exec, pvx_state_t** out_state) {
     }
     // Copy KV from seq 0 to seq 1 (backup)
     if (exec->n_tokens > 0) {
-        if (exec->ctx_ref->n_seq_max < 2) {
-            delete state;
-            return PVX_ERR_NOT_SUPPORTED;  // need >=2 seq_ids for backup
-        }
         std::lock_guard<std::mutex> lock(exec->ctx_ref->infer_mtx);
-        // Clear the backup seq FIRST — llama_memory_seq_cp MERGES into the
-        // destination; a stale seq 1 from a previous save/restore cycle would
-        // corrupt the backup (restores would resurrect old cells).
-        llama_memory_seq_rm(exec->ctx_ref->mem, 1, 0, -1);
-        llama_memory_seq_cp(exec->ctx_ref->mem, 0, 1, 0, -1);
+        if (exec->ctx_ref->n_seq_max >= 2) {
+            // Clear the backup seq FIRST — llama_memory_seq_cp MERGES into the
+            // destination; a stale seq 1 from a previous save/restore cycle would
+            // corrupt the backup (restores would resurrect old cells).
+            llama_memory_seq_rm(exec->ctx_ref->mem, 1, 0, -1);
+            llama_memory_seq_cp(exec->ctx_ref->mem, 0, 1, 0, -1);
+        } else {
+            // Single-slot backup (2026-10-20): no spare seq_id exists — serialize
+            // the seq-0 state bytes into the snapshot instead. Costs one full-state
+            // copy at save time but keeps save/rewind alive under seq_max=1 (full
+            // per-session context); the NOT_SUPPORTED refusal is gone.
+            const size_t n = llama_state_seq_get_size(exec->ctx_ref->ctx, 0);
+            if (n == 0) {
+                exec->ctx_ref->last_error = "state_seq_get_size returned 0";
+                delete state;
+                return PVX_ERR_INTERNAL;
+            }
+            state->kv_bytes.resize(n);
+            const size_t written = llama_state_seq_get_data(exec->ctx_ref->ctx, state->kv_bytes.data(), n, 0);
+            if (written == 0) {
+                exec->ctx_ref->last_error = "state_seq_get_data failed";
+                delete state;
+                return PVX_ERR_INTERNAL;
+            }
+            state->kv_bytes.resize(written);
+        }
     }
     *out_state = state;
     return PVX_OK;
@@ -1238,8 +1264,17 @@ pvx_result_t pvx_state_restore(pvx_executor_t* exec, pvx_state_t* state) {
     llama_memory_seq_rm(exec->ctx_ref->mem, 0, 0, -1);
     if (state->n_tokens > 0 && exec->ctx_ref->n_seq_max > 1) {
         llama_memory_seq_cp(exec->ctx_ref->mem, 1, 0, 0, -1);
+    } else if (state->n_tokens > 0 && !state->kv_bytes.empty()) {
+        // Single-slot restore (2026-10-20): replay the serialized seq-0 state
+        // bytes (seq_rm above already cleared seq 0; set_data MERGES onto it).
+        const size_t loaded = llama_state_seq_set_data(exec->ctx_ref->ctx,
+            state->kv_bytes.data(), state->kv_bytes.size(), 0);
+        if (loaded == 0) {
+            exec->ctx_ref->last_error = "state_seq_set_data failed";
+            return PVX_ERR_INTERNAL;
+        }
     } else if (state->n_tokens > 0 && exec->ctx_ref->n_seq_max <= 1) {
-        // Can't restore from backup seq — no spare seq_id
+        // Legacy single-slot snapshot without a byte payload: no backup exists.
         exec->n_tokens = 0;
         exec->last_batch_idx = -1;
         exec->last_logits.clear();

@@ -304,6 +304,14 @@ struct pvx_state_s {
     // session with a mismatched/absent payload invalidates it typed
     // (re-init required) — never a phantom-prefix resume.
     std::vector<std::vector<float>> mtp_h_rows;
+    // 2026-10-20 (seq1-free backup): byte-serialized seq-0 KV/recurrent state
+    // (llama_state_seq_get_data). Populated ONLY when the owning context has a
+    // single sequence slot (n_seq_max < 2) — the seq0→seq1 copy backup needs a
+    // spare slot; this payload needs none, so seq_max=1 (full per-session
+    // context) keeps save/restore. Empty in the seq-copy mode and in legacy
+    // checkpoints; a restore onto a single-slot context with an empty payload
+    // falls back to the empty-state reset.
+    std::vector<uint8_t> kv_bytes;
 };
 
 // Conversation-lane mirror push helpers (ABI v7 feature 5) — the twins of
