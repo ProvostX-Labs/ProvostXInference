@@ -1823,6 +1823,16 @@ bool PvxBLSpecEngine::mtp_pair_decode(llama_token tok, const float* h_row,
                                       llama_pos pos, bool output_logits) {
     llama_batch_ext* ext = llama_batch_ext_init(m_ctx_dft);
     if (!ext) return false;
+    // ABI v8 wave-4 fix (live-verified 2026-10-19): every seed/chain row must
+    // DROP the head memory region above its position first — upstream draft()
+    // seq_rm(pos0, -1) (speculative.cpp:1749) — else the previous round's
+    // catch-up/draft cells occupy [pos, ...) and the decode hits the KV
+    // contiguity check ("X = 30 / Y = 24", live log 20:55). Cells below pos
+    // (the committed prefix) stay.
+    {
+        llama_memory_t dmem = llama_get_memory(m_ctx_dft);
+        if (dmem) llama_memory_seq_rm(dmem, 0, pos, -1);
+    }
     bool ok = false;
     do {
         const int32_t idx = llama_batch_ext_add_token(ext, 0, tok);
@@ -1882,8 +1892,22 @@ bool PvxBLSpecEngine::mtp_process_target_rows(llama_pos pos_first, int n_rows,
 
     // Catch-up decode: the whole batch into the head context with the
     // (t_p, h_{p-1}) pairing (zero-h row for p == 0 — upstream pending
-    // zeros), chunked by the head's n_batch. Stale chain cells above are
-    // re-decoded-over upstream-style (no seq_rm on the head context).
+    // zeros), chunked by the head's n_batch.
+    //
+    // ABI v8 wave-4 fix (live-verified 2026-10-19, probe): the head KV fails
+    // the contiguity check when a catch-up re-decodes positions it already
+    // holds — the round's seed+chain pre-writes [pos_first, ...) into the
+    // head (mtp_pair_decode), and every later catch-up then re-decodes the
+    // same committed stream rows (rc=-1 "failed to initialize batch",
+    // live log 20:50). Mirror upstream's draft-region drop
+    // (speculative.cpp:1650/1749): seq_rm [pos_first, end) on the head
+    // memory first — the committed prefix below pos_first stays — so the
+    // catch-up replays over freed cells only. No-op for fresh positions
+    // (prompt slices: nothing above pos_first yet).
+    llama_memory_t dmem = llama_get_memory(m_ctx_dft);
+    if (dmem) llama_memory_seq_rm(dmem, 0, (llama_pos) pos_first, -1);
+    // Stale chain cells above are re-decoded-over upstream-style (no further
+    // seq_rm on the head context anywhere else).
     const int d_batch = (int) llama_n_batch(m_ctx_dft);
     // h_{-1} pairing row (p == 0): zero-padded scratch (upstream pending
     // zeros init), sized at create time.
@@ -2058,6 +2082,11 @@ pvx_result_t PvxBLSpecEngine::generate_mtp(const pvx_sampling_params_t* params,
         chain_cap = std::min(chain_cap, rs_cap - 1);
     }
     if (chain_cap < 0) chain_cap = 0;
+
+    pvx_log(PVX_LOG_DEBUG, "Spec",
+            "mtp generate enter: n_kv_pos=%d n_tokens=%d h_hist=%zu chain_cap=%d rs=%d",
+            (int) *m_stream.n_kv_pos, (int) *m_stream.n_tokens,
+            m_mtp_h_hist.size(), chain_cap, (int) llama_n_rs_seq(ctx->ctx));
 
     int generated = 0;
     m_n_drafted = 0;
