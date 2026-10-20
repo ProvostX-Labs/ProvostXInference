@@ -358,4 +358,4 @@ recoverable from this git.
 - Spec: derive the native dir RID from ProcessArchitecture (linux-arm64 + linux-x64) in the probe + resolver; ship or document an arm64 ORT payload story. No behavior change on existing x64 Linux or macOS/Windows paths.
 - Scope: csharp/Interop/PvxNative.cs, csharp/Models/PvxEngineFileResolver.cs, csharp/Tests (RID expectations), ARCHITECTURE.md, LDC artifacts. NOTHING outside.
 - Acceptance: unit tests proving arm64 RID derivation (host-overridable), native probe finds `.so` under `linux-arm64` on an arm64 Linux host, existing x64 path unchanged, LDC regen + enforcement PASS.
-- Status: **registered** 2026-10-20 (found during post-BL-22 Linux VM verification; not fixed — out of scope of the verification run).
+- Status: **done** 2026-10-20 — arch-aware Linux RID (IOSProbe.Architecture seam + PvxNative ProcessArchitecture derive); macOS/Windows unchanged; full C# suite 234/234; live-artifact: the Linux VM build tree (arch-correct .so dir) picks up natively on next sync. ORT arm64 payload story: documented (source-built ORT needed; resolver now finds it in linux-arm64).

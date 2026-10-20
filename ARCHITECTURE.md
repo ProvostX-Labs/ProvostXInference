@@ -431,3 +431,19 @@ signature would do exactly that). No caller passes a logger through the ctor.
   sub-struct pointer), `pvx_sampling_params_wave5_t` = 72, `pvx_logit_bias_t`
   = 8, `pvx_kv_override_t` = 288. Pinned by `PvxAbiSizeTests` (C#) and probed
   at build time.
+
+## Addendum 2026-10-20 — BL-43: arch-aware Linux RID in the C# native probe
+- The C# native discovery no longer hardcodes `linux-x64` for ALL Linux:
+  `IOSProbe.Architecture()` (new seam; `SystemOsProbe` reads
+  `RuntimeInformation.ProcessArchitecture`, test doubles override) drives the
+  resolver (`linux-arm64` / `linux-x64`); the `PvxNative` static ctor derives
+  the same from `ProcessArchitecture` (bootstrap context — no injectable seam
+  exists pre-activation). macOS (`osx-arm64`) and Windows (`win-x64`) paths are
+  UNCHANGED.
+- Payload note (documented, not shipped): the packaged `runtimes/linux-x64`
+  ONNX Runtime payloads are prebuilt x64 ELF — on arm64 Linux, source-build ORT
+  (or a linux-arm64 package payload) is required; the resolver now looks in the
+  CORRECT `linux-arm64` native dir for the source-built artifacts.
+- Found during post-BL-22 Linux ARM64 VM verification (see the LLM-side
+  verification report); registered then scoped per owner order 19:10
+  ("lets clean it up").

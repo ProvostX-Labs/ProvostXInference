@@ -49,10 +49,14 @@ internal static class PvxNative
             var asmDir = Path.GetDirectoryName(typeof(PvxNative).Assembly.Location);
             if (!string.IsNullOrEmpty(asmDir))
             {
+                // BL-43: the Linux RID follows the process architecture
+                // (linux-arm64 on arm64 hosts — was hardcoded linux-x64).
+                var linuxRid = $"linux-{(System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture
+                    == System.Runtime.InteropServices.Architecture.Arm64 ? "arm64" : "x64")}";
                 string relative = OperatingSystem.IsMacOS()
                     ? Path.Combine("runtimes", "osx-arm64", "native", "libpvxinference.dylib")
                     : OperatingSystem.IsLinux()
-                        ? Path.Combine("runtimes", "linux-x64", "native", "libpvxinference.so")
+                        ? Path.Combine("runtimes", linuxRid, "native", "libpvxinference.so")
                         : Path.Combine("runtimes", "win-x64", "native", "pvxinference.dll");
                 var candidate = Path.Combine(asmDir, relative);
                 if (File.Exists(candidate))

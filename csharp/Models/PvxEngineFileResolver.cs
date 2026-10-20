@@ -5,7 +5,8 @@ namespace ProvostXInference.Models;
 
 /// <summary>
 /// OS-aware resolver from validated engine id to the specialist module file
-/// name under this assembly's runtimes/&lt;rid&gt;/native/ directory. metal =
+/// name under this assembly's runtimes/&lt;rid&gt;/native/ directory (BL-43:
+/// Linux rid = linux-&lt;arch&gt; from the process architecture). metal =
 /// macOS (.dylib); cuda/vulkan = Windows (.dll) / Linux (.so). Fail-closed:
 /// any (engine, OS) pair outside the matrix throws rather than guessing.
 /// Stateless utility — no mutable state.
@@ -56,7 +57,12 @@ internal sealed class PvxEngineFileResolver : IPvxEngineFileResolver
         get
         {
             var asmDir = Path.GetDirectoryName(typeof(PvxEngineFileResolver).Assembly.Location);
-            var rid = _os.IsMacOS() ? "osx-arm64" : _os.IsLinux() ? "linux-x64" : "win-x64";
+            // BL-43: the Linux RID follows the PROCESS ARCHITECTURE (linux-arm64 on
+            // arm64 hosts — was hardcoded linux-x64 for all Linux). macOS/Windows
+            // stay osx-arm64 / win-x64 (the shipped product targets).
+            var rid = _os.IsMacOS() ? "osx-arm64"
+                : _os.IsLinux() ? $"linux-{_os.Architecture()}"
+                : "win-x64";
             return Path.Combine(asmDir ?? ".", "runtimes", rid, "native");
         }
     }

@@ -12,20 +12,26 @@ internal sealed class FakeOsProbe : IOSProbe
     private readonly bool _linux;
     private readonly bool _windows;
 
-    public FakeOsProbe(bool macos = false, bool linux = false, bool windows = false)
+    public FakeOsProbe(bool macos = false, bool linux = false, bool windows = false, string? architecture = null)
     {
         _macos = macos;
         _linux = linux;
         _windows = windows;
+        _architecture = architecture ?? "x64";
     }
 
     public static FakeOsProbe MacOS() => new(macos: true);
-    public static FakeOsProbe Linux() => new(linux: true);
+    public static FakeOsProbe Linux(string architecture = "x64") => new(linux: true, architecture: architecture);
     public static FakeOsProbe Windows() => new(windows: true);
 
     public bool IsMacOS() => _macos;
     public bool IsLinux() => _linux;
     public bool IsWindows() => _windows;
+
+    // BL-43: the RID seam — test doubles override the process architecture.
+    public string Architecture() => _architecture;
+
+    private readonly string _architecture;
 }
 
 /// <summary>Fake engine policy: records calls and returns scripted answers

@@ -1,6 +1,6 @@
 # Tests.API.md
 
-Types: 30  |  LOC: 3779  |  ~1598 tokens
+Types: 31  |  LOC: 3817  |  ~1642 tokens
 
 ---
 
@@ -100,6 +100,10 @@ Cross-package deps: ProvostXInference.Interop, ProvostXInference.Models, Xunit
 ### Class: PvxEngineSelectorTests
 > Selector matrix (BL-02 stage 1): every (engine, OS) pair of the 5-product
 Cross-package deps: ProvostXInference.Interop, ProvostXInference.Models, Xunit
+
+### Class: PvxRidDerivationTests
+> BL-43: the native-dir RID follows the process architecture on
+Cross-package deps: ProvostXInference.Models, ProvostXInference.Interop, Xunit
 
 ### Class: SmokeTests
 > Comprehensive test suite for ProvostXInference C# bindings.
