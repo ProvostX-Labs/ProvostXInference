@@ -1,11 +1,11 @@
 # API-INDEX.md — ProvostXInference
 
-Generated: 2026-10-20T12:03:52.332251+00:00
-Packages: 3  |  Types: 1896
+Generated: 2026-10-20T17:23:13.699228+00:00
+Packages: 3  |  Types: 1897
 
 ---
 
-## Tests (30 types, ~3779 LOC)
+## Tests (31 types, ~3817 LOC)
 
 - 🟡 DecisionEngineOpsTests  (Tests)
 - 🟡 DecisionEngineRequestTests  (Tests)
@@ -31,6 +31,7 @@ Packages: 3  |  Types: 1896
 - 🟡 PvxDispatchRouterTests  (Tests)
 - 🟡 PvxEngineFileResolverTests  (Tests)
 - 🟡 PvxEngineSelectorTests  (Tests)
+- 🟡 PvxRidDerivationTests  (Tests)
 - 🟡 SmokeTests  (Tests)
 - 🟡 SpecDecodeTests  (Tests)
 - 🟡 StallSafePrefillLiveJourneyTests  (Tests)
@@ -38,7 +39,7 @@ Packages: 3  |  Types: 1896
 - 🟡 StallWatchdogTests  (Tests)
 - 🟡 Wave3FeatureTests  (Tests)
 
-## csharp (91 types, ~5880 LOC)
+## csharp (91 types, ~5892 LOC)
 
 - 🔵 IChunkWallClock  (csharp)
 - 🔵 IConversation : IDisposable  (csharp)
