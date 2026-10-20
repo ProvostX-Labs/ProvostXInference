@@ -184,8 +184,13 @@ spec init on a pool with `seq_max < 2` types the refusal; generation without a s
   multimodal refusal is gone; pure pairing planner
   `pvx_mtp_catch_up_arm` is unit-tested without models). EAGLE3 still refuses
   vision prompts typed (its per-position feature capture cannot see embd
-  rows), and AUDIO prompts still refuse typed (BL-39 scoped the mtmd IMAGE
-  embd lane). State save/restore carries the `h_hist` rows additively (mismatch on
+  rows). AUDIO prompts coexist EXACTLY too (BL-40, same embd-row class as
+  BL-39): audio embd rows ride the same `add_embd` input arm with unchanged
+  `h_{p-1}` pairing at FLAT pinned positions (upstream `mrope_1d` == plain),
+  the hook fires at every audio commit site (the audio-prompt text flush —
+  per n_batch slice — and EACH audio embd decode chunk), and the old typed
+  audio-in-MTP refusal is gone. EAGLE3 still refuses audio prompts typed
+  (same feature-capture seam as vision). State save/restore carries the `h_hist` rows additively (mismatch on
   restore invalidates the session typed, re-init required); kv `shift_left` refuses
   typed. `llama_model_n_layer_nextn(head) == 0` (head GGUF without nextn tensors) is a
   typed refusal naming the boundary — never faked. The TARGET context carries the

@@ -3406,6 +3406,20 @@ static pvx_result_t exec_audio_flush(void* obj) {
         for (int j = 0; j < n_slice; j++)
             pvx_mirror_push_token(exec, exec->pending_tokens[(size_t) flushed + j],
                                   kv_base + flushed + j);
+        // BL-40: these rows decoded OUTSIDE pvx_executor_infer (flush slices
+        // by n_batch) — the draft-MTP capture hook must see them PER SLICE
+        // (h rows die at the next slice's decode) or the capture-order
+        // invariant (h_hist == n_tokens) desyncs forever.
+        if (exec->spec && exec->spec->is_mtp_draft()) {
+            const size_t mirror_base = exec->mirror.size() - (size_t) n_slice;
+            if (!exec->spec->mtp_process_target_rows(
+                    kv_base + flushed, n_slice,
+                    exec->mirror.data() + mirror_base)) {
+                exec->ctx_ref->last_error = exec->spec->last_error();
+                exec->mirror.resize(mirror_base);  // pop uncommitted rows
+                return PVX_ERR_DECODE_FAILED;
+            }
+        }
         exec->n_tokens += n_slice;
         exec->n_kv_pos += n_slice;
         exec->n_decode_steps++;  // ABI v8 stats
@@ -3436,8 +3450,14 @@ static pvx_result_t exec_audio_decode(void* obj, mtmd_context* mctx, const mtmd_
         return PVX_ERR_DECODE_FAILED;
     }
     // Audio rows decode at FLAT pinned positions (upstream mrope_1d == plain).
+    // BL-40: mirror push + draft-MTP capture hook fire PER CHUNK — the
+    // target trunk h rows (nextn embeddings) die at the NEXT decode on the
+    // shared context, so a later chunk would orphan the earlier chunk's h
+    // rows (capture-order desync). Failure mid-chunk pops the pushed rows
+    // back off the mirror (mirror == n_tokens holds on the failure path).
     const llama_pos embd_base = exec->n_kv_pos;
     const uint32_t n_batch = llama_n_batch(exec->ctx_ref->ctx);
+    const size_t mirror_base = exec->mirror.size();
     int offset = 0;
     bool failed = false;
     while (offset < n_tokens) {
@@ -3457,10 +3477,30 @@ static pvx_result_t exec_audio_decode(void* obj, mtmd_context* mctx, const mtmd_
         }
         llama_batch_ext_free(ext);
         if (failed) break;
+        // Commit this chunk's mirror rows (flat pinned positions), then hand
+        // them to the capture hook (h rows die at the next decode — see
+        // above). Audio embd rows pair as head INPUT embeddings (upstream
+        // add_embd arm), never as (t,h) history — same as vision (BL-39).
+        for (int j = 0; j < n_slice; j++) {
+            const int i = offset + j;
+            const std::array<llama_pos, 4> rp = { embd_base + i, embd_base + i,
+                                                  embd_base + i, embd_base + i };
+            pvx_mirror_push_embd(exec, embd + (size_t) i * n_embd, n_embd, rp);
+        }
+        if (exec->spec && exec->spec->is_mtp_draft()) {
+            if (!exec->spec->mtp_process_target_rows(
+                    embd_base + offset, n_slice,
+                    exec->mirror.data() + mirror_base + (size_t) offset)) {
+                exec->ctx_ref->last_error = exec->spec->last_error();
+                failed = true;
+            }
+        }
+        if (failed) break;
         offset += n_slice;
     }
     if (need_non_causal) llama_set_causal_attn(exec->ctx_ref->ctx, true);
     if (failed) {
+        exec->mirror.resize(mirror_base);  // pop uncommitted rows
         exec->ctx_ref->last_error = "audio embd decode failed";
         return PVX_ERR_DECODE_FAILED;
     }
@@ -3468,11 +3508,6 @@ static pvx_result_t exec_audio_decode(void* obj, mtmd_context* mctx, const mtmd_
     exec->n_kv_pos += n_tokens;
     exec->n_decode_steps++;  // ABI v8 stats
     exec->last_batch_idx = n_tokens - 1;
-    for (int i = 0; i < n_tokens; i++) {
-        const std::array<llama_pos, 4> rp = { embd_base + i, embd_base + i,
-                                              embd_base + i, embd_base + i };
-        pvx_mirror_push_embd(exec, embd + (size_t) i * n_embd, n_embd, rp);
-    }
     snapshot_logits_row(exec->ctx_ref->ctx, exec->last_logits, n_tokens - 1);
     return PVX_OK;
 }
@@ -3491,12 +3526,13 @@ pvx_result_t pvx_executor_prompt_with_audio(pvx_executor_t* exec,
             "(boundary: spec-engine/eagle3-vision)";
         return PVX_ERR_NOT_SUPPORTED;
     }
-    if (exec->spec && exec->spec->is_mtp_draft()) {
-        exec->ctx_ref->last_error =
-            "mtp-draft spec session active: multimodal prompts are a typed refusal "
-            "(boundary: spec-engine/mtp-vision)";
-        return PVX_ERR_NOT_SUPPORTED;
-    }
+    // ABI v8 wave 4 / BL-40: draft-MTP and audio now coexist in one session
+    // EXACTLY — the capture hook takes mirror entries, so audio embd rows
+    // pair as head INPUT embeddings (upstream add_embd arm, same class as
+    // the vision rows of BL-39) with unchanged h_{p-1} state pairing. The old
+    // typed refusal (spec-engine/mtp-vision on the audio path) is gone;
+    // EAGLE3 still refuses (its per-position feature capture cannot see
+    // embd rows — see above).
     std::lock_guard<std::mutex> lock(exec->ctx_ref->infer_mtx);
     return pvx_prompt_with_audio_impl("executor", exec, model_with_mtmd, text,
                                       pcm, n_samples,

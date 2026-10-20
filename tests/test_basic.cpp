@@ -1467,6 +1467,99 @@ static void test_spec_mtp_vision_live_pair() {
     pvx_free_model(m);
 }
 
+// LIVE draft-MTP + audio same-session leg (BL-40): a genuine audio-capable
+// target + MTP head pair + audio-capable mmproj. Spec is enabled on the
+// EMPTY executor, then an audio-then-text prompt rides the SAME session —
+// the capture hook must pair audio embd rows as head INPUT embeddings (never
+// as (t,h) history) and the spec stream must stay token-exact vs plain
+// greedy. Env-gated: PVX_MTP_TARGET_PATH + PVX_MTP_DRAFT_PATH +
+// PVX_AUDIO_MMPROJ_PATH; absent (or the pair is not audio-capable) = typed
+// skip. The PCM is a mechanical 1 s sine at the projector's native rate
+// (decode-mechanics gate — transcript quality needs real audio).
+static void test_spec_mtp_audio_live_pair() {
+    const char* tgt = getenv("PVX_MTP_TARGET_PATH");
+    const char* dft = getenv("PVX_MTP_DRAFT_PATH");
+    const char* mmp = getenv("PVX_AUDIO_MMPROJ_PATH");
+    if (!tgt || !dft || !mmp || !file_exists(tgt) || !file_exists(dft) ||
+        !file_exists(mmp)) {
+        fprintf(stderr, "live-skip: no genuine mtp+audio pair "
+                "(PVX_MTP_TARGET_PATH/PVX_MTP_DRAFT_PATH/PVX_AUDIO_MMPROJ_PATH "
+                "unset)\n");
+        return;
+    }
+    pvx_model_params_t mp = {}; mp.model_path = tgt; mp.gpu_layers = 99; mp.flash_attn = true;
+    pvx_model_t* m = nullptr; ASSERT(pvx_load_model(&mp, &m) == PVX_OK);
+    pvx_model_t* mmproj = nullptr;
+    ASSERT(pvx_load_mmproj(m, mmp, &mmproj) == PVX_OK);
+    if (!pvx_mtmd_supports_audio(m)) {
+        // off-pair (target or projector not audio-capable): typed skip
+        fprintf(stderr, "live-skip: mtp pair is not audio-capable "
+                "(mtmd_support_audio false)\n");
+        pvx_free_mmproj(mmproj);
+        pvx_free_model(m);
+        return;
+    }
+    const int rate = pvx_mtmd_audio_sample_rate(m);
+    ASSERT(rate > 0);
+    std::vector<float> pcm((size_t) rate, 0.0f);
+    for (size_t i = 0; i < pcm.size(); i++)
+        pcm[i] = 0.25f * sinf((float) (2.0 * M_PI * 440.0 * i / pcm.size()));
+    const char* prompt = "Transcribe this audio: <__media__>";
+
+    const int n_gen = 12;
+    pvx_sampling_params_t smp = {};
+    smp.temperature = 0.0f; smp.top_k = 1; smp.top_p = 1.0f; smp.repeat_penalty = 1.0f;
+    smp.max_tokens = n_gen; smp.ignore_eos = true;
+
+    // A: plain greedy reference on a fresh context (audio + infer).
+    pvx_context_t* ca = make_ctx(m, 1, 4096);
+    pvx_executor_t* ea = nullptr; ASSERT(pvx_executor_create(ca, &ea) == PVX_OK);
+    ASSERT(pvx_executor_prompt_with_audio(ea, m, prompt, pcm.data(), (int) pcm.size())
+           == PVX_OK);
+    ASSERT(pvx_executor_infer(ea) == PVX_DECODE_OK);
+    int32_t ref[32];
+    ASSERT(gen_plain_loop(ea, &smp, n_gen, ref) == n_gen);
+    pvx_executor_free(ea); pvx_free_context(ca);
+
+    // B: draft-MTP FIRST (empty stream), then the SAME audio-then-text
+    // prompt in the SAME session — the BL-40 scenario. n_rs_seq ring for the
+    // hybrid verify repair contract (ABI v8 wave 4).
+    pvx_context_params_t cp = {};
+    cp.context_size = 4096; cp.batch_size = 512; cp.seq_max = 1;
+    cp.n_rs_seq = 16;
+    pvx_context_t* cb = nullptr; ASSERT(pvx_create_context(m, &cp, &cb) == PVX_OK);
+    pvx_executor_t* eb = nullptr; ASSERT(pvx_executor_create(cb, &eb) == PVX_OK);
+    pvx_spec_params_t sp = {};
+    sp.mode = PVX_SPEC_MTP_DRAFT;
+    sp.mtp_draft_path = dft;
+    sp.draft_max = 2;
+    sp.p_min = -1.0f;
+    ASSERT(pvx_executor_spec_init(eb, &sp) == PVX_OK);
+    ASSERT(pvx_executor_prompt_with_audio(eb, m, prompt, pcm.data(), (int) pcm.size())
+           == PVX_OK);
+    ASSERT(pvx_executor_infer(eb) == PVX_DECODE_OK);
+    int32_t out[32]; int n = 0;
+    struct Cap { int32_t* v; int i; };
+    Cap cap{out, 0};
+    ASSERT(pvx_executor_generate_spec(eb, &smp, n_gen,
+            (pvx_spec_token_callback_t)+[](int32_t t, void* ud) -> bool {
+                Cap* c = (Cap*) ud; c->v[c->i++] = t; return true;
+            }, &cap, &n) == PVX_OK);
+    ASSERT(n == n_gen);
+    ASSERT(cap.i == (size_t) n);
+    ASSERT(memcmp(ref, out, sizeof(int32_t) * (size_t) n) == 0); // byte-identical
+    int64_t drafted = 0, accepted = 0;
+    ASSERT(pvx_executor_spec_stats(eb, &drafted, &accepted) == PVX_OK);
+    ASSERT(drafted > 0);
+    ASSERT(accepted > 0);
+    fprintf(stderr, "live: mtp+audio exact %d/%d tokens, drafted=%lld accepted=%lld "
+            "(accept-rate %.1f%%) ", n, n_gen, (long long) drafted,
+            (long long) accepted, 100.0 * (double) accepted / (double) drafted);
+    pvx_executor_free(eb); pvx_free_context(cb);
+    pvx_free_mmproj(mmproj);
+    pvx_free_model(m);
+}
+
 static void test_spec_eagle3_live_pair() {
     // LIVE EAGLE3 leg (BL-36 evidence): a genuine target+companion pair.
     // Re-provision with the verified pair (repo + file names, relative notes):
@@ -2270,6 +2363,7 @@ int main() {
     TEST(spec_mtp_draft_typed);
     TEST(spec_mtp_draft_live_pair);
     TEST(spec_mtp_vision_live_pair);
+    TEST(spec_mtp_audio_live_pair);
     TEST(json_schema_grammar_roundtrip);
     TEST(rerank_typed);
     TEST(rerank_live);

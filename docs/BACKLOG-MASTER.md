@@ -314,3 +314,10 @@ recoverable from this git.
 - Scope: src/pvx_spec_engine.cpp, src/pvxinference.cpp, include/pvx_internal.h, tests (native vision+spec leg), ARCHITECTURE.md, LDC artifacts. NOTHING outside.
 - Acceptance: native test proving spec ON == OFF token-exact on a vision-then-text session (env-gated live leg) or a typed fail-closed refusal with a clear native error; regression: existing native suite green, C# suite green, LDC regen + enforcement PASS.
 - Status: done 2026-10-20 (local commit, no push). Vision+MTP live leg env-gated (PVX_MTP_TARGET_PATH/PVX_MTP_DRAFT_PATH/PVX_MMPROJ_PATH/PVX_TEST_IMAGE — typed skip off-pair; no vision+MTP pair on this host — the orchestrator runs it where one exists).
+
+### BL-40 · Spec+audio same-session: MTP audio embd-row pairing (owner order 2026-10-20 09:13)
+- Source: BL-39 follow-up (owner order 2026-10-20 09:13 "yes do also for audio"); same embd-row class as vision.
+- Spec: audio prompts currently refuse typed in draft-MTP sessions. Apply the BL-39 mechanism (commit b08700d): audio embd rows must ride the upstream input arm feeding the MTP head, h-history capture hook pairing only on mirror/text commit sites, per-audio-chunk decode commits, and mtp_state_restore replaying audio rows — removing the typed audio refusal in MTP sessions. Exactness required, not refusal.
+- Scope: src/pvx_spec_engine.cpp, src/pvxinference.cpp, include/pvx_internal.h, tests (native audio+spec leg, env-gated live leg), ARCHITECTURE.md, LDC artifacts. NOTHING outside.
+- Acceptance: native audio+spec leg deterministic OR token-exact live (env-gated); typed refusal gone; regression native + C# suites green; LDC regen + enforcement PASS same commit.
+- Status: done 2026-10-20 (local commit, no push). Audio+MTP live leg env-gated (PVX_MTP_TARGET_PATH/PVX_MTP_DRAFT_PATH/PVX_AUDIO_MMPROJ_PATH — typed skip off-pair/not audio-capable; no audio+MTP pair on this host — the orchestrator runs it where one exists).

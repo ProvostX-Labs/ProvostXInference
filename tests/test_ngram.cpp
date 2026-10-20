@@ -335,6 +335,62 @@ static void test_mtp_catch_up_arm_vision_pairing() {
     }
 }
 
+// BL-40 — audio rows ride the SAME catch-up pairing planner (pure, no
+// models): the projected audio embedding is the head INPUT (add_embd arm,
+// the same embd-row class as BL-39 vision), the h source is ALWAYS the
+// previous committed position (an audio row's hidden state included), and
+// only stream position 0 pairs the pending-zeros row. Audio rows pin FLAT
+// 4-D positions (upstream mrope_1d == plain), so the planner's discipline
+// must hold unchanged on the flat-position shape.
+static void test_mtp_catch_up_arm_audio_pairing() {
+    pvx_executor_s exec{};
+    // stream: tok@0, aud@1..4 (flat pinned pos — the audio-then-text shape
+    // of BL-40), tok@5.
+    pvx_mirror_push_token(&exec, 10, 0);
+    for (int i = 0; i < 4; i++) {
+        const float aud_row[2] = { 0.25f, -0.25f };
+        const std::array<llama_pos, 4> rp = { 1 + i, 1 + i, 1 + i, 1 + i };
+        pvx_mirror_push_embd(&exec, aud_row, 2, rp);
+    }
+    pvx_mirror_push_token(&exec, 12, 5);
+    ASSERT(exec.mirror.size() == 6);
+
+    // p == 0: zero-h pairing (upstream pending zeros), token input.
+    PvxBLMtpArm a = pvx_mtp_catch_up_arm(0, exec.mirror[0]);
+    ASSERT(!a.input_is_embd && a.zero_h);
+
+    // p == 1 (FIRST audio row): embd input, h source is h_hist[0] — the
+    // text row's trunk state, never a zero and never an audio embedding on
+    // the state side.
+    a = pvx_mtp_catch_up_arm(1, exec.mirror[1]);
+    ASSERT(a.input_is_embd && !a.zero_h && a.h_index == 0);
+
+    // p == 2 (middle audio row): h source is h_hist[1] — an AUDIO row's
+    // trunk hidden state (upstream gathers h_tgt for all rows, media rows
+    // included — audio rows are inputs, not sampled positions).
+    a = pvx_mtp_catch_up_arm(2, exec.mirror[2]);
+    ASSERT(a.input_is_embd && !a.zero_h && a.h_index == 1);
+
+    // p == 5 (text after audio): h source is h_hist[4] — the LAST audio
+    // row's trunk state; token input.
+    a = pvx_mtp_catch_up_arm(5, exec.mirror[5]);
+    ASSERT(!a.input_is_embd && !a.zero_h && a.h_index == 4);
+
+    // Sweep: exactly one h row per committed position; h source always
+    // strictly below p; zeros ONLY at p == 0 (never at an audio row).
+    for (llama_pos p = 0; p < (llama_pos) exec.mirror.size(); p++) {
+        const PvxBLMtpArm arm = pvx_mtp_catch_up_arm(p, exec.mirror[(size_t) p]);
+        ASSERT(arm.input_is_embd ==
+               (exec.mirror[(size_t) p].id == LLAMA_TOKEN_NULL));
+        ASSERT(arm.zero_h == (p == 0));
+        if (p > 0) {
+            ASSERT(!arm.zero_h);
+            ASSERT(arm.h_index == (size_t) (p - 1));
+            ASSERT(arm.h_index < (size_t) p);
+        }
+    }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // ABI v7 wave 2 — JSON-schema → GBNF converter unit tests (no model needed)
 // + conversation-lane mirror helpers.
@@ -522,6 +578,7 @@ int main() {
     TEST(json_schema_format_fails_closed);
     TEST(conv_mirror_helpers);
     TEST(mtp_catch_up_arm_vision_pairing);
+    TEST(mtp_catch_up_arm_audio_pairing);
     fprintf(stderr, "\n=== %d/%d passed ===\n", tests_passed, tests_run);
     return 0;
 }
