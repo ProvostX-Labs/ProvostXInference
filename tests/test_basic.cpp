@@ -3,6 +3,10 @@
 #include "pvxinference.h"
 #include "gguf.h"
 #include "ggml.h"
+#ifndef _USE_MATH_DEFINES
+#define _USE_MATH_DEFINES // M_PI is not defined by MSVC without this
+#endif
+#include <cmath>
 #include <cassert>
 #include <cstdlib>
 #include <cstdio>

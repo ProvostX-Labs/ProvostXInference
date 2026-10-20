@@ -359,3 +359,13 @@ recoverable from this git.
 - Scope: csharp/Interop/PvxNative.cs, csharp/Models/PvxEngineFileResolver.cs, csharp/Tests (RID expectations), ARCHITECTURE.md, LDC artifacts. NOTHING outside.
 - Acceptance: unit tests proving arm64 RID derivation (host-overridable), native probe finds `.so` under `linux-arm64` on an arm64 Linux host, existing x64 path unchanged, LDC regen + enforcement PASS.
 - Status: **done** 2026-10-20 — arch-aware Linux RID (IOSProbe.Architecture seam + PvxNative ProcessArchitecture derive); macOS/Windows unchanged; full C# suite 234/234; live-artifact: the Linux VM build tree (arch-correct .so dir) picks up natively on next sync. ORT arm64 payload story: documented (source-built ORT needed; resolver now finds it in linux-arm64).
+
+- Status: **registered** 2026-10-20 (found during post-BL-22 Linux VM verification; not fixed — out of scope of the verification run).
+
+### BL-44 · Windows ARM64 MSVC portability (verification finding 2026-10-20)
+- Source: Windows 11 ARM64 VM verification of the native build (first-ever MSVC pass, VS 2022 BuildTools 14.44 / ARM64, CMake "Visual Studio 17 2022" generator).
+- Findings & fixes (landed same day, this item records the set):
+  (1) missing `<functional>` include (libc++ transitive, MSVC not); (2) POSIX `localtime_r` → `localtime_s` under `_WIN32`; (3) designated initializers under /std:c++17 → lambda-built constant; (4) raw strings inside ASSERT macro args (MSVC legacy preprocessor stringize limitation); (5) `M_PI` needs `_USE_MATH_DEFINES`; (6) DLL exported NOTHING (no dllexport in the extern "C" header) → `WINDOWS_EXPORT_ALL_SYMBOLS ON` restores macOS-parity export surface + import lib; (7) Windows import libs don't re-export transitive static-lib symbols → WIN32 test links to llama/ggml/ggml-base.
+- Windows VM results: `pvxinference.dll` + all 3 test exes build; ngram 25/25, basic 48/48 (41 model-gated skips), stress built (needs model files). the primary host gate: 48/48 + 25/25 + 31/31 unchanged.
+- Open follow-ups (registered, not fixed): no Windows CI lane exists — the MSVC pass is VM-manual; the LLM repo's native-gated/model-gated E2E tiers are unproven on Windows until a model + the win-arm64 runtime dir story land (see INF BL-43 for the RID-probe analog: `PvxEngineFileResolver` derives RID per-OS — Windows path exists but the packaged runtimes dir has no win-arm64 payload).
+- Status: **done** 2026-10-20 (fixes merged with this item); follow-ups open as separate registration above.

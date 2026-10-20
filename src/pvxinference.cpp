@@ -71,7 +71,11 @@ static void pvx_log_writer_loop() {
         char ts[32];
         time_t now = time(nullptr);
         struct tm tmv;
+#ifdef _WIN32
+        localtime_s(&tmv, &now);
+#else
         localtime_r(&now, &tmv);
+#endif
         strftime(ts, sizeof(ts), "%H:%M:%S", &tmv);
         const char* lvl = "";
         for (auto& e : batch) {
@@ -697,11 +701,15 @@ static int32_t do_sample(const float* logits, const llama_vocab* vocab,
     // (temp -> top_k -> top_p -> min_p -> dist, llama-style penalties).
     // Replaces the old hand-rolled sampler (~8.6ms/token measured).
     if (!logits) return -1;
-    static const pvx_sampling_params_t kDefaultParams{
-        .temperature = 0.3f, .top_p = 0.95f, .top_k = 40, .min_p = 0.0f,
-        .repeat_penalty = 1.1f, .repeat_last_n = -1, .penalty_present = 0.0f,
-        .max_tokens = 0, .ignore_eos = false,
-    };
+    // C++17-portable init (designated initializers are a C++20/clang-extension
+    // construct MSVC rejects under /std:c++17).
+    static const pvx_sampling_params_t kDefaultParams = [] {
+        pvx_sampling_params_t p{};
+        p.temperature = 0.3f; p.top_p = 0.95f; p.top_k = 40; p.min_p = 0.0f;
+        p.repeat_penalty = 1.1f; p.repeat_last_n = -1; p.penalty_present = 0.0f;
+        p.max_tokens = 0; p.ignore_eos = false;
+        return p;
+    }();
     return do_sample_with_grammar(logits, vocab,
                                   params ? params : &kDefaultParams,
                                   recent_tokens, /*grammar=*/nullptr,

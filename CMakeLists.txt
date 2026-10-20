@@ -97,6 +97,16 @@ target_link_libraries(pvxinference
 
 target_compile_definitions(pvxinference PRIVATE PVXINFERENCE_EXPORTS)
 
+# Windows DLL export parity (2026-10-20, Windows ARM64 verify): the header is a
+# plain extern "C" surface with no __declspec(dllexport) and there are C++ internal
+# seams the native test executables exercise — on macOS/Linux the shared library
+# exports all of them by default. CMake's auto-generated export table restores
+# that behavior for the Windows DLL (no import-lib link failures for the tests,
+# no per-symbol maintenance).
+if(WIN32)
+    set_target_properties(pvxinference PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+endif()
+
 # ── Tests ──
 enable_testing()
 
@@ -126,6 +136,16 @@ target_link_libraries(pvxinference_tests
     PRIVATE
         pvxinference
 )
+
+# Windows test links (2026-10-20, Windows ARM64 verify): the shared library does
+# not re-export transitive static-lib symbols on Windows (import libs carry only
+# the DLL's own export table) — test binaries that call llama/ggml symbols
+# directly must link those static libs themselves. No-op on macOS/Linux, where
+# the default-visibility dylib/so re-exports the surface.
+if(WIN32)
+    target_link_libraries(pvxinference_tests PRIVATE llama ggml ggml-base)
+    target_link_libraries(pvxinference_ngram_tests PRIVATE llama ggml ggml-base)
+endif()
 
 target_include_directories(pvxinference_tests
     PRIVATE

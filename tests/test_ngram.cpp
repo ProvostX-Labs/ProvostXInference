@@ -435,12 +435,17 @@ static void test_json_schema_enum_const() {
     const char* schema = R"SCHEMA({ "enum": ["red", "green", 7, true, null] })SCHEMA";
     ASSERT(pvx_grammar_from_json_schema(schema, nullptr, &gbnf, &err) == PVX_OK);
     const std::string g(gbnf);
-    ASSERT(g.find(R"x(root ::= ("\"red\"" | "\"green\"" | "7" | "true" | "null"))x") != std::string::npos);
+    // Expected grammar kept OUT of the ASSERT macro argument: MSVC's legacy
+    // preprocessor cannot stringize raw string literals (GCC/clang can).
+    const std::string expect_enum =
+        R"x(root ::= ("\"red\"" | "\"green\"" | "7" | "true" | "null"))x";
+    ASSERT(g.find(expect_enum) != std::string::npos);
     pvx_free_string(gbnf);
     gbnf = nullptr;
     const char* cst = R"SCHEMA({ "const": "hello" })SCHEMA";
     ASSERT(pvx_grammar_from_json_schema(cst, nullptr, &gbnf, &err) == PVX_OK);
-    ASSERT(gbnf && std::string(gbnf).find(R"x(root ::= "\"hello\"")x") != std::string::npos);
+    const std::string expect_const = R"x(root ::= "\"hello\"")x";
+    ASSERT(gbnf && std::string(gbnf).find(expect_const) != std::string::npos);
     pvx_free_string(gbnf);
 }
 
@@ -489,7 +494,9 @@ static void test_json_schema_decision_envelope() {
     ASSERT(pvx_grammar_from_json_schema(schema, nullptr, &gbnf, &err) == PVX_OK);
     ASSERT(gbnf);
     const std::string g(gbnf);
-    ASSERT(g.find(R"x(root-thinking-kv ::= "\"thinking\"" space ":" space root-thinking)x") != std::string::npos);
+    const std::string expect_thinking =
+        R"x(root-thinking-kv ::= "\"thinking\"" space ":" space root-thinking)x";
+    ASSERT(g.find(expect_thinking) != std::string::npos);
     ASSERT(g.find("root-toolcalls-0-item-args-kv ::=") != std::string::npos);
     ASSERT(g.find("root-toolcalls-1 ::= null") != std::string::npos);
     ASSERT(g.find(R"x(root-toolcalls-0-item-args-additional-kv ::= string ":" space root-toolcalls-0-item-args-additional-value)x") != std::string::npos);
