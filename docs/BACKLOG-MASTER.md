@@ -350,4 +350,4 @@ recoverable from this git.
   - BL-21c context: ubatch_size, n_outputs_max(_per_seq), threads_batch, rope_freq_base/scale, rope_scaling_type, yarn_* (ext/attn/beta_fast/beta_slow/orig_ctx), separate type_k/type_v, moe_cache_size, offload_kqv, op_offload, swa_full, kv_unified, embeddings, no_perf, attention_type, defrag_thold.
   - BL-21d C#/server: P/Invoke struct extensions, ModelConfig keys, request params (seed/frequency_penalty OpenAI-relevant), typed clamps, tests.
 - Acceptance: defaults-equivalence (full native suite + C# suites green with no env changes), new-knob unit legs, LDC regen + enforcement PASS, live spot-check on prod pair.
-- Status: in-progress 2026-10-20 (started by owner order).
+- Status: **done** 2026-10-20 — native 48/48 + ngram 25/25 + stress 31/31 with zeroed wave-5 (defaults equivalence proven); C# 230/230; ABI pins 72/112/112/72/8/288; facade WithAdvanced pass-through; LLM layer + live checks under the LLM repo's BL-21.

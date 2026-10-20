@@ -1,6 +1,6 @@
-# RELATIONSHIP-GRAPH.md — ProvostXInference
+# RELATIONSHIP-GRAPH.md — pvx-inf-bl21
 
-Generated: 2026-10-20T10:58:58.895242+00:00
+Generated: 2026-10-20T12:03:35.579577+00:00
 Edges: 35  |  Packages: 2
 
 ---
@@ -44,7 +44,7 @@ Edges: 35  |  Packages: 2
 - RollingPrefillStallDetector ──implements──► IPrefillStallDetector (csharp)
 - StallRecoveryLadder ──implements──► IStallRecoveryLadder (csharp)
 - SystemChunkWallClock ──implements──► IChunkWallClock (csharp)
-## ProvostXInference (native C++ — header include edges)
+## pvx-inf-bl21 (native C++ — header include edges)
 
 - add-id.hpp ──include──► common.hpp
 - backend.hpp ──include──► binbcast.hpp

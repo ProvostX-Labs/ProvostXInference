@@ -29,6 +29,18 @@ public sealed record GgufEngineRequest : EngineRequest
     public uint SeqMax { get; init; } = 4;
     public PoolingType PoolingType { get; init; } = PoolingType.None;
 
+    /// <summary>BL-21 wave-5 pass-through: ADVANCED model-load knobs (kv overrides,
+    /// lazy_mode, use_extra_bufts tri-state, vocab_only, check_tensors, no_host,
+    /// no_alloc, load_mtp). Null = none (current behavior). The classic properties
+    /// above ALWAYS take precedence — this record only supplies the extended knobs.</summary>
+    public ModelConfig? AdvancedModel { get; init; }
+
+    /// <summary>BL-21 wave-5 pass-through: ADVANCED context knobs (ubatch, n_outputs*,
+    /// threads_batch, rope/yarn family, defrag, moe_cache, kv types, tri-states,
+    /// embeddings, attention_type). Null = none (current behavior). The classic
+    /// properties above ALWAYS take precedence.</summary>
+    public ContextConfig? AdvancedContext { get; init; }
+
     protected override void ValidateCore()
     {
         if (MmprojPath is not null && MmprojPath.Trim().Length == 0)
@@ -42,24 +54,55 @@ public sealed record GgufEngineRequest : EngineRequest
         if (SeqMax == 0) throw new InvalidEngineRequestException("SeqMax must be > 0.");
     }
 
-    /// <summary>Map to the native loader config (validation already passed).</summary>
-    public ModelConfig ToModelConfig() => new()
+    /// <summary>Map to the native loader config (validation already passed).
+    /// With AdvancedModel set, the classic fields win and the advanced record
+    /// supplies the wave-5 extension knobs (BL-21).</summary>
+    public ModelConfig ToModelConfig()
     {
-        Path = ModelPath,
-        Engine = EngineId,
-        GpuLayers = GpuLayers,
-        Threads = Threads,
-        FlashAttention = FlashAttention,
-        KvCacheType = KvCacheType,
-        ReasoningMarkers = ReasoningMarkers,
-    };
+        var classic = new ModelConfig
+        {
+            Path = ModelPath,
+            Engine = EngineId,
+            GpuLayers = GpuLayers,
+            Threads = Threads,
+            FlashAttention = FlashAttention,
+            KvCacheType = KvCacheType,
+            ReasoningMarkers = ReasoningMarkers,
+        };
+        return AdvancedModel is { } adv
+            ? adv with
+            {
+                Path = classic.Path,
+                Engine = classic.Engine,
+                GpuLayers = classic.GpuLayers,
+                Threads = classic.Threads,
+                FlashAttention = classic.FlashAttention,
+                KvCacheType = classic.KvCacheType,
+                ReasoningMarkers = classic.ReasoningMarkers,
+            }
+            : classic;
+    }
 
-    /// <summary>Map to the context config (validation already passed).</summary>
-    public ContextConfig ToContextConfig() => new()
+    /// <summary>Map to the context config (validation already passed).
+    /// With AdvancedContext set, the classic fields win and the advanced record
+    /// supplies the wave-5 extension knobs (BL-21).</summary>
+    public ContextConfig ToContextConfig()
     {
-        ContextSize = ContextSize,
-        BatchSize = BatchSize,
-        SeqMax = SeqMax,
-        PoolingType = PoolingType,
-    };
+        var classic = new ContextConfig
+        {
+            ContextSize = ContextSize,
+            BatchSize = BatchSize,
+            SeqMax = SeqMax,
+            PoolingType = PoolingType,
+        };
+        return AdvancedContext is { } adv
+            ? adv with
+            {
+                ContextSize = classic.ContextSize,
+                BatchSize = classic.BatchSize,
+                SeqMax = classic.SeqMax,
+                PoolingType = classic.PoolingType,
+            }
+            : classic;
+    }
 }

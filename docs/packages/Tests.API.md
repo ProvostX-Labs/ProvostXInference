@@ -1,6 +1,6 @@
 # Tests.API.md
 
-Types: 29  |  LOC: 3745  |  ~1563 tokens
+Types: 30  |  LOC: 3779  |  ~1598 tokens
 
 ---
 
@@ -75,6 +75,10 @@ Cross-package deps: Xunit, ProvostXInference.Decision.Engine
 ### Class: ModelEngineSelectionTests
 > Model-config engine field (BL-02 stage 1): ModelConfig selects WHICH
 Cross-package deps: ProvostXInference.Implementation, ProvostXInference.Interop, ProvostXInference.Models, Xunit
+
+### Class: PvxAbiSizeTests
+> ABI v8 wave-5 (BL-21): C# mirrors must byte-match the NATIVE
+Cross-package deps: ProvostXInference.Interop, Xunit
 
 ### Class: PvxContextParamsMarshalTests
 > Pins the blittable C# mirror of pvx_context_params_t to the

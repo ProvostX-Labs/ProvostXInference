@@ -1,13 +1,13 @@
-# PACKAGE-MAP.md — ProvostXInference
+# PACKAGE-MAP.md — pvx-inf-bl21
 
-Generated: 2026-10-20T10:58:58.896321+00:00
+Generated: 2026-10-20T12:03:35.580498+00:00
 
 ---
 
 | Package | Types | LOC | ~Tokens | Dependencies |
 |---|---|---|---|---|
-| Tests | 29 | 3745 | ~1563 | — |
-| csharp | 91 | 5532 | ~6642 | — |
+| Tests | 30 | 3779 | ~1598 | — |
+| csharp | 91 | 5880 | ~6642 | — |
 
 ---
 

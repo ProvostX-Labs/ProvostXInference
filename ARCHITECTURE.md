@@ -402,3 +402,32 @@ signature would do exactly that). No caller passes a logger through the ctor.
   audio 12/12 exact, 6/9 accepted (66.7% — first live audio+MTP proof; gemma-4 is
   the first audio-capable MTP pair in the fleet). Suite 48/48; ngram 25/25;
   stress 31/31; C# SpecDecode 17/17.
+
+## Addendum 2026-10-20 — BL-21 wave-5: full llama.cpp config-surface parity
+- **Contract:** every llama.cpp configuration verb is reachable from C# (engine
+  structs → P/Invoke → facade configs). ABI v8 wave-5 fields are APPENDED ONLY —
+  a zeroed struct is bit-identical to the pre-wave-5 load (proven: native suite
+  48/48, ngram 25/25, stress 31/31 with zeroed wave-5 everywhere; C# 230/230).
+- **Zero-value semantics:** model/context ints and floats at 0, bools false,
+  and null kv-override lists mean "llama default" — the native side maps them
+  to upstream defaults, never to a literal zero override.
+- **Tri-states:** knobs whose llama default is TRUE (use_extra_bufts,
+  offload_kqv, op_offload, swa_full, kv_unified, no_perf) use a tri-state int:
+  0 = llama default, 1 = force on, 2 = force off — a plain bool could not
+  express "unset".
+- **kv-override tag mapping:** upstream `llama_model_kv_override_type` order is
+  INT/FLOAT/BOOL/STR; the pvx ABI uses 0=bool, 1=int64, 2=f64, 3=str — mapped
+  explicitly at the native boundary (never by enum order).
+- **seed:** <=0 = time entropy (llama default), >=1 = deterministic sampling.
+- **Sampling order:** wave-5 samplers run inside `pooled_selection_chain` in
+  OpenAI-parity order: penalties (repeat/present/frequency) → logit_bias →
+  dry → top_k → typical_p → top_p/min_p → top_n_sigma → xtc → mirostat 1/2
+  (mirostat bypasses top_p when active) → dist(seed).
+- **Facade pass-through:** `GgufEngineRequest(Builder).WithAdvanced(ModelConfig?,
+  ContextConfig?)` carries the extended knobs; classic With* fields always win
+  in the merge, so existing callers are unchanged.
+- **ABI sizeof pins (Release, osx-arm64):** `pvx_model_params_t` = 72,
+  `pvx_context_params_t` = 112, `pvx_sampling_params_t` = 112 (incl. wave-5
+  sub-struct pointer), `pvx_sampling_params_wave5_t` = 72, `pvx_logit_bias_t`
+  = 8, `pvx_kv_override_t` = 288. Pinned by `PvxAbiSizeTests` (C#) and probed
+  at build time.

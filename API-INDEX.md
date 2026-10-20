@@ -1,11 +1,11 @@
-# API-INDEX.md — ProvostXInference
+# API-INDEX.md — pvx-inf-bl21
 
-Generated: 2026-10-20T10:58:58.889435+00:00
-Packages: 3  |  Types: 1895
+Generated: 2026-10-20T12:03:35.578122+00:00
+Packages: 3  |  Types: 1896
 
 ---
 
-## Tests (29 types, ~3745 LOC)
+## Tests (30 types, ~3779 LOC)
 
 - 🟡 DecisionEngineOpsTests  (Tests)
 - 🟡 DecisionEngineRequestTests  (Tests)
@@ -25,6 +25,7 @@ Packages: 3  |  Types: 1895
 - 🟡 JudgeSequenceEncoderTests  (Tests)
 - 🟡 JudgeTokenizerTests  (Tests)
 - 🟡 ModelEngineSelectionTests  (Tests)
+- 🟡 PvxAbiSizeTests  (Tests)
 - 🟡 PvxContextParamsMarshalTests  (Tests)
 - 🟡 PvxDispatchRegistryTests : IDisposable  (Tests)
 - 🟡 PvxDispatchRouterTests  (Tests)
@@ -37,7 +38,7 @@ Packages: 3  |  Types: 1895
 - 🟡 StallWatchdogTests  (Tests)
 - 🟡 Wave3FeatureTests  (Tests)
 
-## csharp (91 types, ~5532 LOC)
+## csharp (91 types, ~5880 LOC)
 
 - 🔵 IChunkWallClock  (csharp)
 - 🔵 IConversation : IDisposable  (csharp)
@@ -131,7 +132,7 @@ Packages: 3  |  Types: 1895
 - 🟡 SystemChunkWallClock : IChunkWallClock  (csharp)  deps: [TimeProvider]
 - 🟣 TtsResult  (csharp)  deps: [float, int]
 
-## ProvostXInference (native C++) (1775 types, ~762019 LOC)
+## pvx-inf-bl21 (native C++) (1775 types, ~762148 LOC)
 
 - struct (global)::acl_deleter (acl_tensor.h) 
 - class ov::AlignEltwiseOperandRanks (align_eltwise_ranks.h) 

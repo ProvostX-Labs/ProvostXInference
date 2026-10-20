@@ -26,6 +26,10 @@ public sealed class GgufEngineRequestBuilder
     public uint SeqMax { get; private set; } = 4;
     public PoolingType PoolingType { get; private set; } = PoolingType.None;
 
+    /// <summary>BL-21 wave-5 advanced knobs (set via <see cref="WithAdvanced"/>).</summary>
+    public ModelConfig? AdvancedModel { get; private set; }
+    public ContextConfig? AdvancedContext { get; private set; }
+
     /// <summary>Native specialist id ("metal"/"cuda"/"vulkan"); null = platform default.</summary>
     public GgufEngineRequestBuilder WithEngineId(string? engineId) { EngineId = engineId; return this; }
 
@@ -60,6 +64,16 @@ public sealed class GgufEngineRequestBuilder
 
     public GgufEngineRequestBuilder WithPooling(PoolingType pooling) { PoolingType = pooling; return this; }
 
+    /// <summary>BL-21 wave-5 pass-through: advanced model-load and/or context knobs.
+    /// The classic With* values take precedence; the advanced records supply the
+    /// extended knob surface (kv overrides, rope/yarn, tri-states, …).</summary>
+    public GgufEngineRequestBuilder WithAdvanced(ModelConfig? model = null, ContextConfig? context = null)
+    {
+        AdvancedModel = model;
+        AdvancedContext = context;
+        return this;
+    }
+
     /// <summary>Validated request (fail-closed — Build() itself validates).</summary>
     public GgufEngineRequest Build()
     {
@@ -78,6 +92,8 @@ public sealed class GgufEngineRequestBuilder
             BatchSize = BatchSize,
             SeqMax = SeqMax,
             PoolingType = PoolingType,
+            AdvancedModel = AdvancedModel,
+            AdvancedContext = AdvancedContext,
         };
         request.Validate();
         return request;
