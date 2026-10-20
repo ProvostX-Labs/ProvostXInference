@@ -487,3 +487,25 @@ mirrors that exactly instead of the old implicit single-block behavior:
   deterministic pure-planner legs; a step35-class pair gets the env-gated
   live leg where one exists (same `PVX_MTP_TARGET_PATH`/
   `PVX_MTP_DRAFT_PATH` fixtures as BL-42).
+## Addendum 2026-10-20 — BL-46: win-arm64 payload + Windows CI lane
+
+- The C# native resolver's Windows RID is now arch-aware (`win-arm64` /
+  `win-x64`, derived from ProcessArchitecture — mirrors the BL-43 Linux rule)
+  in BOTH `PvxEngineFileResolver` and the `PvxNative` bootstrap ctor.
+- Shipped payload: `csharp/runtimes/win-arm64/native/pvxinference.dll` +
+  `pvxinference.lib` (MSVC import lib), built on the Windows 11 ARM64 VM
+  (VS 2022 BuildTools 14.44, CMake VS generator -A ARM64, Release, CPU/default
+  specialist, ABI v8 — first MSVC build, see BL-44). This closes the
+  "no win-arm64 runtime payload" follow-up; model-gated E2E on Windows remains
+  unproven until a model is present on a Windows host.
+- Per-RID payload story: osx-arm64 ships checked-in dylibs (inference + metal);
+  win-arm64 ships the checked-in VM-built dll (+ import lib); linux-x64/win-x64
+  payloads come from the CI 5-specialist matrix at NuGet-pack time (cuda/vulkan,
+  not checked in); linux-arm64 has NO checked-in payload — source-build the
+  native engine (cmake) and ONNX Runtime for arm64 (no official ORT arm64
+  payload), the resolver looks in `runtimes/linux-arm64/native/` (BL-43).
+- Windows CI lane (ci.yml, new `windows` job): windows-latest runner — native
+  cmake MSVC Release build + ctest (model-gated legs typed-skip without model
+  files, same as the VM run) + the C# suite (native dll built into
+  `csharp/runtimes/win-x64/native/` first so the resolver finds it). The
+  existing specialist matrix / csharp-build / nuget-pack lanes are untouched.

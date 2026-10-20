@@ -158,6 +158,10 @@ add_test(NAME pvx_tests COMMAND pvxinference_tests)
 set_tests_properties(pvx_tests PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
 add_test(NAME pvx_stress_tests COMMAND pvxinference_stress_tests)
+# BL-45: stress needs the repo-root ./models fixtures (default model paths are
+# cwd-relative) — without this it silently ran from the build dir and failed
+# to find the GGUFs under ctest (the binary ran fine when invoked directly).
+set_tests_properties(pvx_stress_tests PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
 # Pure n-gram + mirror-ring unit tests (ABI v6 wave 1) — no model files needed.
 target_link_libraries(pvxinference_ngram_tests

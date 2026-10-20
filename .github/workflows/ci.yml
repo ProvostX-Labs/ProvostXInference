@@ -128,6 +128,43 @@ jobs:
           dotnet build ProvostXInference.csproj -c Release
           dotnet build Tests/ProvostXInference.Tests.csproj -c Release
 
+  # ── Windows lane (BL-45): MSVC native build + native tests (model-gated
+  # legs typed-skip without models — same behavior as the VM verification run)
+  # + the C# suite against the freshly-built x64 dll. ──
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Configure + build native (MSVC, Release)
+        shell: bash
+        run: |
+          cmake -B build-win -DCMAKE_BUILD_TYPE=Release
+          cmake --build build-win --config Release -j
+
+      - name: Run native tests (model-free; model-gated legs typed-skip)
+        shell: bash
+        run: ctest --test-dir build-win --build-config Release --output-on-failure
+
+      - name: Stage native dll for the C# resolver (win-x64)
+        shell: bash
+        run: |
+          mkdir -p csharp/runtimes/win-x64/native
+          cp build-win/Release/pvxinference.dll csharp/runtimes/win-x64/native/
+
+      - name: C# suite
+        shell: bash
+        run: |
+          cd csharp
+          dotnet test Tests/ProvostXInference.Tests.csproj -c Release --nologo
+
   # ── NuGet pack (NO publish) — maps every specialist into its runtimes slice ──
   nuget-pack:
     needs: specialist-build

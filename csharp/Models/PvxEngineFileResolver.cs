@@ -58,11 +58,12 @@ internal sealed class PvxEngineFileResolver : IPvxEngineFileResolver
         {
             var asmDir = Path.GetDirectoryName(typeof(PvxEngineFileResolver).Assembly.Location);
             // BL-43: the Linux RID follows the PROCESS ARCHITECTURE (linux-arm64 on
-            // arm64 hosts — was hardcoded linux-x64 for all Linux). macOS/Windows
-            // stay osx-arm64 / win-x64 (the shipped product targets).
+            // arm64 hosts — was hardcoded linux-x64). BL-46: Windows follows the
+            // same rule (win-arm64 payload ships; win-x64 from the CI specialist
+            // matrix). macOS stays osx-arm64.
             var rid = _os.IsMacOS() ? "osx-arm64"
                 : _os.IsLinux() ? $"linux-{_os.Architecture()}"
-                : "win-x64";
+                : $"win-{_os.Architecture()}";
             return Path.Combine(asmDir ?? ".", "runtimes", rid, "native");
         }
     }

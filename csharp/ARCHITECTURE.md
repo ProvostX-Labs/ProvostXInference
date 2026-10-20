@@ -173,3 +173,29 @@ stats export (`EngineStats` snapshot via `IStandardExecutor.GetStats` /
 `GetConversationStats`. Fail-closed: every wave-3 surface throws typed
 `InferenceException`s naming the boundary (`rerank/pooling`, `media/audio-adapter`,
 `tts/gen-audio-capability`, `tts/session-consumed`, `adapter/*`, `cvector/*`).
+
+## Addendum 2026-10-20 — BL-46: Windows RID is arch-aware + the win-arm64 payload ships
+
+- RID derivation is now arch-aware on BOTH non-mac platforms:
+  `PvxEngineFileResolver.RuntimeDirectory` uses `win-{Architecture()}`
+  (was hardcoded `win-x64`), and the `PvxNative` static ctor derives the same
+  from `ProcessArchitecture` (bootstrap context, same pattern as the BL-43
+  Linux change). `PvxRidDerivationTests` covers linux-arm64/linux-x64/
+  osx-arm64/win-x64/win-arm64.
+- Payload shipped: `runtimes/win-arm64/native/pvxinference.dll` (+ MSVC import
+  lib `pvxinference.lib`) — built on the Windows 11 ARM64 VM with MSVC
+  (VS 2022 BuildTools 14.44, CMake "Visual Studio 17 2022" -A ARM64, Release;
+  CPU/default specialist, ABI v8, export surface via WINDOWS_EXPORT_ALL_SYMBOLS
+  — see BL-44 for the portability record). The dll is a real binary checked in
+  (11 MB); the import lib is for native MSVC consumers.
+- What ships per RID today:
+  - `osx-arm64`: `libpvxinference.dylib` + `libpvx-metal.dylib` (checked in).
+  - `win-arm64`: `pvxinference.dll` + `pvxinference.lib` (checked in, VM-built).
+  - `linux-x64` / `win-x64`: produced by the CI specialist matrix
+    (cuda/vulkan slices) at NuGet-pack time — nothing checked in.
+  - `linux-arm64`: no checked-in payload; source-build the native engine
+    (cmake) and source-build ONNX Runtime for arm64 — the resolver now looks in
+    the correct `linux-arm64` native dir (BL-43).
+- arm64 Windows users needing ORT-dependent features source-build ORT for
+  win-arm64 (no official payload is bundled; place it in
+  `runtimes/win-arm64/native/`).

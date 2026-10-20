@@ -32,7 +32,16 @@ public sealed class PvxRidDerivationTests
         Assert.EndsWith(Path.Combine("runtimes", "osx-arm64", "native"),
             Resolver(new FakeOsProbe(macos: true)).RuntimeDirectory);
         Assert.EndsWith(Path.Combine("runtimes", "win-x64", "native"),
-            Resolver(new FakeOsProbe(windows: true)).RuntimeDirectory);
+            Resolver(new FakeOsProbe(windows: true, architecture: "x64")).RuntimeDirectory);
+    }
+
+    /// <summary>BL-46: the Windows RID is arch-aware too — arm64 Windows
+    /// hosts derive win-arm64 (the shipped payload) instead of win-x64.</summary>
+    [Fact]
+    public void Windows_Arm64_Host_Derives_Win_Arm64_Rid()
+    {
+        Assert.EndsWith(Path.Combine("runtimes", "win-arm64", "native"),
+            Resolver(new FakeOsProbe(windows: true, architecture: "arm64")).RuntimeDirectory);
     }
 
     [Fact]

@@ -51,13 +51,18 @@ internal static class PvxNative
             {
                 // BL-43: the Linux RID follows the process architecture
                 // (linux-arm64 on arm64 hosts — was hardcoded linux-x64).
-                var linuxRid = $"linux-{(System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture
-                    == System.Runtime.InteropServices.Architecture.Arm64 ? "arm64" : "x64")}";
+                // BL-46: Windows follows the same rule (win-arm64 vs win-x64)
+                // so the win-arm64 payload ships alongside the CI-produced
+                // win-x64 specialists.
+                var arm64 = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture
+                    == System.Runtime.InteropServices.Architecture.Arm64;
+                var linuxRid = $"linux-{(arm64 ? "arm64" : "x64")}";
+                var winRid = $"win-{(arm64 ? "arm64" : "x64")}";
                 string relative = OperatingSystem.IsMacOS()
                     ? Path.Combine("runtimes", "osx-arm64", "native", "libpvxinference.dylib")
                     : OperatingSystem.IsLinux()
                         ? Path.Combine("runtimes", linuxRid, "native", "libpvxinference.so")
-                        : Path.Combine("runtimes", "win-x64", "native", "pvxinference.dll");
+                        : Path.Combine("runtimes", winRid, "native", "pvxinference.dll");
                 var candidate = Path.Combine(asmDir, relative);
                 if (File.Exists(candidate))
                     NativeLibrary.Load(candidate);
