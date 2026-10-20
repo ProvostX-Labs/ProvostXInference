@@ -2079,9 +2079,14 @@ static void test_lora_live() {
     // via range-request header precheck before download).
     const char* lp = getenv("PVX_LORA_ADAPTER_PATH");
     if (!lp || !file_exists(lp)) SKIP("PVX_LORA_ADAPTER_PATH unset/missing");
-    if (!file_exists(MODEL_PATH)) SKIP("model file not found");
+    // The adapter is arch-matched to its own base (Llama-3.2-3B), NOT the
+    // suite-wide MODEL_PATH (Qwen3-8B). Use a dedicated base env so this leg
+    // runs paired regardless of the default dense fixture.
+    const char* base = getenv("PVX_LORA_BASE_PATH");
+    if (!base) base = "./models/Llama-3.2-3B-Instruct-Q4_K_M.gguf";
+    if (!file_exists(base)) SKIP("LoRA base model missing");
 
-    pvx_model_params_t mp = {}; mp.model_path = MODEL_PATH; mp.gpu_layers = 99; mp.flash_attn = true;
+    pvx_model_params_t mp = {}; mp.model_path = base; mp.gpu_layers = 99; mp.flash_attn = true;
     pvx_model_t* m = nullptr; ASSERT(pvx_load_model(&mp, &m) == PVX_OK);
 
     pvx_adapter_t* a = nullptr;
