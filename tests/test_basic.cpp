@@ -2125,13 +2125,39 @@ static void test_control_vector() {
     std::string cv_path = dir + "/pvx_cvec_test.gguf";
     std::string bad_path = dir + "/pvx_cvec_bad.gguf";
 
+    // Model dims are derived at runtime from the model GGUF — NOTHING is
+    // hardcoded; the fixture works for any arch/model the suite runs against.
+    ggml_context* meta_ctx = nullptr;
+    gguf_init_params mip = {};
+    mip.no_alloc = true;
+    mip.ctx = &meta_ctx;
+    gguf_context* meta = gguf_init_from_file(MODEL_PATH, mip);
+    ASSERT(meta != nullptr);
+    int model_n_embd = 0, model_n_layer = 0;
+    {
+        const int n_keys = (int) gguf_get_n_kv(meta);
+        for (int i = 0; i < n_keys; i++) {
+            const char* k = gguf_get_key(meta, i);
+            if (!k) continue;
+            const size_t kl = strlen(k);
+            if (kl >= 17 && strcmp(k + kl - 17, ".embedding_length") == 0)
+                model_n_embd = (int) gguf_get_val_u32(meta, i);
+            else if (kl >= 12 && strcmp(k + kl - 12, ".block_count") == 0)
+                model_n_layer = (int) gguf_get_val_u32(meta, i);
+        }
+    }
+    gguf_free(meta);
+    if (meta_ctx) ggml_free(meta_ctx);
+    ASSERT(model_n_embd > 0);   // every supported arch declares <arch>.embedding_length
+    ASSERT(model_n_layer > 0);   // every supported arch declares <arch>.block_count
+
     pvx_model_params_t mp = {}; mp.model_path = MODEL_PATH; mp.gpu_layers = 99; mp.flash_attn = true;
     pvx_model_t* m = nullptr; ASSERT(pvx_load_model(&mp, &m) == PVX_OK);
 
-    // NOTE: n_embd/n_layer for Llama-3.2-3B — 3072 / 28 (fixture constants).
     // Wrong-width file: typed cvector/n-embd refusal; the RIGHT-width file
     // then applies/detaches with baseline restoration.
-    write_cvector_gguf(bad_path.c_str(), 2048, 4, 1);   // wrong width
+    const int bad_embd = model_n_embd / 2 > 0 ? model_n_embd / 2 : model_n_embd + 1;
+    write_cvector_gguf(bad_path.c_str(), bad_embd, 4, 1);   // wrong width, derived
     pvx_cvec_t* bad = nullptr;
     ASSERT(pvx_control_vector_load(m, bad_path.c_str(), &bad) == PVX_ERR_LOAD_FAILED);
     ASSERT(strstr(pvx_model_last_error(m), "cvector/n-embd") != nullptr);
@@ -2139,7 +2165,7 @@ static void test_control_vector() {
     // missing file: typed
     ASSERT(pvx_control_vector_load(m, "/nonexistent/cv.gguf", &bad) == PVX_ERR_LOAD_FAILED);
 
-    write_cvector_gguf(cv_path.c_str(), 3072, 28, 2);    // matches Llama-3.2-3B n_embd
+    write_cvector_gguf(cv_path.c_str(), model_n_embd, model_n_layer, 2);   // matches the model exactly
     pvx_cvec_t* cv = nullptr;
     ASSERT(pvx_control_vector_load(m, cv_path.c_str(), &cv) == PVX_OK);
 
@@ -2156,8 +2182,8 @@ static void test_control_vector() {
 
     ASSERT(pvx_executor_sample(exec, &sp, &t_base) == PVX_OK);            // baseline
 
-    // invalid layer range: typed (explicit out-of-range end, never clamped)
-    ASSERT(pvx_context_set_control_vector(ctx, cv, 0, 999) == PVX_ERR_INVALID_ARG);
+    // invalid layer range: typed (explicit out-of-range end, never clamped — derived)
+    ASSERT(pvx_context_set_control_vector(ctx, cv, 0, model_n_layer + 1) == PVX_ERR_INVALID_ARG);
     ASSERT(strstr(pvx_last_error(ctx), "cvector/layer-range") != nullptr);
 
     // baseline continuation arm (reference for the on/off comparison)
