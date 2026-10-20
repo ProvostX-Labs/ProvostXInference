@@ -307,3 +307,10 @@ recoverable from this git.
 - Scope: include/pvxinference.h, include/pvx_internal.h, src/pvx_spec_engine.{h,cpp}, src/pvxinference.cpp, csharp bindings (PvxSpecMode, PvxSpecParams, SpeculativeMode, SpeculativeConfig, 3 marshal sites), tests/test_basic.cpp, ARCHITECTURE.md, LDC artifacts. NOTHING outside.
 - Acceptance: native suite legs (typed fail-closed: missing path, metadata-only head, wrong-arch head, conversation-lane refusal, empty-stream refusal; env-gated live leg PVX_MTP_TARGET_PATH/PVX_MTP_DRAFT_PATH — typed skip off-pair) + C# binding/marshaling tests; Debug+Release 0 errors/0 warnings; LDC regen + enforcement same commit.
 - Status: done 2026-10-19 (local commit, no push). Live the large-memory host verification (160GB pair) = orchestrator.
+
+### BL-39 · Spec+vision same-session: MTP capture hook embedding-row pairing (owner order 2026-10-20 08:34)
+- Source: 2026-10-19 session backlog (memory/2026-10-20.md); owner order "do the open backlog items now".
+- Spec: make speculative decoding + vision work in the SAME session: the draft-MTP per-position `h_hist` capture hook (`mtp_process_target_rows`) runs after every target decode and must capture ONLY transformer rows — when a vision chunk (image embd rows) rode the batch, row indices shift and the hook must not pair image-embd positions as (t,h) history (zero-h at pos 0 only, never vision rows). Typed refusal for mixed spec+vision in one lane is acceptable ONLY if pairing cannot be made exact — but exactness is preferred (upstream speculative.cpp pairs on target text decode; vision tokens are inputs, not sampled positions).
+- Scope: src/pvx_spec_engine.cpp, src/pvxinference.cpp, include/pvx_internal.h, tests (native vision+spec leg), ARCHITECTURE.md, LDC artifacts. NOTHING outside.
+- Acceptance: native test proving spec ON == OFF token-exact on a vision-then-text session (env-gated live leg) or a typed fail-closed refusal with a clear native error; regression: existing native suite green, C# suite green, LDC regen + enforcement PASS.
+- Status: ready
