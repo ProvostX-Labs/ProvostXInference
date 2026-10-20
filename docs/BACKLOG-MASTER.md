@@ -351,3 +351,11 @@ recoverable from this git.
   - BL-21d C#/server: P/Invoke struct extensions, ModelConfig keys, request params (seed/frequency_penalty OpenAI-relevant), typed clamps, tests.
 - Acceptance: defaults-equivalence (full native suite + C# suites green with no env changes), new-knob unit legs, LDC regen + enforcement PASS, live spot-check on prod pair.
 - Status: **done** 2026-10-20 — native 48/48 + ngram 25/25 + stress 31/31 with zeroed wave-5 (defaults equivalence proven); C# 230/230; ABI pins 72/112/112/72/8/288; facade WithAdvanced pass-through; LLM layer + live checks under the LLM repo's BL-21.
+
+### BL-43 · Linux ARM64 RID portability (verification finding 2026-10-20)
+- Source: Linux ARM64 verification of the LLM repo (post BL-22) — native INF built clean on the VM (cmake Release, CPU backend, 0 errors), but the C# probe layer hardcodes `linux-x64` for ALL Linux: `Interop/PvxNative.cs` static ctor probes `runtimes/linux-x64/native/libpvxinference.so` and `Models/PvxEngineFileResolver.cs` derives RID `linux-x64` even on arm64 hosts (no RuntimeInformation.ProcessArchitecture check). On the arm64 VM the freshly built arm64 `.so` had to be dropped into the `linux-x64` native dir for the probe to find it — wrong-dir deployment, not a real x64 binary.
+- Related: the packaged `runtimes/linux-x64/native` ORT payloads (libonnxruntime.so etc.) are prebuilt x64 ELF binaries — unusable on arm64 Linux; arm64 hosts need source-built ORT or a linux-arm64 package payload.
+- Spec: derive the native dir RID from ProcessArchitecture (linux-arm64 + linux-x64) in the probe + resolver; ship or document an arm64 ORT payload story. No behavior change on existing x64 Linux or macOS/Windows paths.
+- Scope: csharp/Interop/PvxNative.cs, csharp/Models/PvxEngineFileResolver.cs, csharp/Tests (RID expectations), ARCHITECTURE.md, LDC artifacts. NOTHING outside.
+- Acceptance: unit tests proving arm64 RID derivation (host-overridable), native probe finds `.so` under `linux-arm64` on an arm64 Linux host, existing x64 path unchanged, LDC regen + enforcement PASS.
+- Status: **registered** 2026-10-20 (found during post-BL-22 Linux VM verification; not fixed — out of scope of the verification run).
