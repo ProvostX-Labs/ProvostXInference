@@ -52,6 +52,19 @@ typedef enum {
     PVX_POOL_RANK = 4,
 } pvx_pooling_type_t;
 
+/* ABI v8 wave-5 (BL-21b): GGUF metadata override (llama_model_kv_override
+ * parity) — the general escape hatch for ANY model hyperparameter key.
+ * Explicit fixed layout (no union): blittable from C#.
+ * tag: 0 = bool, 1 = int64, 2 = float64, 3 = string. */
+typedef struct {
+    char    key[128];
+    int32_t tag;
+    int64_t val_i64;
+    double  val_f64;
+    uint8_t val_bool;
+    char    val_str[128];
+} pvx_kv_override_t;
+
 /* ── Model params ── */
 typedef struct {
     const char* model_path;
@@ -67,6 +80,17 @@ typedef struct {
      * (no code change) — e.g. "<reason>" for DeepSeek-family vocabularies. */
     const char** reasoning_markers;  /* NULL = built-in default */
     int n_reasoning_markers;         /* <=0  = built-in default */
+    /* ABI v8 wave-5 (BL-21b) appended load controls — zeroed = pre-wave-5
+     * load behavior (llama defaults where pvx did not override). */
+    const pvx_kv_override_t* kv_overrides; /* NULL = none */
+    int32_t n_kv_overrides;                 /* <=0 = none */
+    int32_t lazy_mode;                      /* 0 = llama default (AUTO); else llama_lazy_mode */
+    int32_t use_extra_bufts_tri;             /* 0 = llama default (true); 1 force on; 2 force off */
+    bool vocab_only;                        /* false = llama default */
+    bool check_tensors;                     /* false = llama default */
+    bool no_host;                           /* false = llama default */
+    bool no_alloc;                          /* false = llama default */
+    bool load_mtp;                          /* false = llama default (model's OWN MTP layers unloaded) */
 } pvx_model_params_t;
 
 /* ── Context params ── */
@@ -85,7 +109,60 @@ typedef struct {
      * llama_n_rs_seq, upstream server rule). Non-rs-rollback archs clamp
      * to 0 inside llama (harmless). */
     uint32_t n_rs_seq;
+    /* ABI v8 wave-5 (BL-21c) appended context controls — zeroed = the
+     * PRE-wave-5 pvx mapping / llama defaults (n_rs_seq comment above). */
+    uint32_t ubatch_size;             /* 0 = mirror batch_size (pre-wave-5 mapping) */
+    uint32_t n_outputs_max;           /* 0 = llama default (= n_batch) */
+    uint32_t n_outputs_max_per_seq;   /* 0 = llama default (= n_outputs_max) */
+    int32_t  threads_batch;           /* 0 = llama default (GGML auto, mirrors threads) */
+    int32_t  rope_scaling_type;      /* 0 = UNSPECIFIED; 1 = NONE; 2 = LINEAR; 3 = YARN */
+    float    rope_freq_base;          /* 0 = from model */
+    float    rope_freq_scale;         /* 0 = from model */
+    float    yarn_ext_factor;         /* <=0 = from model (-1) */
+    float    yarn_attn_factor;        /* <=0 = from model (-1) */
+    float    yarn_beta_fast;           /* <=0 = from model (-1) */
+    float    yarn_beta_slow;           /* <=0 = from model (-1) */
+    uint32_t yarn_orig_ctx;            /* 0 = from model */
+    float    defrag_thold;             /* <=0 = disabled (llama default) */
+    uint32_t moe_cache_size;           /* bytes; 0 = disabled (llama default) */
+    int32_t  kv_type_k;               /* -1 = mirror model kv_cache_type; 0..3 explicit pvx_kv_type_t */
+    int32_t  kv_type_v;               /* -1 = mirror model kv_cache_type */
+    int32_t  offload_kqv_tri;          /* 0 = llama default (true); 1 on; 2 off */
+    int32_t  op_offload_tri;           /* 0 = llama default (true); 1 on; 2 off */
+    int32_t  swa_full_tri;             /* 0 = llama default (true); 1 on; 2 off */
+    int32_t  kv_unified_tri;           /* 0 = llama default (false); 1 on; 2 off */
+    int32_t  no_perf_tri;              /* 0 = llama default (true); 1 on; 2 off */
+    bool     embeddings;                /* false = pre-wave-5 (pvx_get_embeddings drives it) */
+    int32_t  attention_type;           /* 0 = UNSPECIFIED; 1 = causal; 2 = non-causal */
 } pvx_context_params_t;
+
+/* ABI v8 wave-5 (BL-21a, 2026-10-20): sampler-chain parity structs.
+ * ZERO-VALUE SEMANTICS: every wave-5 sampling field at zero = the
+ * pre-wave-5 chain (greedy / temp+topk+topp+minp+time-seeded dist).
+ * logit_bias NULL / n<=0 = off. */
+typedef struct {
+    int32_t token;   /* llama token id */
+    float   bias;    /* logit bias (llama_logit_bias parity) */
+} pvx_logit_bias_t;
+
+/* ABI v8 wave-5 sampling knobs (appended to pvx_sampling_params_t). */
+typedef struct {
+    int64_t seed;               /* <=0 = time entropy (pre-wave-5); >=1 deterministic */
+    float   frequency_penalty;  /* 0 = off */
+    float   typical_p;          /* 0 = off; (0,1) typical sampling (temp>0 path) */
+    float   xtc_p;              /* 0 = off; xtc sampler when temp>0 */
+    float   xtc_t;              /* xtc threshold; <=0 → 1.0f when xtc_p > 0 */
+    float   top_n_sigma;        /* 0 = off; top-n-σ when > 0 */
+    int32_t mirostat_mode;      /* 0 = off; 1 = v1; 2 = v2 (replaces dist) */
+    float   mirostat_tau;       /* 0 → 5.0f default when mode > 0 */
+    float   mirostat_eta;       /* 0 → 0.1f default when mode > 0 */
+    float   dry_multiplier;     /* 0 = off; DRY repetition penalty when > 0 */
+    float   dry_base;           /* 0 → 1.75f default when multiplier > 0 */
+    int32_t dry_allowed_length; /* 0 → 2 default when multiplier > 0 */
+    int32_t dry_penalty_last_n; /* 0 → -1 (full context) when multiplier > 0 */
+    const pvx_logit_bias_t* logit_bias; /* NULL = off */
+    int32_t n_logit_bias;              /* <=0 = off */
+} pvx_sampling_params_wave5_t;
 
 /* ── Sampling params (full pipeline) ── */
 typedef struct {
@@ -98,7 +175,11 @@ typedef struct {
     float penalty_present;  /* presence penalty */
     int   max_tokens;
     bool  ignore_eos;
+    /* ABI v8 wave-5 (BL-21a) appended knobs — zeroed = pre-wave-5 chain. */
+    pvx_sampling_params_wave5_t wave5;
 } pvx_sampling_params_t;
+
+
 
 /* ── Speculative decoding (sequential path, INF BL-05) ────────────── */
 

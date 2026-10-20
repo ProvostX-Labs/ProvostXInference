@@ -32,4 +32,27 @@ public sealed record ModelConfig
     /// via config (e.g. "reason" for DeepSeek) — no code change needed.
     /// </summary>
     public string[]? ReasoningMarkers { get; init; }
+
+    // ── ABI v8 wave-5 (BL-21b): model-load controls — null/zero = llama defaults ──
+    /// <summary>GGUF metadata overrides — the GENERAL escape hatch: any
+    /// model hyperparameter key (e.g. "<arch>.rope.freq_base") overridden
+    /// at load. null = none.</summary>
+    public IReadOnlyList<KvOverride>? KvOverrides { get; init; }
+    /// <summary>Lazy tensor load (upstream llama_lazy_mode). 0/null = llama
+    /// default (AUTO); else 1 none / 2 auto / 3 mmap / 4 mlock.</summary>
+    public int LazyMode { get; init; } = 0;
+    /// <summary>Extra buffer types (weight repacking). 0 = llama default
+    /// (true); 1 force on; 2 force off.</summary>
+    public int UseExtraBuftsTri { get; init; } = 0;
+    /// <summary>Vocab-only load (no weights). null = false (llama default).</summary>
+    public bool VocabOnly { get; init; } = false;
+    /// <summary>Validate tensor data at load. default false.</summary>
+    public bool CheckTensors { get; init; } = false;
+    /// <summary>Bypass the host buffer. default false.</summary>
+    public bool NoHost { get; init; } = false;
+    /// <summary>Metadata-only load simulation. default false.</summary>
+    public bool NoAlloc { get; init; } = false;
+    /// <summary>Load the model's OWN MTP layers (upstream load_mtp — llama
+    /// default false: MTP tensors stay unloaded unless asked).</summary>
+    public bool LoadMtp { get; init; } = false;
 }

@@ -141,8 +141,50 @@ pvx_result_t pvx_load_model(const pvx_model_params_t* params, pvx_model_t** out_
     auto* m = new pvx_model_s();
     llama_model_params mp = llama_model_default_params();
     mp.n_gpu_layers = params->gpu_layers;
+    // ABI v8 wave-5 (BL-21b) load controls — zeroed = llama defaults.
+    if (params->kv_overrides && params->n_kv_overrides > 0) {
+        // pvx_kv_override_t (explicit layout) → llama_model_kv_override
+        std::vector<llama_model_kv_override> ovs;
+        ovs.reserve((size_t) params->n_kv_overrides);
+        for (int32_t i = 0; i < params->n_kv_overrides; i++) {
+            const pvx_kv_override_t* o = &params->kv_overrides[i];
+            llama_model_kv_override lo = {};
+            snprintf(lo.key, sizeof(lo.key), "%s", o->key);
+            // pvx tag (BL-21b doc order): 0 bool, 1 int64, 2 float64, 3 str —
+            // upstream enum order is INT(0)/FLOAT(1)/BOOL(2)/STR(3).
+            switch (o->tag) {
+                case 0: lo.tag = LLAMA_KV_OVERRIDE_TYPE_BOOL;  lo.val_bool = o->val_bool != 0; break;
+                case 1: lo.tag = LLAMA_KV_OVERRIDE_TYPE_INT;    lo.val_i64 = o->val_i64;      break;
+                case 2: lo.tag = LLAMA_KV_OVERRIDE_TYPE_FLOAT; lo.val_f64 = o->val_f64;      break;
+                case 3: lo.tag = LLAMA_KV_OVERRIDE_TYPE_STR;
+                        snprintf(lo.val_str, sizeof(lo.val_str), "%s", o->val_str); break;
+                default: break;
+            }
+            ovs.push_back(lo);
+        }
+        mp.kv_overrides = (const llama_model_kv_override*) ovs.data();
+        // ovs lives on the stack through llama_model_load_from_file below —
+        // the loader copies what it needs during the call (upstream contract:
+        // the caller keeps overrides alive across the load).
+    }
+    if (params->lazy_mode != 0) {
+        // 0 = llama default (AUTO); explicit: 1 none, 2 auto, 3 mmap, 4 mlock… —
+        // upstream llama_lazy_mode enum, passed through shifted by one.
+        mp.lazy_mode = (llama_lazy_mode) (params->lazy_mode - 1);
+    }
+    switch (params->use_extra_bufts_tri) {
+        case 1: mp.use_extra_bufts = true;  break;
+        case 2: mp.use_extra_bufts = false; break;
+        default: break;   // 0 = llama default (true)
+    }
+    mp.vocab_only    = params->vocab_only;
+    mp.check_tensors = params->check_tensors;
+    mp.no_host       = params->no_host;
+    mp.no_alloc      = params->no_alloc;
+    mp.load_mtp      = params->load_mtp;
 
     m->model = llama_model_load_from_file(params->model_path, mp);
+    mp.kv_overrides = nullptr;   // stack array — release before scope exit
     if (!m->model) {
         m->last_error = std::string("Failed to load model: ") + params->model_path;
         PVX_LOG(PVX_LOG_ERROR, "Model", "Load failed: %s (gpu_layers=%d)", params->model_path, params->gpu_layers);
@@ -230,6 +272,40 @@ pvx_result_t pvx_create_context(pvx_model_t* model,
     // ABI v8 wave-4: recurrent-state snapshot ring (0 = llama default — no
     // snapshots; harmless on non-rs-rollback archs, llama clamps to 0).
     cp.n_rs_seq = params->n_rs_seq;
+    // ABI v8 wave-5 (BL-21c) context controls — zeroed = pre-wave-5 mapping.
+    cp.n_ubatch = params->ubatch_size > 0 ? params->ubatch_size : params->batch_size;
+    if (params->n_outputs_max > 0)         cp.n_outputs_max = params->n_outputs_max;
+    if (params->n_outputs_max_per_seq > 0) cp.n_outputs_max_per_seq = params->n_outputs_max_per_seq;
+    if (params->threads_batch > 0)         cp.n_threads_batch = params->threads_batch;
+    switch (params->rope_scaling_type) {   // 0 = UNSPECIFIED default
+        case 1: cp.rope_scaling_type = LLAMA_ROPE_SCALING_TYPE_NONE;   break;
+        case 2: cp.rope_scaling_type = LLAMA_ROPE_SCALING_TYPE_LINEAR; break;
+        case 3: cp.rope_scaling_type = LLAMA_ROPE_SCALING_TYPE_YARN;   break;
+        default: break;
+    }
+    cp.rope_freq_base  = params->rope_freq_base;    // 0 = from model
+    cp.rope_freq_scale = params->rope_freq_scale;  // 0 = from model
+    if (params->yarn_ext_factor != 0.0f)  cp.yarn_ext_factor  = params->yarn_ext_factor;
+    if (params->yarn_attn_factor != 0.0f) cp.yarn_attn_factor = params->yarn_attn_factor;
+    if (params->yarn_beta_fast != 0.0f)   cp.yarn_beta_fast   = params->yarn_beta_fast;
+    if (params->yarn_beta_slow != 0.0f)   cp.yarn_beta_slow   = params->yarn_beta_slow;
+    cp.yarn_orig_ctx  = params->yarn_orig_ctx;      // 0 = from model
+    cp.defrag_thold   = params->defrag_thold <= 0.0f ? -1.0f : params->defrag_thold;
+    cp.moe_cache_size = (size_t) params->moe_cache_size;
+    cp.embeddings     = params->embeddings;
+    if (params->attention_type == 1)      cp.attention_type = LLAMA_ATTENTION_TYPE_CAUSAL;
+    else if (params->attention_type == 2) cp.attention_type = LLAMA_ATTENTION_TYPE_NON_CAUSAL;
+    // tri-state pass-throughs (0 = llama default)
+    auto tri = [](int32_t v, bool def) -> int {
+        if (v == 1) return 1;
+        if (v == 2) return 0;
+        return def ? 1 : 0;
+    };
+    cp.offload_kqv = tri(params->offload_kqv_tri, true)  != 0;
+    cp.op_offload  = tri(params->op_offload_tri,  true)  != 0;
+    cp.swa_full    = tri(params->swa_full_tri,   true)  != 0;
+    cp.kv_unified  = tri(params->kv_unified_tri,  false) != 0;
+    cp.no_perf     = tri(params->no_perf_tri,     true)  != 0;
     // Flash attention: caller drives via model params (passed to pvx_load_model)
     // KV cache type: caller drives via model params
     if (model->kv_cache_type != PVX_KV_F16) {
@@ -240,6 +316,18 @@ pvx_result_t pvx_create_context(pvx_model_t* model,
             default: break;
         }
     }
+    // ABI v8 wave-5: explicit per-context type_k / type_v override the model
+    // mirror (-1 = mirror, 0..3 = explicit pvx_kv_type_t value).
+    auto kv_of = [](int32_t v) -> ggml_type {
+        switch (v) {
+            case 1: return GGML_TYPE_Q8_0;
+            case 2: return GGML_TYPE_Q4_0;
+            case 3: return GGML_TYPE_Q4_1;
+            default: return GGML_TYPE_F16;   // 0 = explicit F16
+        }
+    };
+    if (params->kv_type_k >= 0) cp.type_k = kv_of(params->kv_type_k);
+    if (params->kv_type_v >= 0) cp.type_v = kv_of(params->kv_type_v);
     if (model->flash_attn) {
         cp.flash_attn_type = LLAMA_FLASH_ATTN_TYPE_ENABLED;
     } else {
@@ -433,6 +521,28 @@ static uint64_t params_fingerprint(const pvx_sampling_params_t* p) {
     tf.f = p->repeat_penalty;        mix(tf.u);
     tf.f = p->penalty_present;       mix(tf.u);
     mix((uint32_t)p->repeat_last_n);
+    // ABI v8 wave-5 (BL-21a): the new knobs change the chain — mix ALL of
+    // them (and the logit_bias array contents) so any change rebuilds.
+    const pvx_sampling_params_wave5_t* w = &p->wave5;
+    mix((uint64_t) w->seed);
+    tf.f = w->frequency_penalty;  mix(tf.u);
+    tf.f = w->typical_p;          mix(tf.u);
+    tf.f = w->xtc_p;              mix(tf.u);
+    tf.f = w->xtc_t;              mix(tf.u);
+    tf.f = w->top_n_sigma;        mix(tf.u);
+    mix((uint32_t) w->mirostat_mode);
+    tf.f = w->mirostat_tau;       mix(tf.u);
+    tf.f = w->mirostat_eta;       mix(tf.u);
+    tf.f = w->dry_multiplier;     mix(tf.u);
+    tf.f = w->dry_base;           mix(tf.u);
+    mix((uint32_t) w->dry_allowed_length);
+    mix((uint32_t) w->dry_penalty_last_n);
+    if (w->logit_bias && w->n_logit_bias > 0) {
+        for (int32_t i = 0; i < w->n_logit_bias; i++) {
+            mix((uint32_t) w->logit_bias[i].token);
+            tf.f = w->logit_bias[i].bias; mix(tf.u);
+        }
+    }
     return h;
 }
 
@@ -461,7 +571,8 @@ static thread_local pooled_chain t_pooled;
 // Build or fetch the per-thread selection chain for these params.
 static llama_sampler* pooled_selection_chain(const pvx_sampling_params_t* params,
                                              const std::vector<llama_token>& recent_tokens,
-                                             int n_vocab) {
+                                             int n_vocab,
+                                             const llama_vocab* vocab = nullptr) {
     const uint64_t fp = params_fingerprint(params);
     if (t_pooled.smpl && t_pooled.fingerprint == fp) return t_pooled.smpl;
 
@@ -469,7 +580,11 @@ static llama_sampler* pooled_selection_chain(const pvx_sampling_params_t* params
     t_pooled.pen = nullptr;
     llama_sampler* smpl = llama_sampler_chain_init(llama_sampler_chain_default_params());
 
-    if (params->repeat_penalty != 1.0f || params->penalty_present > 0.0f) {
+    const pvx_sampling_params_wave5_t* w = &params->wave5;
+    // ABI v8 wave-5 (BL-21a): frequency_penalty joins the penalties sampler —
+    // zeroed = off (pre-wave-5 chain had freq_bias hard-zeroed).
+    if (params->repeat_penalty != 1.0f || params->penalty_present > 0.0f ||
+        w->frequency_penalty != 0.0f) {
         // Auto window (-1): FIXED constant (llama-server parity) — NOT
         // recent_tokens.size(). The chain is pooled/thread-persistent; sizing
         // the ring from build-time recent_tokens.size() would make the penalty
@@ -477,11 +592,40 @@ static llama_sampler* pooled_selection_chain(const pvx_sampling_params_t* params
         int pen_last_n = params->repeat_last_n >= 0 ? params->repeat_last_n : 64;
         if (pen_last_n > 0) {
             llama_sampler* pen = llama_sampler_init_penalties(
-                n_vocab, pen_last_n, params->repeat_penalty, 0.0f, params->penalty_present);
+                n_vocab, pen_last_n, params->repeat_penalty,
+                w->frequency_penalty, params->penalty_present);
             llama_sampler_chain_add(smpl, pen);
             t_pooled.pen = pen;
         }
     }
+    // DRY repetition penalty (wave-5): multiplier > 0 enables; base/length/
+    // window defaults mirror llama-server (1.75 / 2 / full context).
+    if (w->dry_multiplier > 0.0f) {
+        // DRY (wave-5): no seq_breakers exposed in this slice (empty list —
+        // llama-server default breaker set needs the vocab; null vocab skips).
+        llama_sampler* dry = llama_sampler_init_dry(
+            vocab, w->dry_multiplier,
+            w->dry_base > 0.0f ? w->dry_base : 1.75f,
+            w->dry_allowed_length > 0 ? w->dry_allowed_length : 2,
+            w->dry_penalty_last_n != 0 ? w->dry_penalty_last_n : -1,
+            nullptr, 0);
+        if (dry) llama_sampler_chain_add(smpl, dry);
+    }
+    // logit_bias (wave-5): token → bias pairs, llama_sampler_init_logit_bias.
+    if (w->logit_bias && w->n_logit_bias > 0) {
+        std::vector<llama_logit_bias> lb;
+        lb.reserve((size_t) w->n_logit_bias);
+        for (int32_t i = 0; i < w->n_logit_bias; i++) {
+            llama_logit_bias b = { w->logit_bias[i].token,
+                                  w->logit_bias[i].bias };
+            lb.push_back(b);
+        }
+        llama_sampler_chain_add(smpl,
+            llama_sampler_init_logit_bias(n_vocab, (int32_t) lb.size(), lb.data()));
+    }
+    // top-n-σ (wave-5): > 0 enables (post-penalty, pre-top-k — paper order).
+    if (w->top_n_sigma > 0.0f)
+        llama_sampler_chain_add(smpl, llama_sampler_init_top_n_sigma(w->top_n_sigma));
     if (params->temperature <= 0) {
         llama_sampler_chain_add(smpl, llama_sampler_init_greedy());
     } else {
@@ -492,7 +636,32 @@ static llama_sampler* pooled_selection_chain(const pvx_sampling_params_t* params
             llama_sampler_chain_add(smpl, llama_sampler_init_top_p(params->top_p, 1));
         if (params->min_p > 0.0f)
             llama_sampler_chain_add(smpl, llama_sampler_init_min_p(params->min_p, 1));
-        llama_sampler_chain_add(smpl, llama_sampler_init_dist((uint32_t)t_rng()));
+        // typical-p (wave-5): (0,1) enables (llama-server typical order, pre-dist).
+        if (w->typical_p > 0.0f && w->typical_p < 1.0f)
+            llama_sampler_chain_add(smpl, llama_sampler_init_typical(w->typical_p, 1));
+        // XTC (wave-5): p > 0 enables; t <= 0 → 1.0f default.
+        if (w->xtc_p > 0.0f) {
+            const uint32_t xs = w->seed > 0 ? (uint32_t) w->seed : (uint32_t) t_rng();
+            llama_sampler_chain_add(smpl,
+                llama_sampler_init_xtc(w->xtc_p, w->xtc_t > 0.0f ? w->xtc_t : 1.0f, 1, xs));
+        }
+        // Mirostat (wave-5): mode 1/2 REPLACES the dist sampler (upstream server
+        // semantics — mirostat owns the final pick); zeroed = dist as before.
+        const uint32_t sseed = w->seed > 0 ? (uint32_t) w->seed : (uint32_t) t_rng();
+        if (w->mirostat_mode == 1) {
+            llama_sampler_chain_add(smpl, llama_sampler_init_mirostat(
+                n_vocab, sseed,
+                w->mirostat_tau > 0.0f ? w->mirostat_tau : 5.0f,
+                w->mirostat_eta > 0.0f ? w->mirostat_eta : 0.1f,
+                100));
+        } else if (w->mirostat_mode == 2) {
+            llama_sampler_chain_add(smpl, llama_sampler_init_mirostat_v2(
+                sseed,
+                w->mirostat_tau > 0.0f ? w->mirostat_tau : 5.0f,
+                w->mirostat_eta > 0.0f ? w->mirostat_eta : 0.1f));
+        } else {
+            llama_sampler_chain_add(smpl, llama_sampler_init_dist(sseed));
+        }
     }
 
     t_pooled.smpl = smpl;
@@ -2521,7 +2690,7 @@ static int32_t do_sample_with_grammar(const float* logits_raw, const llama_vocab
     // accept()) and is applied via rejection sampling (tiers below). The chain
     // is fetched/validated by fingerprint; NEVER freed per call (thread_local
     // ownership, freed at thread exit or fingerprint change).
-    llama_sampler* smpl = pooled_selection_chain(params, recent_tokens, n_vocab);
+    llama_sampler* smpl = pooled_selection_chain(params, recent_tokens, n_vocab, vocab);
 
     // ── Penalties activation (2026-09-26, ARCHITECTURE pm7, owner-approved) ──
     // Feed THIS caller's recent_tokens into the pooled penalties ring via

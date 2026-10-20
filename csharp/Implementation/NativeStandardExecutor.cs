@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using ProvostXInference.Abstractions;
 using ProvostXInference.Exceptions;
 using ProvostXInference.Interop;
@@ -72,10 +73,14 @@ public sealed class NativeStandardExecutor : IStandardExecutor
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var cfg = config ?? new SamplingConfig();
-        var nativeParams = ToNativeSampling(cfg);
+        var nativeParams = ToNativeSampling(cfg, out var lbPin);
         var nativeGrammar = (NativeGrammar)grammar;
-        EP.ExecutorSampleGrammar(_handle.DangerousGetHandle(), in nativeParams, nativeGrammar.RawHandle, out var token).ThrowIfError(EP, _context.RawHandle); // F16
-        return token;
+        try
+        {
+            EP.ExecutorSampleGrammar(_handle.DangerousGetHandle(), in nativeParams, nativeGrammar.RawHandle, out var token).ThrowIfError(EP, _context.RawHandle); // F16
+            return token;
+        }
+        finally { lbPin?.Free(); }
     }
 
     public InferResult Infer()
@@ -104,9 +109,13 @@ public sealed class NativeStandardExecutor : IStandardExecutor
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var cfg = config ?? new SamplingConfig();
-        var nativeParams = ToNativeSampling(cfg);
-        EP.ExecutorSample(_handle.DangerousGetHandle(), in nativeParams, out var token).ThrowIfError(EP, _context.RawHandle); // F16
-        return token;
+        var nativeParams = ToNativeSampling(cfg, out var lbPin);
+        try
+        {
+            EP.ExecutorSample(_handle.DangerousGetHandle(), in nativeParams, out var token).ThrowIfError(EP, _context.RawHandle); // F16
+            return token;
+        }
+        finally { lbPin?.Free(); }
     }
 
     public void Rewind(int tokenCount)
@@ -187,7 +196,7 @@ public sealed class NativeStandardExecutor : IStandardExecutor
     public IReadOnlyList<int> GenerateSpeculative(SamplingConfig? config, int maxTokens, Action<int>? onToken = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        var nativeParams = ToNativeSampling(config ?? new SamplingConfig());
+        var nativeParams = ToNativeSampling(config ?? new SamplingConfig(), out var lbPin);
         var tokens = new List<int>();
         // Reverse pinvoke: the collector runs on the SAME thread synchronously
         // inside the native call, so the local delegate reference keeps the
@@ -200,17 +209,50 @@ public sealed class NativeStandardExecutor : IStandardExecutor
             return 1;
         };
         var cbPtr = System.Runtime.InteropServices.Marshal.GetFunctionPointerForDelegate(cb);
-        EP.ExecutorGenerateSpec(_handle.DangerousGetHandle(), in nativeParams, maxTokens,
-            cbPtr, IntPtr.Zero, out var generated).ThrowIfError(EP, _context.RawHandle); // F16
-        System.GC.KeepAlive(cb);
-        return tokens;
+        try
+        {
+            EP.ExecutorGenerateSpec(_handle.DangerousGetHandle(), in nativeParams, maxTokens,
+                cbPtr, IntPtr.Zero, out var generated).ThrowIfError(EP, _context.RawHandle); // F16
+            System.GC.KeepAlive(cb);
+            return tokens;
+        }
+        finally { lbPin?.Free(); }
     }
 
-    internal static PvxSamplingParams ToNativeSampling(SamplingConfig cfg)
+    internal static PvxSamplingParams ToNativeSampling(SamplingConfig cfg,
+        out GCHandle? lbPin)
     {
+        // ABI v8 wave-5 (BL-21a): logit-bias pairs are pinned (blittable array)
+        // for the CALLER's scope — ToNativeSampling callers that keep the
+        // params alive across a native generate (spec/executor loops) own the
+        // pin; free with lbPin?.Free(). null/empty LogitBias → NULL pointer.
+        if (cfg.LogitBias is { Count: > 0 })
+        {
+            var arr = new PvxLogitBias[cfg.LogitBias.Count];
+            for (int i = 0; i < cfg.LogitBias.Count; i++)
+                arr[i] = new PvxLogitBias(cfg.LogitBias[i].Token, cfg.LogitBias[i].Bias);
+            lbPin = GCHandle.Alloc(arr, GCHandleType.Pinned);
+            var w5 = new PvxSamplingParamsWave5(
+                cfg.Seed ?? 0, cfg.FrequencyPenalty ?? 0f, cfg.TypicalP ?? 0f,
+                cfg.XtcP ?? 0f, cfg.XtcT ?? 0f, cfg.TopNSigma ?? 0f,
+                cfg.MirostatMode ?? 0, cfg.MirostatTau ?? 0f, cfg.MirostatEta ?? 0f,
+                cfg.DryMultiplier ?? 0f, cfg.DryBase ?? 0f,
+                cfg.DryAllowedLength ?? 0, cfg.DryPenaltyLastN ?? 0,
+                lbPin.Value.AddrOfPinnedObject(), arr.Length);
+            return new PvxSamplingParams(cfg.Temperature, cfg.TopP, cfg.TopK, cfg.MinP,
+                cfg.RepeatPenalty, cfg.RepeatLastN, cfg.PenaltyPresent,
+                cfg.MaxTokens, cfg.IgnoreEos, in w5);
+        }
+        lbPin = null;
+        var w5n = new PvxSamplingParamsWave5(
+            cfg.Seed ?? 0, cfg.FrequencyPenalty ?? 0f, cfg.TypicalP ?? 0f,
+            cfg.XtcP ?? 0f, cfg.XtcT ?? 0f, cfg.TopNSigma ?? 0f,
+            cfg.MirostatMode ?? 0, cfg.MirostatTau ?? 0f, cfg.MirostatEta ?? 0f,
+            cfg.DryMultiplier ?? 0f, cfg.DryBase ?? 0f,
+            cfg.DryAllowedLength ?? 0, cfg.DryPenaltyLastN ?? 0);
         return new PvxSamplingParams(cfg.Temperature, cfg.TopP, cfg.TopK, cfg.MinP,
             cfg.RepeatPenalty, cfg.RepeatLastN, cfg.PenaltyPresent,
-            cfg.MaxTokens, cfg.IgnoreEos);
+            cfg.MaxTokens, cfg.IgnoreEos, in w5n);
     }
 
     public void Dispose()

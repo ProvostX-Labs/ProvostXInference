@@ -58,19 +58,27 @@ public sealed class NativeConversation : IConversation
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var cfg = config ?? new SamplingConfig();
-        var nativeParams = NativeStandardExecutor.ToNativeSampling(cfg);
-        EP.ConversationSample(_handle, in nativeParams, out var token).ThrowIfError(EP, _pool.Context.RawHandle); // F16
-        return token;
+        var nativeParams = NativeStandardExecutor.ToNativeSampling(cfg, out var lbPin);
+        try
+        {
+            EP.ConversationSample(_handle, in nativeParams, out var token).ThrowIfError(EP, _pool.Context.RawHandle); // F16
+            return token;
+        }
+        finally { lbPin?.Free(); }
     }
 
     public int SampleWithGrammar(SamplingConfig? config, IGrammar grammar)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var cfg = config ?? new SamplingConfig();
-        var nativeParams = NativeStandardExecutor.ToNativeSampling(cfg);
+        var nativeParams = NativeStandardExecutor.ToNativeSampling(cfg, out var lbPin);
         var nativeGrammar = (NativeGrammar)grammar;
-        EP.ConversationSampleGrammar(_handle, in nativeParams, nativeGrammar.RawHandle, out var token).ThrowIfError(EP, _pool.Context.RawHandle); // F16
-        return token;
+        try
+        {
+            EP.ConversationSampleGrammar(_handle, in nativeParams, nativeGrammar.RawHandle, out var token).ThrowIfError(EP, _pool.Context.RawHandle); // F16
+            return token;
+        }
+        finally { lbPin?.Free(); }
     }
 
     public void Rewind(int tokenCount)
@@ -181,7 +189,7 @@ public sealed class NativeConversation : IConversation
     public IReadOnlyList<int> GenerateSpeculative(SamplingConfig? config, int maxTokens, Action<int>? onToken = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        var nativeParams = NativeStandardExecutor.ToNativeSampling(config ?? new SamplingConfig());
+        var nativeParams = NativeStandardExecutor.ToNativeSampling(config ?? new SamplingConfig(), out var lbPin);
         var tokens = new List<int>();
         // Reverse pinvoke: synchronous on the calling thread — the local
         // delegate reference keeps the stub alive for the call's duration.
@@ -195,10 +203,14 @@ public sealed class NativeConversation : IConversation
         var cbPtr = System.Runtime.InteropServices.Marshal.GetFunctionPointerForDelegate(cb);
         // Typed refusal when no spec session is active on this conversation —
         // never a silent plain-sample fallback.
-        EP.ConversationGenerateSpec(_handle, in nativeParams, maxTokens,
-            cbPtr, IntPtr.Zero, out var generated).ThrowIfError(EP, _pool.Context.RawHandle); // F16
-        System.GC.KeepAlive(cb);
-        return tokens;
+        try
+        {
+            EP.ConversationGenerateSpec(_handle, in nativeParams, maxTokens,
+                cbPtr, IntPtr.Zero, out var generated).ThrowIfError(EP, _pool.Context.RawHandle); // F16
+            System.GC.KeepAlive(cb);
+            return tokens;
+        }
+        finally { lbPin?.Free(); }
     }
 
     public SpeculationStats SpeculationStats()

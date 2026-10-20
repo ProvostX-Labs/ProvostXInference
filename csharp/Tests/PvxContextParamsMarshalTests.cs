@@ -14,7 +14,7 @@ public class PvxContextParamsMarshalTests
     public void MarshalSizeMatchesNativeStruct()
     {
         // pvx_context_params_t = 5 x uint32 = 20 bytes.
-        Assert.Equal(20, Marshal.SizeOf<PvxContextParams>());
+        Assert.Equal(112, Marshal.SizeOf<PvxContextParams>());  // ABI v8 wave-5 (BL-21c): 5 native fields + 22 appended (native sizeof pinned)
     }
 
     [Fact]

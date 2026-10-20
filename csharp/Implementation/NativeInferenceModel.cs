@@ -41,6 +41,10 @@ public sealed class NativeInferenceModel : IInferenceModel
         // of the native call — the native side copies them at load time.
         var markerPtrs = new List<IntPtr>();
         var markerArrayPtr = IntPtr.Zero;
+        // ABI v8 wave-5 (BL-21b): pinned GGUF override array — declared at
+        // method scope so the finally below can free it on every exit path.
+        var kvPtr = IntPtr.Zero;
+        var kvCount = 0;
         try
         {
             if (config.ReasoningMarkers is { Length: > 0 })
@@ -51,9 +55,29 @@ public sealed class NativeInferenceModel : IInferenceModel
                 for (int i = 0; i < markerPtrs.Count; i++)
                     Marshal.WriteIntPtr(markerArrayPtr, i * IntPtr.Size, markerPtrs[i]);
             }
+            // ABI v8 wave-5 (BL-21b): GGUF metadata overrides — pin the
+            // PvxKvOverride array for the duration of the load call (the
+            // native loader copies what it consumes during LoadModel; the
+            // OUTER finally frees the pin).
+            if (config.KvOverrides is { Count: > 0 })
+                if (config.KvOverrides is { Count: > 0 })
+                {
+                    kvCount = config.KvOverrides.Count;
+                    var one = System.Runtime.InteropServices.Marshal.SizeOf<PvxKvOverride>();
+                    kvPtr = System.Runtime.InteropServices.Marshal.AllocHGlobal(one * kvCount);
+                    for (int i = 0; i < kvCount; i++)
+                    {
+                        var kvo = config.KvOverrides[i];
+                        var native = new PvxKvOverride(kvo.Key, (int)kvo.Tag,
+                            kvo.Int64, kvo.Float64, kvo.Bool, kvo.Str);
+                        System.Runtime.InteropServices.Marshal.StructureToPtr(native, kvPtr + i * one, fDeleteOld: false);
+                    }
+                }
             var nativeParams = new PvxModelParams(pathPtr, config.GpuLayers, config.Threads,
                 config.FlashAttention, (PvxKvType)config.KvCacheType,
-                markerArrayPtr, markerPtrs.Count);
+                markerArrayPtr, markerPtrs.Count,
+                kvPtr, kvCount, config.LazyMode, config.UseExtraBuftsTri,
+                config.VocabOnly, config.CheckTensors, config.NoHost, config.NoAlloc, config.LoadMtp);
             try
             {
                 entryPoints.LoadModel(in nativeParams, out var raw).ThrowIfError(entryPoints);
@@ -71,6 +95,7 @@ public sealed class NativeInferenceModel : IInferenceModel
         }
         finally
         {
+            if (kvPtr != IntPtr.Zero) Marshal.FreeHGlobal(kvPtr);
             foreach (var p in markerPtrs) Marshal.FreeHGlobal(p);
             if (markerArrayPtr != IntPtr.Zero) Marshal.FreeHGlobal(markerArrayPtr);
             Marshal.FreeHGlobal(pathPtr);
@@ -84,7 +109,17 @@ public sealed class NativeInferenceModel : IInferenceModel
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var nativeParams = new PvxContextParams(config.ContextSize, config.BatchSize,
-            config.SeqMax, (PvxPoolingType)config.PoolingType, config.NRsSeq);
+            config.SeqMax, (PvxPoolingType)config.PoolingType, config.NRsSeq,
+            config.UbatchSize, config.NOutputsMax, config.NOutputsMaxPerSeq,
+            config.ThreadsBatch, config.RopeScalingType,
+            config.RopeFreqBase, config.RopeFreqScale,
+            config.YarnExtFactor, config.YarnAttnFactor,
+            config.YarnBetaFast, config.YarnBetaSlow, config.YarnOrigCtx,
+            config.DefragThold, config.MoeCacheSize,
+            config.KvTypeK ?? -1, config.KvTypeV ?? -1,
+            config.OffloadKqvTri, config.OpOffloadTri, config.SwaFullTri,
+            config.KvUnifiedTri, config.NoPerfTri, config.Embeddings,
+            config.AttentionType);
         EntryPoints.CreateContext(_handle.DangerousGetHandle(), in nativeParams, out var raw).ThrowIfError(EntryPoints, _handle.DangerousGetHandle());
         var ctxHandle = new ContextSafeHandle(EntryPoints);
         ctxHandle.SetHandleSafe(raw);
