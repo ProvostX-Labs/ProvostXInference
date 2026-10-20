@@ -375,3 +375,27 @@ unchanged). `Decision.Engine.DecisionSessionFactory` therefore constructs parame
 the logger is a settable `Logger` property (quiet default) — so a facade-only caller's
 compiled metadata never drags the `Logging` namespace in (a ctor parameter's member-ref
 signature would do exactly that). No caller passes a logger through the ctor.
+
+## Addendum 2026-10-20 — BL-42: shared-memory draft-MTP heads (gemma4-assistant)
+- **Upstream parity:** the MTP head context now ALWAYS links the trunk via
+  `cp.ctx_other = ctx_tgt` (upstream speculative.cpp ctor sets it unconditionally);
+  self-contained heads (qwen4exp class) ignore it. Shared-memory heads
+  (`gemma4-assistant` — the head attends the trunk KV through ctx_other) now
+  initialize instead of failing typed at "mtp-head-context".
+- **Round semantics per upstream `is_mem_shared`:** NO catch-up decodes (process()
+  skips the whole head decode — the head sees the trunk), NO head seq_rm, and all
+  draft rows ride the SAME position (draft() `dp.pos0` — gemma4 assistant quirk,
+  HF transformers reference); h-row capture/pairing unchanged (seed pairs
+  h_hist.back()). State restore (save/rewind) restores only the h ring for shared
+  heads (no head KV to rebuild).
+- **Out of scope (still typed):** multi-block chain heads (step35 class,
+  n_layer_nextn > 1 — needs `llama_set_nextn_layer_offset` wiring); EAGLE3/DFlash
+  lanes unchanged.
+- **Fixture plumbing:** the vision+MTP live leg accepts `PVX_MTP_MMPROJ_PATH`
+  (family override) before falling back to `PVX_MMPROJ_PATH`/suite MMPROJ —
+  the MTP pair may be a different family than the suite's vision fixtures.
+- **Live evidence (gemma-4-E4B-it Q8_0 + mtp-gemma-4 Q8_0 + mmproj, the primary host Metal):**
+  text 24/24 exact, 16/16 accepted (100%); vision 12/12 exact, 3/15 accepted (20%);
+  audio 12/12 exact, 6/9 accepted (66.7% — first live audio+MTP proof; gemma-4 is
+  the first audio-capable MTP pair in the fleet). Suite 48/48; ngram 25/25;
+  stress 31/31; C# SpecDecode 17/17.

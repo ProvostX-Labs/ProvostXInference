@@ -273,6 +273,11 @@ private:
     std::vector<std::vector<float>> m_mtp_h_hist;
     // h_{-1} pairing scratch (zero row, upstream pending zeros init).
     std::vector<float> m_mtp_zeros;
+    // BL-42: shared-memory head (gemma4-assistant class) — the head context
+    // links the target trunk via ctx_other and reads its KV directly:
+    // NO catch-up decodes, NO head seq_rm, and all draft rows ride the SAME
+    // position (upstream is_mem_shared draft() semantics, speculative.cpp).
+    bool m_mtp_mem_shared = false;
 
     // n-gram state (mode == PVX_SPEC_NGRAM_*).
     pvx::ngram_simple_config m_ng_simple{};

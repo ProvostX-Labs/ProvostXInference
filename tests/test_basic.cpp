@@ -1385,7 +1385,12 @@ static void test_spec_mtp_draft_live_pair() {
 static void test_spec_mtp_vision_live_pair() {
     const char* tgt = getenv("PVX_MTP_TARGET_PATH");
     const char* dft = getenv("PVX_MTP_DRAFT_PATH");
-    const char* mmp = getenv("PVX_MMPROJ_PATH");
+    // BL-42: the MTP pair may come from a DIFFERENT family than the suite's
+    // vision fixtures (e.g. gemma-4 pair while the suite hybrid stays qwen) —
+    // PVX_MTP_MMPROJ_PATH overrides, PVX_MMPROJ_PATH (suite MMPROJ_PATH)
+    // stays the fallback.
+    const char* mmp = getenv("PVX_MTP_MMPROJ_PATH");
+    if (!mmp) mmp = getenv("PVX_MMPROJ_PATH");
     if (!mmp) mmp = MMPROJ_PATH;
     const char* img = getenv("PVX_TEST_IMAGE");
     if (!img) img = TEST_IMAGE;

@@ -468,13 +468,17 @@ std::unique_ptr<PvxBLSpecEngine> PvxBLSpecEngine::create(pvx_model_t* model,
             return nullptr;
         }
         // Head context: MTP context type (nextn-layer-only KV), single stream,
-        // no recurrent seq budget; n_ctx mirrors the target. ctx_other stays
-        // UNSET: this head is self-contained (own token embedding + output
-        // head) — gemma4-style shared-memory and step35 chain heads are out
-        // of this slice (a chain-head head GGUF would type at n_nextn > 1
-        // below with draft_max clamped upstream-style; single-block only).
+        // no recurrent seq budget; n_ctx mirrors the target. BL-42: ctx_other
+        // is ALWAYS linked to the target trunk (upstream speculative.cpp ctor
+        // sets cparams.ctx_other = ctx_tgt unconditionally) — self-contained
+        // heads (qwen4exp class) ignore it; gemma4-assistant REQUIRES it
+        // (shared-memory arch refuses standalone init). step35-style
+        // multi-block chain heads still type at n_nextn > 1 (single-block
+        // heads only — chain-head wiring needs nextn_layer_offset, out of
+        // this slice).
         llama_context_params cp = llama_context_default_params();
         cp.ctx_type = LLAMA_CONTEXT_TYPE_MTP;
+        cp.ctx_other = ctx->ctx;
         cp.n_ctx     = ctx->n_ctx;
         cp.n_batch   = std::max<uint32_t>(llama_n_batch(ctx->ctx),
                                           (uint32_t) (engine->m_draft_max + 1));
@@ -495,6 +499,14 @@ std::unique_ptr<PvxBLSpecEngine> PvxBLSpecEngine::create(pvx_model_t* model,
         // head-side nextn output on (masked — the chain pairs read it).
         llama_set_embeddings_nextn(ctx->ctx, true, /*masked=*/ false);
         llama_set_embeddings_nextn(engine->m_ctx_dft, true, /*masked=*/ true);
+        // BL-42: upstream-faithful shared-memory detection — the head sees the
+        // trunk KV through ctx_other (gemma4-assistant); plain heads ignore it.
+        engine->m_mtp_mem_shared = (llama_get_ctx_other(engine->m_ctx_dft) == ctx->ctx);
+        if (engine->m_mtp_mem_shared) {
+            pvx_log(PVX_LOG_INFO, "Spec",
+                    "mtp-draft shared-memory head (ctx_other linked): no catch-up, "
+                    "same-position drafts");
+        }
         pvx_log(PVX_LOG_INFO, "Spec",
                 "mtp-draft session ready: n_nextn=%d n_embd=%d draft_max=%d p_min=%.3f",
                 n_nextn, engine->m_mtp_n_embd, engine->m_draft_max, engine->m_p_min);
@@ -1829,10 +1841,12 @@ bool PvxBLSpecEngine::mtp_pair_decode(llama_token tok, const float* h_row,
     // catch-up/draft cells occupy [pos, ...) and the decode hits the KV
     // contiguity check ("X = 30 / Y = 24", live log 20:55). Cells below pos
     // (the committed prefix) stay.
-    {
+    if (!m_mtp_mem_shared) {
         llama_memory_t dmem = llama_get_memory(m_ctx_dft);
         if (dmem) llama_memory_seq_rm(dmem, 0, pos, -1);
     }
+    // BL-42 (shared-memory heads): NO head seq_rm — upstream draft() keeps the
+    // same-position overwrite semantics for gemma4-class assistants.
     bool ok = false;
     do {
         const int32_t idx = llama_batch_ext_add_token(ext, 0, tok);
@@ -1897,6 +1911,16 @@ bool PvxBLSpecEngine::mtp_process_target_rows(llama_pos pos_first, int n_rows,
         m_mtp_h_hist.emplace_back(
             h_tgt + (size_t) i * (size_t) m_mtp_n_embd,
             h_tgt + (size_t) (i + 1) * (size_t) m_mtp_n_embd);
+    }
+
+    // BL-42 (shared-memory heads, gemma4-assistant): the head reads the trunk
+    // KV through ctx_other — upstream process() skips the ENTIRE catch-up
+    // decode for is_mem_shared heads; the h capture above is still required
+    // (the seed pairs h_hist.back()).
+    if (m_mtp_mem_shared) {
+        pvx_log(PVX_LOG_DEBUG, "Spec", "mtp process (shared): pos_first=%d n_rows=%d h_hist=%zu (no catch-up)",
+                (int) pos_first, n_rows, m_mtp_h_hist.size());
+        return true;
     }
 
     // Catch-up decode: the whole batch into the head context with the
@@ -2038,6 +2062,12 @@ bool PvxBLSpecEngine::mtp_state_restore(std::vector<std::vector<float>>&& rows) 
     // embedding is the head INPUT (upstream add_embd arm), the h pairing
     // is unchanged, so a saved mid-vision session restores exactly like a
     // text one (the old typed multimodal refusal is gone).
+    // BL-42 (shared-memory heads): no head KV to rebuild — the head reads the
+    // trunk; only the h ring is restored.
+    if (m_mtp_mem_shared) {
+        m_mtp_h_hist = std::move(rows);
+        return true;
+    }
     llama_memory_t dmem = llama_get_memory(m_ctx_dft);
     if (dmem) llama_memory_seq_rm(dmem, 0, 0, -1);
     m_mtp_h_hist = std::move(rows);
@@ -2224,7 +2254,10 @@ pvx_result_t PvxBLSpecEngine::generate_mtp(const pvx_sampling_params_t* params,
         }
         std::vector<llama_token> chain;
         std::vector<float> h_step((size_t) m_mtp_n_embd);
-        llama_pos next_pos = base + 1;
+        // BL-42 (shared-memory heads): every draft row rides the SAME position
+        // (upstream is_mem_shared draft(), speculative.cpp — gemma4 assistants
+        // share the trunk KV; advancing would collide with target cells).
+        llama_pos next_pos = m_mtp_mem_shared ? base : (llama_pos) (base + 1);
         for (int i = 0; i < round_cap; i++) {
             const float* d_logits = llama_get_logits_ith(m_ctx_dft, 0);
             const float* h_row = llama_get_embeddings_nextn_ith(m_ctx_dft, 0);
@@ -2245,7 +2278,7 @@ pvx_result_t PvxBLSpecEngine::generate_mtp(const pvx_sampling_params_t* params,
                 ctx->last_error = "mtp chain decode failed";
                 return PVX_ERR_INTERNAL;
             }
-            next_pos++;
+            if (!m_mtp_mem_shared) next_pos++;
         }
         if ((int) chain.size() < m_draft_min) chain.clear();
 
