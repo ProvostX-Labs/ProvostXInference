@@ -340,3 +340,14 @@ recoverable from this git.
 - Scope: src/pvx_spec_engine.h/.cpp, tests/test_basic.cpp (PVX_MTP_MMPROJ_PATH fixture override), ARCHITECTURE.md, LDC artifacts. NOTHING outside.
 - Acceptance: full native suite green incl. the three env-gated live legs on the gemma-4 pair (text/vision/audio+MTP); ngram/stress/C# spec suites green; LDC regen + enforcement PASS.
 - Status: **done** 2026-10-20 — LIVE: text 24/24 exact 16/16 accepted (100%); vision 12/12 exact 3/15 (20%); audio 12/12 exact 6/9 (66.7%, FIRST audio+MTP live proof). Local only, no push.
+
+### BL-21 · Full llama.cpp config-surface parity through C# — umbrella (owner order 2026-10-20 13:12)
+- Source: owner order "Register as backlog and start doing it we need to capture all" — config survey 2026-10-20 13:06 found ~70 llama.cpp verbs vs ~21 engine verbs (~35% coverage).
+- Spec: NO hidden states — every llama.cpp configuration verb reachable from C# (engine structs → ProvostXInference P/Invoke → LLM ModelConfig/request). ABI v8 wave-5: APPENDED fields only (default = current behavior bit-identical).
+- Sub-slices:
+  - BL-21a sampling: seed (deterministic), frequency_penalty, typical_p, xtc (p,t), top_n_sigma, mirostat (mode,tau,eta), dry (multiplier/base/penalty/seq_last_n), logit_bias (token→bias pairs) — wired into the pooled selection chain in OpenAI order.
+  - BL-21b model-load: load_mtp, vocab_only, check_tensors, use_extra_bufts, no_host, no_alloc, lazy_mode, kv_overrides (GGUF metadata override escape hatch, typed {key,type,value}).
+  - BL-21c context: ubatch_size, n_outputs_max(_per_seq), threads_batch, rope_freq_base/scale, rope_scaling_type, yarn_* (ext/attn/beta_fast/beta_slow/orig_ctx), separate type_k/type_v, moe_cache_size, offload_kqv, op_offload, swa_full, kv_unified, embeddings, no_perf, attention_type, defrag_thold.
+  - BL-21d C#/server: P/Invoke struct extensions, ModelConfig keys, request params (seed/frequency_penalty OpenAI-relevant), typed clamps, tests.
+- Acceptance: defaults-equivalence (full native suite + C# suites green with no env changes), new-knob unit legs, LDC regen + enforcement PASS, live spot-check on prod pair.
+- Status: in-progress 2026-10-20 (started by owner order).
