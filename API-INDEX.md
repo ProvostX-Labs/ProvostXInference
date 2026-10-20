@@ -1,6 +1,6 @@
 # API-INDEX.md — ProvostXInference
 
-Generated: 2026-10-19T15:55:21.837722+00:00
+Generated: 2026-10-20T00:18:11.311623+00:00
 Packages: 3  |  Types: 1894
 
 ---
@@ -131,7 +131,7 @@ Packages: 3  |  Types: 1894
 - 🟡 SystemChunkWallClock : IChunkWallClock  (csharp)  deps: [TimeProvider]
 - 🟣 TtsResult  (csharp)  deps: [float, int]
 
-## ProvostXInference (native C++) (1774 types, ~761361 LOC)
+## ProvostXInference (native C++) (1774 types, ~761448 LOC)
 
 - struct (global)::acl_deleter (acl_tensor.h) 
 - class ov::AlignEltwiseOperandRanks (align_eltwise_ranks.h) 
