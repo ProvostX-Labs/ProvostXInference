@@ -666,22 +666,27 @@ pvx_decode_result_t pvx_executor_infer(pvx_executor_t* exec) {
                 return PVX_DECODE_FAILED;
             }
         }
-        // ABI v8 wave 4: draft-MTP h rows (target trunk nextn embeddings) are
-        // per-committed-position — same hook discipline as EAGLE3.
-        if (exec->spec && exec->spec->is_mtp_draft()) {
-            if (!exec->spec->mtp_process_target_rows(
-                    kv_base + decoded, slice, exec->pending_tokens.data() + decoded)) {
-                exec->ctx_ref->last_error = exec->spec->last_error();
-                PVX_LOG(PVX_LOG_ERROR, "Decode", "mtp capture failed on infer slice");
-                return PVX_DECODE_FAILED;
-            }
-        }
         exec->recent_tokens.insert(exec->recent_tokens.end(),
                                    exec->pending_tokens.begin() + decoded,
                                    exec->pending_tokens.begin() + decoded + slice);
         for (int i = 0; i < slice; i++)
             pvx_mirror_push_token(exec, exec->pending_tokens[decoded + i],
                                   kv_base + decoded + i);
+        // ABI v8 wave 4: draft-MTP h rows (target trunk nextn embeddings) are
+        // per-committed-position — same hook discipline as EAGLE3. BL-39: the
+        // hook takes MIRROR ENTRIES (fired after this slice's mirror push, so
+        // the slice's rows are at [mirror.size() - slice, mirror.size()));
+        // vision rows pair as head INPUT embeddings, never as (t,h) history
+        // (see mtp_process_target_rows).
+        if (exec->spec && exec->spec->is_mtp_draft()) {
+            if (!exec->spec->mtp_process_target_rows(
+                    kv_base + decoded, slice,
+                    exec->mirror.data() + (exec->mirror.size() - (size_t) slice))) {
+                exec->ctx_ref->last_error = exec->spec->last_error();
+                PVX_LOG(PVX_LOG_ERROR, "Decode", "mtp capture failed on infer slice");
+                return PVX_DECODE_FAILED;
+            }
+        }
         exec->n_decode_steps++;  // ABI v8 stats
         exec->n_tokens += slice;
         exec->n_kv_pos += slice;
@@ -2832,18 +2837,12 @@ pvx_result_t pvx_executor_prompt_with_images(pvx_executor_t* exec,
             "free the session before image prompts) (boundary: spec-engine/eagle3-vision)";
         return PVX_ERR_NOT_SUPPORTED;
     }
-    // ABI v8 wave 4: the MTP capture hook consumes token-id rows only —
-    // embd (image) rows cannot pair (t_p, h_{p-1}) with the target trunk
-    // h_nextn contract kept. Upstream draft-mtp handles embd rows via
-    // set_embd_state pairing; this slice refuses typed (fail-closed, never a
-    // degraded draft) — free the session before image prompts.
-    if (exec->spec && exec->spec->is_mtp_draft()) {
-        exec->ctx_ref->last_error =
-            "mtp-draft spec session active: multimodal prompts are a typed refusal "
-            "while draft-MTP runs (the capture hook pairs token-id rows only; "
-            "free the session before image prompts) (boundary: spec-engine/mtp-vision)";
-        return PVX_ERR_NOT_SUPPORTED;
-    }
+    // ABI v8 wave 4 / BL-39: draft-MTP and vision now coexist in one
+    // session EXACTLY — the capture hook takes mirror entries, so image
+    // embd rows pair as head INPUT embeddings (upstream speculative.cpp:1630
+    // vision-token arm) with unchanged h_{p-1} state pairing. The old typed
+    // refusal (spec-engine/mtp-vision) is gone; EAGLE3 still refuses (its
+    // per-position feature capture cannot see embd rows — see below).
     if (!model->mtmd_ctx) {
         model->last_error = "No mmproj loaded — cannot process images";
         return PVX_ERR_INVALID_ARG;
@@ -2931,6 +2930,21 @@ pvx_result_t pvx_executor_prompt_with_images(pvx_executor_t* exec,
                                            exec->pending_tokens.begin(), exec->pending_tokens.end());
                 for (int j = 0; j < n; j++)
                     pvx_mirror_push_token(exec, exec->pending_tokens[j], exec->n_kv_pos - n + j);
+                // BL-39: these rows decoded OUTSIDE pvx_executor_infer — the
+                // draft-MTP capture hook must see them here or the
+                // capture-order invariant (h_hist == n_tokens) desyncs
+                // forever (typed INTERNAL at the first later commit).
+                if (exec->spec && exec->spec->is_mtp_draft()) {
+                    const size_t mirror_base = exec->mirror.size() - (size_t) n;
+                    if (!exec->spec->mtp_process_target_rows(
+                            exec->n_kv_pos - n, n,
+                            exec->mirror.data() + mirror_base)) {
+                        exec->ctx_ref->last_error = exec->spec->last_error();
+                        exec->mirror.resize(mirror_base);  // pop uncommitted rows
+                        mtmd_input_chunks_free(chunks);
+                        return PVX_ERR_DECODE_FAILED;
+                    }
+                }
                 exec->pending_tokens.clear();
                 exec->has_pending = false;
             }
@@ -2979,7 +2993,13 @@ pvx_result_t pvx_executor_prompt_with_images(pvx_executor_t* exec,
                 // Chunked decode through the stable extended-batch API — the
                 // same surface the vendored helper uses (never linked, only
                 // pattern-ported). Only the final row of the chunk is output.
+                // BL-39: mirror push + draft-MTP capture fire PER CHUNK — the
+                // target trunk h rows die at the NEXT decode on the shared
+                // context, so a later chunk would orphan the earlier chunk's
+                // h rows (capture-order desync). Failure mid-image pops the
+                // pushed rows back off the mirror (mirror == n_tokens holds).
                 const uint32_t n_batch = llama_n_batch(exec->ctx_ref->ctx);
+                const size_t mirror_base = exec->mirror.size();
                 int offset = 0;
                 bool failed = false;
                 while (offset < n_tokens) {
@@ -3002,10 +3022,27 @@ pvx_result_t pvx_executor_prompt_with_images(pvx_executor_t* exec,
                     }
                     llama_batch_ext_free(ext);
                     if (failed) break;
+                    // Commit this chunk's mirror rows, then hand them to the
+                    // capture hook (h rows die at the next decode — see above).
+                    for (int j = 0; j < n_slice; j++) {
+                        const int i = offset + j;
+                        pvx_mirror_push_embd(exec, embd + (size_t) i * n_embd,
+                                             n_embd, rowpos[i]);
+                    }
+                    if (exec->spec && exec->spec->is_mtp_draft()) {
+                        if (!exec->spec->mtp_process_target_rows(
+                                embd_base + offset, n_slice,
+                                exec->mirror.data() + mirror_base + (size_t) offset)) {
+                            exec->ctx_ref->last_error = exec->spec->last_error();
+                            failed = true;
+                        }
+                    }
+                    if (failed) break;
                     offset += n_slice;
                 }
                 if (need_non_causal) llama_set_causal_attn(exec->ctx_ref->ctx, true);
                 if (failed) {
+                    exec->mirror.resize(mirror_base);  // pop uncommitted rows
                     exec->ctx_ref->last_error = "image embd decode failed";
                     mtmd_input_chunks_free(chunks);
                     return PVX_ERR_DECODE_FAILED;
@@ -3014,11 +3051,6 @@ pvx_result_t pvx_executor_prompt_with_images(pvx_executor_t* exec,
                 exec->n_kv_pos += n_tokens;
                 exec->n_decode_steps++;  // ABI v8 stats (image embd decode)
                 exec->last_batch_idx = n_tokens - 1;
-                // Mirror: one embd-aware entry per committed image position
-                // (id == LLAMA_TOKEN_NULL) — the rows that keep mirror-size ==
-                // n_kv_pos after a multimodal prompt.
-                for (int i = 0; i < n_tokens; i++)
-                    pvx_mirror_push_embd(exec, embd + (size_t) i * n_embd, n_embd, rowpos[i]);
                 // Snapshot the last row now — it is only valid until the next
                 // decode on this shared context (same discipline as the
                 // conversation lane).

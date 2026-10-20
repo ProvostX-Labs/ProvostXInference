@@ -169,10 +169,23 @@ spec init on a pool with `seq_max < 2` types the refusal; generation without a s
   first), seed pair-decode `(t_last, h_last)` at the next position, greedy top-1 chain
   under `p_min`/EOG gates, ONE verify decode on the target, sample-and-match
   acceptance (greedy-exact), KV repair, `h_hist` truncated to the committed count.
-  Sequential executor lane only — the batched/pool conversation lane and multimodal
-  prompts refuse typed (capture-hook seams are executor-lane wiring, EAGLE3
-  precedent); spec enable requires an EMPTY stream (per-position capture must observe
-  every commit); state save/restore carries the `h_hist` rows additively (mismatch on
+  Sequential executor lane only — the batched/pool conversation lane refuses typed
+  (capture-hook seams are executor-lane wiring, EAGLE3 precedent); spec enable
+  requires an EMPTY stream (per-position capture must observe every commit);
+  vision prompts now coexist EXACTLY in the SAME session (BL-39): the capture
+  hook takes mirror ENTRIES, so image embd rows ride the same pairing — the
+  image embedding is the head INPUT (`add_embd` arm, upstream
+  speculative.cpp:1630 "vision tokens carry an embedding instead of an id"),
+  the `h_{p-1}` state pairing is unchanged, and every commit site
+  (`pvx_executor_infer` slices, the vision-prompt text flush, and EACH embd
+  decode chunk — h rows die at the next decode) fires the hook; the capture-
+  order invariant (`h_hist.size() == n_tokens`) holds across vision chunks,
+  and `mtp_state_restore` replays vision rows the same way (the old typed
+  multimodal refusal is gone; pure pairing planner
+  `pvx_mtp_catch_up_arm` is unit-tested without models). EAGLE3 still refuses
+  vision prompts typed (its per-position feature capture cannot see embd
+  rows), and AUDIO prompts still refuse typed (BL-39 scoped the mtmd IMAGE
+  embd lane). State save/restore carries the `h_hist` rows additively (mismatch on
   restore invalidates the session typed, re-init required); kv `shift_left` refuses
   typed. `llama_model_n_layer_nextn(head) == 0` (head GGUF without nextn tensors) is a
   typed refusal naming the boundary — never faked. The TARGET context carries the

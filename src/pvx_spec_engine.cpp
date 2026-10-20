@@ -1859,10 +1859,19 @@ bool PvxBLSpecEngine::mtp_pair_decode(llama_token tok, const float* h_row,
     return ok;
 }
 
+// BL-39 pure pairing planner: see pvx_spec_engine.h (struct PvxBLMtpArm).
+PvxBLMtpArm pvx_mtp_catch_up_arm(llama_pos p, const pvx_mirror_entry_t& e) {
+    PvxBLMtpArm a;
+    a.input_is_embd = (e.id == LLAMA_TOKEN_NULL);
+    a.zero_h = (p == 0);
+    a.h_index = (size_t) (p > 0 ? p - 1 : 0);
+    return a;
+}
+
 bool PvxBLSpecEngine::mtp_process_target_rows(llama_pos pos_first, int n_rows,
-                                               const llama_token* row_ids) {
+                                               const pvx_mirror_entry_t* rows) {
     if (m_mode != PVX_SPEC_MTP_DRAFT || n_rows <= 0) return true;
-    if (!m_ctx_dft || !row_ids) return false;
+    if (!m_ctx_dft || !rows) return false;
     // Capture-order invariant: one h row per committed position — the hook
     // fires exactly once per decoded batch, in stream order.
     if ((size_t) pos_first != m_mtp_h_hist.size()) {
@@ -1894,6 +1903,14 @@ bool PvxBLSpecEngine::mtp_process_target_rows(llama_pos pos_first, int n_rows,
     // (t_p, h_{p-1}) pairing (zero-h row for p == 0 — upstream pending
     // zeros), chunked by the head's n_batch.
     //
+    // BL-39 (upstream speculative.cpp:1630): vision rows ride the SAME
+    // pairing — the image embedding is the head INPUT (add_embd arm), the
+    // h_{p-1} state pairing is unchanged, so a vision chunk in the stream
+    // shifts the row indices but never pairs an image-embd position as
+    // history. Input width mismatch (target projector vs head input)
+    // zero-pads with a one-time warn (upstream zeros_warned discipline —
+    // quality signal only, never an abort).
+    //
     // ABI v8 wave-4 fix (live-verified 2026-10-19, probe): the head KV fails
     // the contiguity check when a catch-up re-decodes positions it already
     // holds — the round's seed+chain pre-writes [pos_first, ...) into the
@@ -1909,6 +1926,8 @@ bool PvxBLSpecEngine::mtp_process_target_rows(llama_pos pos_first, int n_rows,
     // Stale chain cells above are re-decoded-over upstream-style (no further
     // seq_rm on the head context anywhere else).
     const int d_batch = (int) llama_n_batch(m_ctx_dft);
+    const int dft_width = (int) llama_model_n_embd_inp(m_model_dft);
+    std::vector<float> zeros;
     // h_{-1} pairing row (p == 0): zero-padded scratch (upstream pending
     // zeros init), sized at create time.
     if (m_mtp_zeros.empty()) m_mtp_zeros.assign((size_t) m_mtp_n_embd, 0.0f);
@@ -1920,16 +1939,42 @@ bool PvxBLSpecEngine::mtp_process_target_rows(llama_pos pos_first, int n_rows,
         do {
             for (int j = 0; j < chunk; j++) {
                 const llama_pos p = pos_first + off + j;
-                const float* h_pair = (p == 0)
-                    ? m_mtp_zeros.data() : m_mtp_h_hist[(size_t) (p - 1)].data();
-                const int32_t idx = llama_batch_ext_add_token(ext, 0, row_ids[off + j]);
+                const pvx_mirror_entry_t& e = rows[off + j];
+                const PvxBLMtpArm arm = pvx_mtp_catch_up_arm(p, e);
+                const float* h_pair = arm.zero_h
+                    ? m_mtp_zeros.data() : m_mtp_h_hist[arm.h_index].data();
+                int32_t idx = -1;
+                if (arm.input_is_embd) {
+                    // Vision row: image embedding as head input (upstream
+                    // add_embd arm), zero-pad on width mismatch.
+                    const float* row = e.embd.data();
+                    if ((int) e.embd.size() != dft_width) {
+                        if (!m_width_warned) {
+                            m_width_warned = true;
+                            pvx_log(PVX_LOG_WARN, "Spec",
+                                    "target embeddings of size %zu do not fit the mtp head "
+                                    "input width %d; the head receives zero rows for them "
+                                    "and drafting after multimodal input will be poor",
+                                    e.embd.size(), dft_width);
+                        }
+                        if ((int) zeros.size() != dft_width)
+                            zeros.assign((size_t) dft_width, 0.0f);
+                        row = zeros.data();
+                    }
+                    const llama_embd le = { row, 1, (size_t) dft_width };
+                    idx = llama_batch_ext_add_embd(ext, 0, le);
+                } else {
+                    idx = llama_batch_ext_add_token(ext, 0, e.id);
+                }
                 if (idx < 0) break;
                 // ABI v8 wave-4 fix: state-embedding pairing (see mtp_pair_decode) —
                 // upstream process() pairs each committed row via set_embd_state.
                 const llama_embd le = { h_pair, 1, (size_t) m_mtp_n_embd };
                 if (!llama_batch_ext_set_embd_state(ext, idx, le)) break;
-                const llama_pos pq[4] = { p, p, p, p };
-                if (!llama_batch_ext_set_pos(ext, idx, pq)) break;
+                // Pinned 4-D position (token entries carry {p,p,p,p}; vision
+                // entries carry their M-RoPE section-major row position —
+                // exactly what the target decoded against).
+                if (!llama_batch_ext_set_pos(ext, idx, e.pos.data())) break;
                 if (!llama_batch_ext_set_output_logits(ext, idx, false)) break;
                 ok = true;  // full chunk armed
             }
@@ -1978,13 +2023,6 @@ bool PvxBLSpecEngine::mtp_state_restore(std::vector<std::vector<float>>&& rows) 
         pvx_log(PVX_LOG_WARN, "Spec", "%s", m_last_error.c_str());
         return false;
     }
-    for (const auto& e : *m_stream.mirror) {
-        if (e.id == LLAMA_TOKEN_NULL) {
-            m_last_error = "spec-engine/mtp-state-restore: mirror carries "
-                           "multimodal rows (vision + draft-MTP is a typed refusal)";
-            return false;
-        }
-    }
     for (const auto& r : rows) {
         if ((int) r.size() != m_mtp_n_embd) {
             m_last_error = "spec-engine/mtp-state-restore: saved h row width (" +
@@ -1995,11 +2033,17 @@ bool PvxBLSpecEngine::mtp_state_restore(std::vector<std::vector<float>>&& rows) 
     }
     // Full head-context clear, then a full catch-up replay [0, n): every
     // position re-decoded with the (t_p, h_{p-1}) pairing (no deferral —
-    // every committed position carries its own pairing row).
+    // every committed position carries its own pairing row). BL-39: mirror
+    // entries may carry vision rows (id == LLAMA_TOKEN_NULL) — the image
+    // embedding is the head INPUT (upstream add_embd arm), the h pairing
+    // is unchanged, so a saved mid-vision session restores exactly like a
+    // text one (the old typed multimodal refusal is gone).
     llama_memory_t dmem = llama_get_memory(m_ctx_dft);
     if (dmem) llama_memory_seq_rm(dmem, 0, 0, -1);
     m_mtp_h_hist = std::move(rows);
     const int d_batch = (int) llama_n_batch(m_ctx_dft);
+    const int dft_width = (int) llama_model_n_embd_inp(m_model_dft);
+    std::vector<float> zeros;
     if (m_mtp_zeros.empty()) m_mtp_zeros.assign((size_t) m_mtp_n_embd, 0.0f);
     for (int off = 0; off < n; off += d_batch) {
         const int chunk = std::min(d_batch, n - off);
@@ -2009,15 +2053,36 @@ bool PvxBLSpecEngine::mtp_state_restore(std::vector<std::vector<float>>&& rows) 
         do {
             for (int j = 0; j < chunk; j++) {
                 const llama_pos p = off + j;
-                const float* h_pair = (p == 0)
-                    ? m_mtp_zeros.data() : m_mtp_h_hist[(size_t) (p - 1)].data();
-                const int32_t idx = llama_batch_ext_add_token(ext, 0, (*m_stream.mirror)[p].id);
+                const pvx_mirror_entry_t& e = (*m_stream.mirror)[(size_t) p];
+                const PvxBLMtpArm arm = pvx_mtp_catch_up_arm(p, e);
+                const float* h_pair = arm.zero_h
+                    ? m_mtp_zeros.data() : m_mtp_h_hist[arm.h_index].data();
+                int32_t idx = -1;
+                if (arm.input_is_embd) {
+                    const float* row = e.embd.data();
+                    if ((int) e.embd.size() != dft_width) {
+                        if (!m_width_warned) {
+                            m_width_warned = true;
+                            pvx_log(PVX_LOG_WARN, "Spec",
+                                    "target embeddings of size %zu do not fit the mtp head "
+                                    "input width %d; the head receives zero rows for them "
+                                    "and drafting after multimodal input will be poor",
+                                    e.embd.size(), dft_width);
+                        }
+                        if ((int) zeros.size() != dft_width)
+                            zeros.assign((size_t) dft_width, 0.0f);
+                        row = zeros.data();
+                    }
+                    const llama_embd le = { row, 1, (size_t) dft_width };
+                    idx = llama_batch_ext_add_embd(ext, 0, le);
+                } else {
+                    idx = llama_batch_ext_add_token(ext, 0, e.id);
+                }
                 if (idx < 0) break;
                 // ABI v8 wave-4 fix: state-embedding pairing (see mtp_pair_decode).
                 const llama_embd le = { h_pair, 1, (size_t) m_mtp_n_embd };
                 if (!llama_batch_ext_set_embd_state(ext, idx, le)) break;
-                const llama_pos pq[4] = { p, p, p, p };
-                if (!llama_batch_ext_set_pos(ext, idx, pq)) break;
+                if (!llama_batch_ext_set_pos(ext, idx, e.pos.data())) break;
                 if (!llama_batch_ext_set_output_logits(ext, idx, false)) break;
                 ok = true;
             }
@@ -2108,7 +2173,11 @@ pvx_result_t PvxBLSpecEngine::generate_mtp(const pvx_sampling_params_t* params,
             ctx->last_error = "mtp fallback decode failed (rc=" + std::to_string(rc) + ")";
             return PVX_ERR_DECODE_FAILED;
         }
-        if (!mtp_process_target_rows(pos, 1, &t)) return PVX_ERR_INTERNAL;
+        // BL-39: hook takes mirror entries (vision rows carry embd payloads).
+        pvx_mirror_entry_t ent;
+        ent.id = t;
+        ent.pos = { pos, pos, pos, pos };
+        if (!mtp_process_target_rows(pos, 1, &ent)) return PVX_ERR_INTERNAL;
         spec_snapshot(ctx->ctx, *m_stream.last_logits, 0);
         stream_push_token(t, *m_stream.n_kv_pos);
         (*m_stream.n_tokens)++;
@@ -2212,8 +2281,14 @@ pvx_result_t PvxBLSpecEngine::generate_mtp(const pvx_sampling_params_t* params,
         }
         std::vector<std::vector<float>> rows(m + 1);
         for (int i = 0; i <= m; i++) spec_snapshot(ctx->ctx, rows[i], i);
-        // capture hook IMMEDIATELY (h rows die at the next target decode)
-        if (!mtp_process_target_rows(base, m + 1, verify_ids.data())) {
+        // capture hook IMMEDIATELY (h rows die at the next target decode);
+        // BL-39: verify rows as mirror entries (token rows — sampled positions).
+        std::vector<pvx_mirror_entry_t> vent((size_t) (m + 1));
+        for (int i = 0; i <= m; i++) {
+            vent[(size_t) i].id = verify_ids[(size_t) i];
+            vent[(size_t) i].pos = { base + i, base + i, base + i, base + i };
+        }
+        if (!mtp_process_target_rows(base, m + 1, vent.data())) {
             ctx->last_error = m_last_error;
             return PVX_ERR_INTERNAL;
         }

@@ -1375,6 +1375,98 @@ static void test_spec_mtp_draft_live_pair() {
     pvx_executor_free(eb2); pvx_free_context(cb2); pvx_free_model(m);
 }
 
+// LIVE draft-MTP + vision same-session leg (BL-39): a genuine vision-capable
+// target + MTP head pair + mmproj + test image. Spec is enabled on the EMPTY
+// executor, then a vision-then-text prompt rides the SAME session — the
+// capture hook must pair image embd rows as head INPUT embeddings (never as
+// (t,h) history) and the spec stream must stay token-exact vs plain greedy.
+// Env-gated: PVX_MTP_TARGET_PATH + PVX_MTP_DRAFT_PATH + PVX_MMPROJ_PATH (or
+// the suite's MMPROJ_PATH) + PVX_TEST_IMAGE. Absent = typed skip.
+static void test_spec_mtp_vision_live_pair() {
+    const char* tgt = getenv("PVX_MTP_TARGET_PATH");
+    const char* dft = getenv("PVX_MTP_DRAFT_PATH");
+    const char* mmp = getenv("PVX_MMPROJ_PATH");
+    if (!mmp) mmp = MMPROJ_PATH;
+    const char* img = getenv("PVX_TEST_IMAGE");
+    if (!img) img = TEST_IMAGE;
+    if (!tgt || !dft || !file_exists(tgt) || !file_exists(dft) ||
+        !mmp || !file_exists(mmp) || !img || !file_exists(img)) {
+        fprintf(stderr, "live-skip: no genuine mtp+vision pair "
+                "(PVX_MTP_TARGET_PATH/PVX_MTP_DRAFT_PATH/mmproj/image unset)\n");
+        return;
+    }
+    pvx_model_params_t mp = {}; mp.model_path = tgt; mp.gpu_layers = 99; mp.flash_attn = true;
+    pvx_model_t* m = nullptr; ASSERT(pvx_load_model(&mp, &m) == PVX_OK);
+    pvx_model_t* mmproj = nullptr;
+    ASSERT(pvx_load_mmproj(m, mmp, &mmproj) == PVX_OK);
+
+    FILE* f = fopen(img, "rb");
+    ASSERT(f);
+    fseek(f, 0, SEEK_END); long img_size = ftell(f); fseek(f, 0, SEEK_SET);
+    uint8_t* img_data = (uint8_t*) malloc(img_size);
+    ASSERT(fread(img_data, 1, img_size, f) == (size_t) img_size);
+    fclose(f);
+    const char* imgs[] = { (const char*) img_data };
+    int sizes[] = { (int) img_size };
+    char* marker_str = nullptr;
+    ASSERT(pvx_mtmd_marker(&marker_str) == PVX_OK);
+    const std::string prompt =
+        std::string("Describe this image in exactly ten words: ") + marker_str;
+    pvx_free_string(marker_str);
+
+    const int n_gen = 12;
+    pvx_sampling_params_t smp = {};
+    smp.temperature = 0.0f; smp.top_k = 1; smp.top_p = 1.0f; smp.repeat_penalty = 1.0f;
+    smp.max_tokens = n_gen; smp.ignore_eos = true;
+
+    // A: plain greedy reference on a fresh context (vision + infer).
+    pvx_context_t* ca = make_ctx(m, 1, 4096);
+    pvx_executor_t* ea = nullptr; ASSERT(pvx_executor_create(ca, &ea) == PVX_OK);
+    ASSERT(pvx_executor_prompt_with_images(ea, m, prompt.c_str(), imgs, sizes, 1) == PVX_OK);
+    ASSERT(pvx_executor_infer(ea) == PVX_DECODE_OK);
+    int32_t ref[32];
+    ASSERT(gen_plain_loop(ea, &smp, n_gen, ref) == n_gen);
+    pvx_executor_free(ea); pvx_free_context(ca);
+
+    // B: draft-MTP FIRST (empty stream), then the SAME vision-then-text
+    // prompt in the SAME session — the BL-39 scenario. n_rs_seq ring for the
+    // hybrid verify repair contract (ABI v8 wave 4).
+    pvx_context_params_t cp = {};
+    cp.context_size = 4096; cp.batch_size = 512; cp.seq_max = 1;
+    cp.n_rs_seq = 16;
+    pvx_context_t* cb = nullptr; ASSERT(pvx_create_context(m, &cp, &cb) == PVX_OK);
+    pvx_executor_t* eb = nullptr; ASSERT(pvx_executor_create(cb, &eb) == PVX_OK);
+    pvx_spec_params_t sp = {};
+    sp.mode = PVX_SPEC_MTP_DRAFT;
+    sp.mtp_draft_path = dft;
+    sp.draft_max = 2;
+    sp.p_min = -1.0f;
+    ASSERT(pvx_executor_spec_init(eb, &sp) == PVX_OK);
+    ASSERT(pvx_executor_prompt_with_images(eb, m, prompt.c_str(), imgs, sizes, 1) == PVX_OK);
+    ASSERT(pvx_executor_infer(eb) == PVX_DECODE_OK);
+    int32_t out[32]; int n = 0;
+    struct Cap { int32_t* v; int i; };
+    Cap cap{out, 0};
+    ASSERT(pvx_executor_generate_spec(eb, &smp, n_gen,
+            (pvx_spec_token_callback_t)+[](int32_t t, void* ud) -> bool {
+                Cap* c = (Cap*) ud; c->v[c->i++] = t; return true;
+            }, &cap, &n) == PVX_OK);
+    ASSERT(n == n_gen);
+    ASSERT(cap.i == (size_t) n);
+    ASSERT(memcmp(ref, out, sizeof(int32_t) * (size_t) n) == 0); // byte-identical
+    int64_t drafted = 0, accepted = 0;
+    ASSERT(pvx_executor_spec_stats(eb, &drafted, &accepted) == PVX_OK);
+    ASSERT(drafted > 0);
+    ASSERT(accepted > 0);
+    fprintf(stderr, "live: mtp+vision exact %d/%d tokens, drafted=%lld accepted=%lld "
+            "(accept-rate %.1f%%) ", n, n_gen, (long long) drafted,
+            (long long) accepted, 100.0 * (double) accepted / (double) drafted);
+    pvx_executor_free(eb); pvx_free_context(cb);
+    free(img_data);
+    pvx_free_mmproj(mmproj);
+    pvx_free_model(m);
+}
+
 static void test_spec_eagle3_live_pair() {
     // LIVE EAGLE3 leg (BL-36 evidence): a genuine target+companion pair.
     // Re-provision with the verified pair (repo + file names, relative notes):
@@ -2177,6 +2269,7 @@ int main() {
     TEST(spec_dflash_live_pair);
     TEST(spec_mtp_draft_typed);
     TEST(spec_mtp_draft_live_pair);
+    TEST(spec_mtp_vision_live_pair);
     TEST(json_schema_grammar_roundtrip);
     TEST(rerank_typed);
     TEST(rerank_live);

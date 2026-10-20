@@ -133,8 +133,15 @@ public:
     // then catch-up decodes the whole batch into the MTP head context with the
     // upstream (t_p, h_{p-1}) pairing (zero-h row at position 0; stale drafted
     // cells past pos_first dropped first). No-op for non-MTP-draft modes.
+    // BL-39: rows are MIRROR ENTRIES — token rows (id != LLAMA_TOKEN_NULL)
+    // feed the head by id, vision rows (id == LLAMA_TOKEN_NULL) by projected
+    // embedding (upstream speculative.cpp:1630 "vision tokens carry an
+    // embedding instead of an id": add_embd input arm); BOTH kinds pair with
+    // h_{p-1} via set_embd_state, so image positions never corrupt the
+    // (t,h) history — the capture/catch-up indices shift with the batch, not
+    // with the row kind.
     bool mtp_process_target_rows(llama_pos pos_first, int n_rows,
-                                  const llama_token* row_ids);
+                                  const pvx_mirror_entry_t* rows);
 
     // The stream shrink (rewind / reset / partial restore) twin of
     // eagle_on_stream_shrunk for the MTP-draft session: truncate mtp_h_hist
@@ -148,10 +155,11 @@ public:
 
     // MTP-draft restore (additive ABI v8 wave-4 payload): reloads mtp_h_hist
     // and replays the committed stream into the head context as catch-up
-    // pairs [0, n_tokens) — never resumes against a stale chain tail. Returns
+    // pairs [0, n_tokens) — never resumes against a stale chain tail. BL-39:
+    // mirror rows may be vision embd rows — they replay as head INPUT
+    // embeddings (upstream add_embd arm) with unchanged h pairing. Returns
     // false (typed message in last_error()) when the payload does not cover
-    // the restored stream (or carries multimodal rows) — the caller must then
-    // invalidate the session.
+    // the restored stream — the caller must then invalidate the session.
     bool mtp_state_restore(std::vector<std::vector<float>>&& rows);
 
     // True when this session keeps a separate MTP head context whose h-hist
@@ -283,3 +291,21 @@ private:
 
     std::string m_last_error;
 };
+
+// ── BL-39 pure pairing planner (unit-tested in tests/test_ngram.cpp) ──
+// The catch-up arm for the committed stream row at ABSOLUTE stream position
+// p (== the h_hist index the row will occupy). Pure function of (p, entry):
+// no engine state, no models — the whole pairing discipline in one place.
+struct PvxBLMtpArm {
+    // Vision row (id == LLAMA_TOKEN_NULL): the image embedding is the head
+    // INPUT (upstream add_embd arm) — never an (t,h) history source on the
+    // input side.
+    bool input_is_embd;
+    // Only p == 0 pairs the pending-zeros row (upstream pending_h init).
+    bool zero_h;
+    // h_hist source for every other row: the PREVIOUS committed position's
+    // trunk h — a vision row's hidden state DOES serve as the next row's h
+    // (upstream gathers h_tgt for all rows, vision included).
+    size_t h_index;
+};
+PvxBLMtpArm pvx_mtp_catch_up_arm(llama_pos p, const pvx_mirror_entry_t& e);

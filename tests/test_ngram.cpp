@@ -274,6 +274,67 @@ static void test_mirror_guard_detects_desync() {
     ASSERT(exec.mirror.size() != (size_t) exec.n_tokens);
 }
 
+// BL-39 — draft-MTP catch-up pairing planner (pure, no models): vision
+// rows ride the SAME (t_p, h_{p-1}) pairing as text rows — the image
+// embedding is the head INPUT (add_embd arm), the h source is ALWAYS the
+// previous committed position (a vision row's hidden state included), and
+// only stream position 0 pairs the pending-zeros row. This is the exact
+// discipline of upstream speculative.cpp:1630's vision-token arm.
+static void test_mtp_catch_up_arm_vision_pairing() {
+    pvx_executor_s exec{};
+    // stream: tok@0, tok@1, img@2..4 (M-RoPE 4-D pos on the image rows),
+    // tok@5 — the vision-then-text shape of BL-39.
+    pvx_mirror_push_token(&exec, 10, 0);
+    pvx_mirror_push_token(&exec, 11, 1);
+    for (int i = 0; i < 3; i++) {
+        const float img_row[2] = { 0.5f, -0.5f };
+        const std::array<llama_pos, 4> rp = { 2 + i, 8 + i, 0 + i, 0 };
+        pvx_mirror_push_embd(&exec, img_row, 2, rp);
+    }
+    pvx_mirror_push_token(&exec, 12, 5);
+    ASSERT(exec.mirror.size() == 6);
+
+    // p == 0: zero-h pairing (upstream pending zeros), token input.
+    PvxBLMtpArm a = pvx_mtp_catch_up_arm(0, exec.mirror[0]);
+    ASSERT(!a.input_is_embd && a.zero_h);
+
+    // p == 1: pairs h_hist[0] (the tok@0 trunk row), token input.
+    a = pvx_mtp_catch_up_arm(1, exec.mirror[1]);
+    ASSERT(!a.input_is_embd && !a.zero_h && a.h_index == 0);
+
+    // p == 2 (FIRST image row): embd input, but the h source is h_hist[1] —
+    // the LAST TEXT row's trunk state, never a zero and never an image
+    // embedding on the state side. The old bug paired image positions as
+    // (t,h) history by index shift; the planner keeps the boundary exact.
+    a = pvx_mtp_catch_up_arm(2, exec.mirror[2]);
+    ASSERT(a.input_is_embd && !a.zero_h && a.h_index == 1);
+
+    // p == 3 (middle image row): h source is h_hist[2] — a VISION row's
+    // trunk hidden state (upstream gathers h_tgt for all rows, vision
+    // included — the image rows are inputs, not sampled positions).
+    a = pvx_mtp_catch_up_arm(3, exec.mirror[3]);
+    ASSERT(a.input_is_embd && !a.zero_h && a.h_index == 2);
+
+    // p == 5 (text after vision): h source is h_hist[4] — the LAST image
+    // row's trunk state; token input.
+    a = pvx_mtp_catch_up_arm(5, exec.mirror[5]);
+    ASSERT(!a.input_is_embd && !a.zero_h && a.h_index == 4);
+
+    // Sweep: exactly one h row per committed position; h source always
+    // strictly below p; zeros ONLY at p == 0 (never at a vision row).
+    for (llama_pos p = 0; p < (llama_pos) exec.mirror.size(); p++) {
+        const PvxBLMtpArm arm = pvx_mtp_catch_up_arm(p, exec.mirror[(size_t) p]);
+        ASSERT(arm.input_is_embd ==
+               (exec.mirror[(size_t) p].id == LLAMA_TOKEN_NULL));
+        ASSERT(arm.zero_h == (p == 0));
+        if (p > 0) {
+            ASSERT(!arm.zero_h);
+            ASSERT(arm.h_index == (size_t) (p - 1));
+            ASSERT(arm.h_index < (size_t) p);
+        }
+    }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // ABI v7 wave 2 — JSON-schema → GBNF converter unit tests (no model needed)
 // + conversation-lane mirror helpers.
@@ -460,6 +521,7 @@ int main() {
     TEST(json_schema_unsupported_keyword_typed);
     TEST(json_schema_format_fails_closed);
     TEST(conv_mirror_helpers);
+    TEST(mtp_catch_up_arm_vision_pairing);
     fprintf(stderr, "\n=== %d/%d passed ===\n", tests_passed, tests_run);
     return 0;
 }
