@@ -559,6 +559,44 @@ static void test_conv_mirror_helpers() {
     ASSERT(conv.mirror[1].pos[3] == 8);
 }
 
+// BL-45 — multi-block chain head planners (pure, no models): upstream
+// speculative.cpp ctor decides chain mode ONCE (chain_heads =
+// n_mtp_layers > 1 && !is_mem_shared) and clamps the chain budget to the
+// trained block count (n_max = min(n_max, n_mtp_layers)); the per-step arm
+// mirrors the draft() chain_heads path (step i -> layer offset i, whole
+// prefix re-added, logits on the last row only).
+static void test_mtp_chain_plan_selection() {
+    // single-block head (qwen4exp class): never chain, budget untouched.
+    PvxBLMtpChainPlan p1 = pvx_mtp_chain_plan(1, false, 16);
+    ASSERT(!p1.chain && p1.n_layers == 1 && p1.draft_max == 16);
+    // multi-block non-shared head (step35 class): chain, budget clamped.
+    PvxBLMtpChainPlan p3 = pvx_mtp_chain_plan(3, false, 16);
+    ASSERT(p3.chain && p3.n_layers == 3 && p3.draft_max == 3);
+    // multi-block head but budget already below the block count: kept.
+    PvxBLMtpChainPlan p2 = pvx_mtp_chain_plan(4, false, 2);
+    ASSERT(p2.chain && p2.n_layers == 4 && p2.draft_max == 2);
+    // shared-memory head (gemma4 class) with multiple blocks: upstream runs
+    // all heads in one graph — NOT chain mode, BL-42 path, budget untouched.
+    PvxBLMtpChainPlan ps = pvx_mtp_chain_plan(4, true, 16);
+    ASSERT(!ps.chain && ps.n_layers == 4 && ps.draft_max == 16);
+    // degenerate counts clamp to 1 layer, never chain (upstream max(1, n)).
+    PvxBLMtpChainPlan p0 = pvx_mtp_chain_plan(0, false, 16);
+    ASSERT(!p0.chain && p0.n_layers == 1 && p0.draft_max == 16);
+}
+
+static void test_mtp_chain_arm_per_step() {
+    // step 0: the seed row alone (id_last + pending h), logits on row 0.
+    PvxBLMtpChainArm a0 = pvx_mtp_chain_arm(0, 0);
+    ASSERT(a0.layer_offset == 0 && a0.n_rows == 1 && a0.i_last == 0);
+    // step 2 with one drafted token: whole prefix re-added (seed + drafted),
+    // head 2 selected, logits/h on the LAST row.
+    PvxBLMtpChainArm a2 = pvx_mtp_chain_arm(2, 1);
+    ASSERT(a2.layer_offset == 2 && a2.n_rows == 2 && a2.i_last == 1);
+    // step k with k drafted rows: n_rows grows by one per drafted token.
+    PvxBLMtpChainArm a5 = pvx_mtp_chain_arm(5, 5);
+    ASSERT(a5.layer_offset == 5 && a5.n_rows == 6 && a5.i_last == 5);
+}
+
 int main() {
     fprintf(stderr, "\n=== ProvostXInference n-gram + mirror unit tests ===\n");
     TEST(ngram_simple_repeat_pattern);
@@ -586,6 +624,8 @@ int main() {
     TEST(conv_mirror_helpers);
     TEST(mtp_catch_up_arm_vision_pairing);
     TEST(mtp_catch_up_arm_audio_pairing);
+    TEST(mtp_chain_plan_selection);
+    TEST(mtp_chain_arm_per_step);
     fprintf(stderr, "\n=== %d/%d passed ===\n", tests_passed, tests_run);
     return 0;
 }

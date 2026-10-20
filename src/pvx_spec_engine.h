@@ -197,6 +197,12 @@ private:
     //   mtp_pair_decode — one (token, h_row) row at pos for the MTP head
     bool mtp_pair_decode(llama_token tok, const float* h_row, llama_pos pos,
                          bool output_logits);
+    //   mtp_replay_rows — BL-45 factoring: chunked (t_p, h_{p-1}) replay of
+    //   n_rows mirror rows from pos_first into the head context (the shared
+    //   body of process catch-up and state-restore replay). No seq_rm inside;
+    //   callers own the head-memory discipline (chain: per head).
+    bool mtp_replay_rows(const char* err_tag, llama_pos pos_first, int n_rows,
+                         const pvx_mirror_entry_t* rows);
     //   stream_push_token — one token row into the bound stream's mirror ring
     void stream_push_token(llama_token id, llama_pos pos);
 
@@ -278,6 +284,13 @@ private:
     // NO catch-up decodes, NO head seq_rm, and all draft rows ride the SAME
     // position (upstream is_mem_shared draft() semantics, speculative.cpp).
     bool m_mtp_mem_shared = false;
+    // BL-45: multi-block chain head (step35 class, n_layer_nextn > 1 and NOT
+    // shared-memory -- upstream chain_heads). Draft step i runs under
+    // llama_set_nextn_layer_offset(i) with the whole prefix re-added each
+    // step; catch-up decodes replay once per head; draft_max is clamped to
+    // the trained block count (upstream n_max = min(n_max, n_mtp_layers)).
+    int  m_mtp_n_layers    = 1;
+    bool m_mtp_chain_heads = false;
 
     // n-gram state (mode == PVX_SPEC_NGRAM_*).
     pvx::ngram_simple_config m_ng_simple{};
@@ -314,3 +327,25 @@ struct PvxBLMtpArm {
     size_t h_index;
 };
 PvxBLMtpArm pvx_mtp_catch_up_arm(llama_pos p, const pvx_mirror_entry_t& e);
+
+// -- BL-45 pure chain-head planners (unit-tested in tests/test_ngram.cpp) --
+// Upstream speculative.cpp ctor: chain_heads = n_mtp_layers > 1 &&
+// !is_mem_shared, and the chain budget clamps to the trained block count
+// (n_max = min(n_max, n_mtp_layers)). Shared-memory heads (gemma4) run all
+// blocks in one graph -- NOT chain mode, BL-42 path unchanged.
+struct PvxBLMtpChainPlan {
+    bool chain;      // per-step head selection active
+    int  n_layers;   // trained nextn blocks (>= 1)
+    int  draft_max;  // chain budget (clamped when chain)
+};
+PvxBLMtpChainPlan pvx_mtp_chain_plan(int n_nextn, bool mem_shared, int draft_max);
+
+// Upstream draft() chain_heads path, per draft step i: decode under nextn
+// layer offset i, re-adding the WHOLE prefix (seed + drafted so far) --
+// logits only on the last row, KV rebuilt per step (seq_rm(pos0, -1)).
+struct PvxBLMtpChainArm {
+    int layer_offset; // nextn block this step selects
+    int n_rows;       // seed + drafted-so-far prefix rows
+    int i_last;       // batch index carrying logits + the head's h output
+};
+PvxBLMtpChainArm pvx_mtp_chain_arm(int step, int drafted);

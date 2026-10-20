@@ -159,8 +159,9 @@ spec init on a pool with `seq_max < 2` types the refusal; generation without a s
   target trunk via `ctx_other` (upstream ctor parity — self-contained heads ignore it);
   shared-memory heads (`gemma4-assistant`) are SUPPORTED (no catch-up decodes, no
   head seq_rm, all draft rows at the SAME position, state restore replays the h ring
-  only) — the remaining typed-refused class is step35-style multi-block chain heads
-  (`n_layer_nextn > 1`, needs `nextn_layer_offset` wiring). Pairing convention (DeepSeek-style): a draft row predicting stream
+  only) — BL-45 extends the lane to multi-block chain heads (step35 class,
+  `n_layer_nextn > 1`, per-step `nextn_layer_offset` selection, see the BL-45
+  addendum). Pairing convention (DeepSeek-style): a draft row predicting stream
   position P consumes `(embd(t_{P-1}), h_{P-1})` — `h` = the target trunk's nextn
   embedding (`llama_set_embeddings_nextn(target, true, masked=false)`), row width =
   `llama_model_n_embd_out` (head must match target — typed refusal at spec_init, never
@@ -447,3 +448,42 @@ signature would do exactly that). No caller passes a logger through the ctor.
 - Found during post-BL-22 Linux ARM64 VM verification (see the LLM-side
   verification report); registered then scoped per owner order 19:10
   ("lets clean it up").
+
+
+## Addendum 2026-10-20 — BL-45: multi-block chain draft-MTP heads (step35 class)
+
+The last MTP family: heads whose GGUF carries `n_layer_nextn > 1` (up to one
+trained nextn block per draft step). Upstream llama.cpp SUPPORTS them
+(`common_speculative_impl_draft_mtp`, chain_heads path) — the engine now
+mirrors that exactly instead of the old implicit single-block behavior:
+
+- **Detection (head init, upstream ctor parity)** — `chain_heads =
+  n_mtp_layers > 1 && !is_mem_shared` (pure planner `pvx_mtp_chain_plan`,
+  unit-tested): multi-block NON-shared heads enter chain mode with the chain
+  budget clamped to the trained block count (`n_max = min(n_max,
+  n_mtp_layers)` — an untrained block is never addressed). Shared-memory
+  multi-block heads (gemma4 class) run all blocks in one graph — NOT chain
+  mode, BL-42 path byte-identical. Single-block heads (`n_layer_nextn == 1`)
+  are byte-identical to BL-42 (offset untouched everywhere).
+- **Catch-up / state-restore replay (upstream process() parity)** — chain
+  mode replays the committed rows once PER HEAD: seq_rm `[pos_first, end)`,
+  `llama_set_nextn_layer_offset(head)`, chunked `(t_p, h_{p-1})` replay
+  (factored into `mtp_replay_rows`), then offset restored to 0. The head
+  context KV holds every nextn block (MTP-context layer filter), so each
+  head rebuilds its OWN layer's committed prefix.
+- **Chain drafting (upstream draft() parity)** — draft step i selects head i
+  via `llama_set_nextn_layer_offset(i)` and re-decodes the WHOLE prefix
+  (seed row + drafted so far, pairing row t = `chain_h[t]` = pending h, then
+  each head's own nextn output), per-step seq_rm `(base, -1)`, logits only on
+  the last row (`pvx_mtp_chain_arm` planner, unit-tested); offset restored to
+  0 after the chain loop. Verification/acceptance/commit unchanged — the
+  target-side verify is head-count-agnostic.
+- **Typed refusals**: unchanged for configs upstream also refuses; the
+  multi-block family has NO refusal (upstream supports it) — refusal stays
+  only for non-MTP heads, width mismatch, vocab incompat.
+- No live pair exists on this host — semantics proven from the vendored
+  source (`llama.cpp/common/speculative.cpp` chain_heads path,
+  `llama.cpp/src/models/step35.cpp` `graph_mtp` offset selection) plus the
+  deterministic pure-planner legs; a step35-class pair gets the env-gated
+  live leg where one exists (same `PVX_MTP_TARGET_PATH`/
+  `PVX_MTP_DRAFT_PATH` fixtures as BL-42).

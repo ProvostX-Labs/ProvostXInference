@@ -473,9 +473,9 @@ std::unique_ptr<PvxBLSpecEngine> PvxBLSpecEngine::create(pvx_model_t* model,
         // sets cparams.ctx_other = ctx_tgt unconditionally) — self-contained
         // heads (qwen4exp class) ignore it; gemma4-assistant REQUIRES it
         // (shared-memory arch refuses standalone init). step35-style
-        // multi-block chain heads still type at n_nextn > 1 (single-block
-        // heads only — chain-head wiring needs nextn_layer_offset, out of
-        // this slice).
+        // multi-block chain heads (n_layer_nextn > 1, BL-45) ride the same
+        // link-free context and select their per-step block via
+        // llama_set_nextn_layer_offset.
         llama_context_params cp = llama_context_default_params();
         cp.ctx_type = LLAMA_CONTEXT_TYPE_MTP;
         cp.ctx_other = ctx->ctx;
@@ -506,6 +506,21 @@ std::unique_ptr<PvxBLSpecEngine> PvxBLSpecEngine::create(pvx_model_t* model,
             pvx_log(PVX_LOG_INFO, "Spec",
                     "mtp-draft shared-memory head (ctx_other linked): no catch-up, "
                     "same-position drafts");
+        }
+        // BL-45 (multi-block chain heads, step35 class): upstream ctor —
+        // chain_heads = n_mtp_layers > 1 && !is_mem_shared; the chain budget
+        // clamps to the trained block count. Chain mode drafts step i under
+        // llama_set_nextn_layer_offset(i) (the head context KV holds every
+        // nextn block; the MTP graph runs the block at the current offset).
+        const PvxBLMtpChainPlan plan =
+            pvx_mtp_chain_plan(n_nextn, engine->m_mtp_mem_shared, engine->m_draft_max);
+        engine->m_mtp_n_layers    = plan.n_layers;
+        engine->m_mtp_chain_heads = plan.chain;
+        engine->m_draft_max       = plan.draft_max;
+        if (plan.chain) {
+            pvx_log(PVX_LOG_INFO, "Spec",
+                    "mtp-draft chain head (multi-block): n_layers=%d draft_max clamped to %d",
+                    plan.n_layers, plan.draft_max);
         }
         pvx_log(PVX_LOG_INFO, "Spec",
                 "mtp-draft session ready: n_nextn=%d n_embd=%d draft_max=%d p_min=%.3f",
@@ -1882,6 +1897,99 @@ PvxBLMtpArm pvx_mtp_catch_up_arm(llama_pos p, const pvx_mirror_entry_t& e) {
     return a;
 }
 
+// BL-45 pure planners (upstream speculative.cpp ctor + draft() chain_heads
+// path): chain mode is decided ONCE at head init, per-step arms are pure
+// functions of (step, drafted).
+PvxBLMtpChainPlan pvx_mtp_chain_plan(int n_nextn, bool mem_shared, int draft_max) {
+    PvxBLMtpChainPlan p{};
+    p.n_layers  = std::max(1, n_nextn);
+    p.chain     = p.n_layers > 1 && !mem_shared;
+    p.draft_max = p.chain ? std::min(draft_max, p.n_layers) : draft_max;
+    return p;
+}
+
+PvxBLMtpChainArm pvx_mtp_chain_arm(int step, int drafted) {
+    PvxBLMtpChainArm a{};
+    a.layer_offset = step;
+    a.n_rows       = drafted + 1;
+    a.i_last       = drafted;
+    return a;
+}
+
+// BL-45 factoring: chunked (t_p, h_{p-1}) replay of n_rows mirror rows from
+// pos_first into the head context — the shared body of process() catch-up
+// and state-restore replay. No seq_rm inside: callers own the head-memory
+// discipline (single: drop [pos_first, end) once; chain: per head).
+bool PvxBLSpecEngine::mtp_replay_rows(const char* err_tag, llama_pos pos_first,
+                                       int n_rows, const pvx_mirror_entry_t* rows) {
+    const int d_batch = (int) llama_n_batch(m_ctx_dft);
+    const int dft_width = (int) llama_model_n_embd_inp(m_model_dft);
+    std::vector<float> zeros;
+    // h_{-1} pairing row (p == 0): zero-padded scratch (upstream pending
+    // zeros init), sized at create time.
+    if (m_mtp_zeros.empty()) m_mtp_zeros.assign((size_t) m_mtp_n_embd, 0.0f);
+    for (int off = 0; off < n_rows; off += d_batch) {
+        const int chunk = std::min(d_batch, n_rows - off);
+        llama_batch_ext* ext = llama_batch_ext_init(m_ctx_dft);
+        if (!ext) return false;
+        bool ok = false;
+        do {
+            for (int j = 0; j < chunk; j++) {
+                const llama_pos p = pos_first + off + j;
+                const pvx_mirror_entry_t& e = rows[off + j];
+                const PvxBLMtpArm arm = pvx_mtp_catch_up_arm(p, e);
+                const float* h_pair = arm.zero_h
+                    ? m_mtp_zeros.data() : m_mtp_h_hist[arm.h_index].data();
+                int32_t idx = -1;
+                if (arm.input_is_embd) {
+                    // Vision row: image embedding as head input (upstream
+                    // add_embd arm), zero-pad on width mismatch.
+                    const float* row = e.embd.data();
+                    if ((int) e.embd.size() != dft_width) {
+                        if (!m_width_warned) {
+                            m_width_warned = true;
+                            pvx_log(PVX_LOG_WARN, "Spec",
+                                    "target embeddings of size %zu do not fit the mtp head "
+                                    "input width %d; the head receives zero rows for them "
+                                    "and drafting after multimodal input will be poor",
+                                    e.embd.size(), dft_width);
+                        }
+                        if ((int) zeros.size() != dft_width)
+                            zeros.assign((size_t) dft_width, 0.0f);
+                        row = zeros.data();
+                    }
+                    const llama_embd le = { row, 1, (size_t) dft_width };
+                    idx = llama_batch_ext_add_embd(ext, 0, le);
+                } else {
+                    idx = llama_batch_ext_add_token(ext, 0, e.id);
+                }
+                if (idx < 0) break;
+                // ABI v8 wave-4 fix: state-embedding pairing (see mtp_pair_decode) —
+                // upstream process() pairs each committed row via set_embd_state.
+                const llama_embd le = { h_pair, 1, (size_t) m_mtp_n_embd };
+                if (!llama_batch_ext_set_embd_state(ext, idx, le)) break;
+                // Pinned 4-D position (token entries carry {p,p,p,p}; vision
+                // entries carry their M-RoPE section-major row position —
+                // exactly what the target decoded against).
+                if (!llama_batch_ext_set_pos(ext, idx, e.pos.data())) break;
+                if (!llama_batch_ext_set_output_logits(ext, idx, false)) break;
+                ok = true;  // full chunk armed
+            }
+            if (!ok) break;
+            if (llama_process(m_ctx_dft, LLAMA_PROCESS_TYPE_DECODE, ext) != 0) {
+                ok = false;
+                break;
+            }
+        } while (false);
+        llama_batch_ext_free(ext);
+        if (!ok) {
+            m_last_error = std::string(err_tag) + ": head replay decode failed";
+            pvx_log(PVX_LOG_ERROR, "Spec", "%s", m_last_error.c_str());
+            return false;
+        }
+    }
+}
+
 bool PvxBLSpecEngine::mtp_process_target_rows(llama_pos pos_first, int n_rows,
                                                const pvx_mirror_entry_t* rows) {
     if (m_mode != PVX_SPEC_MTP_DRAFT || n_rows <= 0) return true;
@@ -1945,75 +2053,25 @@ bool PvxBLSpecEngine::mtp_process_target_rows(llama_pos pos_first, int n_rows,
     // memory first — the committed prefix below pos_first stays — so the
     // catch-up replays over freed cells only. No-op for fresh positions
     // (prompt slices: nothing above pos_first yet).
-    llama_memory_t dmem = llama_get_memory(m_ctx_dft);
-    if (dmem) llama_memory_seq_rm(dmem, 0, (llama_pos) pos_first, -1);
-    // Stale chain cells above are re-decoded-over upstream-style (no further
-    // seq_rm on the head context anywhere else).
-    const int d_batch = (int) llama_n_batch(m_ctx_dft);
-    const int dft_width = (int) llama_model_n_embd_inp(m_model_dft);
-    std::vector<float> zeros;
-    // h_{-1} pairing row (p == 0): zero-padded scratch (upstream pending
-    // zeros init), sized at create time.
-    if (m_mtp_zeros.empty()) m_mtp_zeros.assign((size_t) m_mtp_n_embd, 0.0f);
-    for (int off = 0; off < n_rows; off += d_batch) {
-        const int chunk = std::min(d_batch, n_rows - off);
-        llama_batch_ext* ext = llama_batch_ext_init(m_ctx_dft);
-        if (!ext) return false;
-        bool ok = false;
-        do {
-            for (int j = 0; j < chunk; j++) {
-                const llama_pos p = pos_first + off + j;
-                const pvx_mirror_entry_t& e = rows[off + j];
-                const PvxBLMtpArm arm = pvx_mtp_catch_up_arm(p, e);
-                const float* h_pair = arm.zero_h
-                    ? m_mtp_zeros.data() : m_mtp_h_hist[arm.h_index].data();
-                int32_t idx = -1;
-                if (arm.input_is_embd) {
-                    // Vision row: image embedding as head input (upstream
-                    // add_embd arm), zero-pad on width mismatch.
-                    const float* row = e.embd.data();
-                    if ((int) e.embd.size() != dft_width) {
-                        if (!m_width_warned) {
-                            m_width_warned = true;
-                            pvx_log(PVX_LOG_WARN, "Spec",
-                                    "target embeddings of size %zu do not fit the mtp head "
-                                    "input width %d; the head receives zero rows for them "
-                                    "and drafting after multimodal input will be poor",
-                                    e.embd.size(), dft_width);
-                        }
-                        if ((int) zeros.size() != dft_width)
-                            zeros.assign((size_t) dft_width, 0.0f);
-                        row = zeros.data();
-                    }
-                    const llama_embd le = { row, 1, (size_t) dft_width };
-                    idx = llama_batch_ext_add_embd(ext, 0, le);
-                } else {
-                    idx = llama_batch_ext_add_token(ext, 0, e.id);
-                }
-                if (idx < 0) break;
-                // ABI v8 wave-4 fix: state-embedding pairing (see mtp_pair_decode) —
-                // upstream process() pairs each committed row via set_embd_state.
-                const llama_embd le = { h_pair, 1, (size_t) m_mtp_n_embd };
-                if (!llama_batch_ext_set_embd_state(ext, idx, le)) break;
-                // Pinned 4-D position (token entries carry {p,p,p,p}; vision
-                // entries carry their M-RoPE section-major row position —
-                // exactly what the target decoded against).
-                if (!llama_batch_ext_set_pos(ext, idx, e.pos.data())) break;
-                if (!llama_batch_ext_set_output_logits(ext, idx, false)) break;
-                ok = true;  // full chunk armed
-            }
-            if (!ok) break;
-            if (llama_process(m_ctx_dft, LLAMA_PROCESS_TYPE_DECODE, ext) != 0) {
-                ok = false;
-                break;
-            }
-        } while (false);
-        llama_batch_ext_free(ext);
-        if (!ok) {
-            m_last_error = "spec-engine/mtp-catchup: head catch-up decode failed";
-            pvx_log(PVX_LOG_ERROR, "Spec", "%s", m_last_error.c_str());
-            return false;
+    // BL-45 (multi-block chain heads): upstream process() replays the
+    // catch-up batch once per head — per head: seq_rm [pos_first, end),
+    // llama_set_nextn_layer_offset(head), decode, then restore offset 0
+    // (speculative.cpp chain_heads path). Single-block and shared-memory
+    // paths stay byte-identical (one replay, offset untouched).
+    if (m_mtp_chain_heads) {
+        for (int head = 0; head < m_mtp_n_layers; ++head) {
+            llama_memory_t dmem = llama_get_memory(m_ctx_dft);
+            if (dmem) llama_memory_seq_rm(dmem, 0, (llama_pos) pos_first, -1);
+            llama_set_nextn_layer_offset(m_ctx_dft, head);
+            if (!mtp_replay_rows("spec-engine/mtp-catchup", pos_first, n_rows, rows))
+                return false;
         }
+        llama_set_nextn_layer_offset(m_ctx_dft, 0); // restore default for non-draft decodes (upstream speculative.cpp:1665)
+    } else {
+        llama_memory_t dmem = llama_get_memory(m_ctx_dft);
+        if (dmem) llama_memory_seq_rm(dmem, 0, (llama_pos) pos_first, -1);
+        if (!mtp_replay_rows("spec-engine/mtp-catchup", pos_first, n_rows, rows))
+            return false;
     }
     pvx_log(PVX_LOG_DEBUG, "Spec", "mtp process: pos_first=%d n_rows=%d h_hist=%zu",
             (int) pos_first, n_rows, m_mtp_h_hist.size());
@@ -2068,66 +2126,27 @@ bool PvxBLSpecEngine::mtp_state_restore(std::vector<std::vector<float>>&& rows) 
         m_mtp_h_hist = std::move(rows);
         return true;
     }
-    llama_memory_t dmem = llama_get_memory(m_ctx_dft);
-    if (dmem) llama_memory_seq_rm(dmem, 0, 0, -1);
     m_mtp_h_hist = std::move(rows);
-    const int d_batch = (int) llama_n_batch(m_ctx_dft);
-    const int dft_width = (int) llama_model_n_embd_inp(m_model_dft);
-    std::vector<float> zeros;
-    if (m_mtp_zeros.empty()) m_mtp_zeros.assign((size_t) m_mtp_n_embd, 0.0f);
-    for (int off = 0; off < n; off += d_batch) {
-        const int chunk = std::min(d_batch, n - off);
-        llama_batch_ext* ext = llama_batch_ext_init(m_ctx_dft);
-        if (!ext) return false;
-        bool ok = false;
-        do {
-            for (int j = 0; j < chunk; j++) {
-                const llama_pos p = off + j;
-                const pvx_mirror_entry_t& e = (*m_stream.mirror)[(size_t) p];
-                const PvxBLMtpArm arm = pvx_mtp_catch_up_arm(p, e);
-                const float* h_pair = arm.zero_h
-                    ? m_mtp_zeros.data() : m_mtp_h_hist[arm.h_index].data();
-                int32_t idx = -1;
-                if (arm.input_is_embd) {
-                    const float* row = e.embd.data();
-                    if ((int) e.embd.size() != dft_width) {
-                        if (!m_width_warned) {
-                            m_width_warned = true;
-                            pvx_log(PVX_LOG_WARN, "Spec",
-                                    "target embeddings of size %zu do not fit the mtp head "
-                                    "input width %d; the head receives zero rows for them "
-                                    "and drafting after multimodal input will be poor",
-                                    e.embd.size(), dft_width);
-                        }
-                        if ((int) zeros.size() != dft_width)
-                            zeros.assign((size_t) dft_width, 0.0f);
-                        row = zeros.data();
-                    }
-                    const llama_embd le = { row, 1, (size_t) dft_width };
-                    idx = llama_batch_ext_add_embd(ext, 0, le);
-                } else {
-                    idx = llama_batch_ext_add_token(ext, 0, e.id);
-                }
-                if (idx < 0) break;
-                // ABI v8 wave-4 fix: state-embedding pairing (see mtp_pair_decode).
-                const llama_embd le = { h_pair, 1, (size_t) m_mtp_n_embd };
-                if (!llama_batch_ext_set_embd_state(ext, idx, le)) break;
-                if (!llama_batch_ext_set_pos(ext, idx, e.pos.data())) break;
-                if (!llama_batch_ext_set_output_logits(ext, idx, false)) break;
-                ok = true;
-            }
-            if (!ok) break;
-            if (llama_process(m_ctx_dft, LLAMA_PROCESS_TYPE_DECODE, ext) != 0) {
-                ok = false;
-                break;
-            }
-        } while (false);
-        llama_batch_ext_free(ext);
-        if (!ok) {
-            m_last_error = "spec-engine/mtp-state-restore: head replay decode failed";
-            pvx_log(PVX_LOG_ERROR, "Spec", "%s", m_last_error.c_str());
-            return false;
+    // BL-45 (multi-block chain heads): the restore replay mirrors upstream
+    // process() per head — seq_rm the whole head memory, set offset(head),
+    // replay the committed stream, restore offset 0. Single-block and
+    // shared-memory paths stay byte-identical (one replay, offset untouched).
+    if (m_mtp_chain_heads) {
+        for (int head = 0; head < m_mtp_n_layers; ++head) {
+            llama_memory_t dmem = llama_get_memory(m_ctx_dft);
+            if (dmem) llama_memory_seq_rm(dmem, 0, 0, -1);
+            llama_set_nextn_layer_offset(m_ctx_dft, head);
+            if (!mtp_replay_rows("spec-engine/mtp-state-restore", 0, n,
+                                 m_stream.mirror->data()))
+                return false;
         }
+        llama_set_nextn_layer_offset(m_ctx_dft, 0); // restore default (upstream speculative.cpp:1665)
+    } else {
+        llama_memory_t dmem = llama_get_memory(m_ctx_dft);
+        if (dmem) llama_memory_seq_rm(dmem, 0, 0, -1);
+        if (!mtp_replay_rows("spec-engine/mtp-state-restore", 0, n,
+                             m_stream.mirror->data()))
+            return false;
     }
     return true;
 }
@@ -2254,6 +2273,71 @@ pvx_result_t PvxBLSpecEngine::generate_mtp(const pvx_sampling_params_t* params,
         }
         std::vector<llama_token> chain;
         std::vector<float> h_step((size_t) m_mtp_n_embd);
+        // BL-45 (multi-block chain heads, step35 class): upstream draft()
+        // chain_heads path — draft step i decodes the WHOLE re-added prefix
+        // (seed row + drafted so far) under llama_set_nextn_layer_offset(i),
+        // per step seq_rm(base, -1) so each head rebuilds its OWN layer's KV
+        // draft region; logits only on the last row; pairing row t rides
+        // chain_h[t] (seed = pending h, then each head's own nextn output).
+        // draft_max was clamped to n_layers at init (upstream n_max rule), so
+        // round_cap can never address an untrained block.
+        if (m_mtp_chain_heads) {
+            std::vector<float> chain_h = h_seed;
+            chain_h.reserve((size_t) (round_cap + 1) * (size_t) m_mtp_n_embd);
+            for (int i = 0; i < round_cap; i++) {
+                const PvxBLMtpChainArm arm = pvx_mtp_chain_arm(i, (int) chain.size());
+                llama_memory_t dmem = llama_get_memory(m_ctx_dft);
+                if (dmem) llama_memory_seq_rm(dmem, 0, base, -1);
+                llama_set_nextn_layer_offset(m_ctx_dft, arm.layer_offset);
+                llama_batch_ext* ext = llama_batch_ext_init(m_ctx_dft);
+                bool ok = false;
+                do {
+                    for (int t = 0; t < arm.n_rows; t++) {
+                        const llama_token tok = (t == 0) ? c : chain[(size_t) (t - 1)];
+                        const int32_t idx = llama_batch_ext_add_token(ext, 0, tok);
+                        if (idx < 0) break;
+                        const llama_embd le = {
+                            chain_h.data() + (size_t) t * (size_t) m_mtp_n_embd,
+                            1, (size_t) m_mtp_n_embd };
+                        if (!llama_batch_ext_set_embd_state(ext, idx, le)) break;
+                        const llama_pos pos4[4] = { base + t, base + t,
+                                                    base + t, base + t };
+                        if (!llama_batch_ext_set_pos(ext, idx, pos4)) break;
+                        if (!llama_batch_ext_set_output_logits(ext, idx,
+                                t == arm.n_rows - 1)) break;
+                        ok = (t == arm.n_rows - 1);
+                    }
+                    if (!ok) break;
+                    if (llama_process(m_ctx_dft, LLAMA_PROCESS_TYPE_DECODE, ext) != 0) {
+                        pvx_log(PVX_LOG_ERROR, "Spec",
+                                "mtp chain head decode failed at step=%d pos=%d",
+                                i, (int) base);
+                        ok = false;
+                        break;
+                    }
+                } while (false);
+                llama_batch_ext_free(ext);
+                if (!ok) {
+                    ctx->last_error = "mtp chain head decode failed";
+                    return PVX_ERR_INTERNAL;
+                }
+                const float* d_logits = llama_get_logits_ith(m_ctx_dft, arm.i_last);
+                const float* h_row = llama_get_embeddings_nextn_ith(m_ctx_dft, arm.i_last);
+                if (!d_logits || !h_row) {
+                    ctx->last_error = "mtp head logits/h missing";
+                    return PVX_ERR_INTERNAL;
+                }
+                memcpy(h_step.data(), h_row, (size_t) m_mtp_n_embd * sizeof(float));
+                const TopLogit d_top = drafter_top_logit(d_logits, n_vocab);
+                if (m_p_min > 0.0f &&
+                    top_probability(d_logits, n_vocab, d_top.logit) < m_p_min) break;
+                if (llama_vocab_is_eog(ctx->vocab, d_top.token)) break;
+                chain.push_back(d_top.token);
+                m_n_drafted++;
+                chain_h.insert(chain_h.end(), h_step.begin(), h_step.end());
+            }
+            llama_set_nextn_layer_offset(m_ctx_dft, 0); // restore default for non-draft decodes (upstream speculative.cpp:1844)
+        } else {
         // BL-42 (shared-memory heads): every draft row rides the SAME position
         // (upstream is_mem_shared draft(), speculative.cpp — gemma4 assistants
         // share the trunk KV; advancing would collide with target cells).
@@ -2280,6 +2364,7 @@ pvx_result_t PvxBLSpecEngine::generate_mtp(const pvx_sampling_params_t* params,
             }
             if (!m_mtp_mem_shared) next_pos++;
         }
+        } // BL-45: single-head/shared path above unchanged
         if ((int) chain.size() < m_draft_min) chain.clear();
 
         if (chain.empty()) {
