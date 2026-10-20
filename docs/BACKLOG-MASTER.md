@@ -321,3 +321,9 @@ recoverable from this git.
 - Scope: src/pvx_spec_engine.cpp, src/pvxinference.cpp, include/pvx_internal.h, tests (native audio+spec leg, env-gated live leg), ARCHITECTURE.md, LDC artifacts. NOTHING outside.
 - Acceptance: native audio+spec leg deterministic OR token-exact live (env-gated); typed refusal gone; regression native + C# suites green; LDC regen + enforcement PASS same commit.
 - Status: done 2026-10-20 (local commit, no push). Audio+MTP live leg env-gated (PVX_MTP_TARGET_PATH/PVX_MTP_DRAFT_PATH/PVX_AUDIO_MMPROJ_PATH — typed skip off-pair/not audio-capable; no audio+MTP pair on this host — the orchestrator runs it where one exists).
+
+### BL-41 · control-vector test fixture de-hardcoding (owner order 2026-10-20 09:50 "nothing should be hardcoded please fix")
+- Source: BL-40 follow-up note (pre-existing failure surfaced by the 2026-10-20 runs); owner order.
+- Spec: test_control_vector hardcoded Llama-3.2-3B dims (3072/28) against the default Qwen3-8B model path → deterministic load failure in build-metal-rel3. Fixture now derives BOTH dims at runtime from the model GGUF (<arch>.embedding_length/.block_count scanned by suffix), wrong-width file derived (n_embd/2), out-of-range layer end derived (n_layer+1) — no constants, model-agnostic.
+- Acceptance: pvxinference_tests green against Qwen3-8B AND Llama-3.2-3B (48/48 each); ngram 25/25; stress 31/31; LDC regen + enforcement PASS on merged main.
+- Status: **done** 2026-10-20 10:05 — main d8a122a (fixture) + LDC post-merge regen; local only, no push.
