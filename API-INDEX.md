@@ -1,7 +1,7 @@
 # API-INDEX.md — ProvostXInference
 
-Generated: 2026-10-20T17:25:16.299090+00:00
-Packages: 3  |  Types: 1897
+Generated: 2026-10-20T17:39:45.788982+00:00
+Packages: 3  |  Types: 1899
 
 ---
 
@@ -133,7 +133,7 @@ Packages: 3  |  Types: 1897
 - 🟡 SystemChunkWallClock : IChunkWallClock  (csharp)  deps: [TimeProvider]
 - 🟣 TtsResult  (csharp)  deps: [float, int]
 
-## ProvostXInference (native C++) (1775 types, ~762289 LOC)
+## ProvostXInference (native C++) (1777 types, ~762449 LOC)
 
 - struct (global)::acl_deleter (acl_tensor.h) 
 - class ov::AlignEltwiseOperandRanks (align_eltwise_ranks.h) 
@@ -1638,6 +1638,8 @@ Packages: 3  |  Types: 1897
 - struct pvx::ngram_key_hash (pvx_ngram.h) 
 - class (global)::PvxBLSpecEngine (pvx_spec_engine.h) 
 - struct (global)::PvxBLMtpArm (pvx_spec_engine.h) 
+- struct (global)::PvxBLMtpChainPlan (pvx_spec_engine.h) 
+- struct (global)::PvxBLMtpChainArm (pvx_spec_engine.h) 
 - struct ggml_sycl_reordered::traits (quants.hpp) 
 - struct ggml_sycl_reordered::traits (quants.hpp) 
 - struct ggml_sycl_reordered::traits (quants.hpp) 
