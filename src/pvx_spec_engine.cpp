@@ -1988,6 +1988,7 @@ bool PvxBLSpecEngine::mtp_replay_rows(const char* err_tag, llama_pos pos_first,
             return false;
         }
     }
+    return true;
 }
 
 bool PvxBLSpecEngine::mtp_process_target_rows(llama_pos pos_first, int n_rows,
