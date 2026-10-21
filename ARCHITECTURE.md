@@ -160,8 +160,28 @@ spec init on a pool with `seq_max < 2` types the refusal; generation without a s
   shared-memory heads (`gemma4-assistant`) are SUPPORTED (no catch-up decodes, no
   head seq_rm, all draft rows at the SAME position, state restore replays the h ring
   only) — BL-45 extends the lane to multi-block chain heads (step35 class,
-  `n_layer_nextn > 1`, per-step `nextn_layer_offset` selection, see the BL-45
-  addendum). Pairing convention (DeepSeek-style): a draft row predicting stream
+  `n_layer_nextn > 1`, per-step `nextn_layer_offset` selection). Multi-block
+  chain heads (BL-45): `chain_heads = n_mtp_layers > 1 && !is_mem_shared` (pure
+  planner `pvx_mtp_chain_plan`, unit-tested); the chain budget is clamped to the
+  trained block count (`n_max = min(n_max, n_mtp_layers)` — an untrained block is
+  never addressed). Shared-memory multi-block heads (gemma4 class) run all blocks
+  in one graph — NOT chain mode, BL-42 path byte-identical; single-block heads
+  (`n_layer_nextn == 1`) are byte-identical to BL-42 (offset untouched everywhere).
+  Catch-up/state-restore replay is per head: seq_rm `[pos_first, end)`,
+  `llama_set_nextn_layer_offset(head)`, chunked `(t_p, h_{p-1})` replay
+  (`mtp_replay_rows`), offset restored to 0; the head context KV holds every nextn
+  block (MTP-context layer filter), so each head rebuilds its OWN layer's committed
+  prefix. Chain drafting mirrors upstream draft(): step i selects head i via
+  `llama_set_nextn_layer_offset(i)` and re-decodes the WHOLE prefix (seed row +
+  drafted so far, pairing row t = `chain_h[t]`, then each head's own nextn output),
+  per-step seq_rm `(base, -1)`, logits only on the last row (`pvx_mtp_chain_arm`
+  planner, unit-tested); verification/acceptance/commit are unchanged — the
+  target-side verify is head-count-agnostic. This family has NO typed refusal
+  (upstream supports it); refusals stay only for non-MTP heads, width mismatch,
+  vocab incompat. Fixture plumbing: the vision+MTP live leg accepts
+  `PVX_MTP_MMPROJ_PATH` (family override) before falling back to
+  `PVX_MMPROJ_PATH`/suite MMPROJ — the MTP pair may be a different family than the
+  suite's vision fixtures. Pairing convention (DeepSeek-style): a draft row predicting stream
   position P consumes `(embd(t_{P-1}), h_{P-1})` — `h` = the target trunk's nextn
   embedding (`llama_set_embeddings_nextn(target, true, masked=false)`), row width =
   `llama_model_n_embd_out` (head must match target — typed refusal at spec_init, never
@@ -204,6 +224,29 @@ spec init on a pool with `seq_max < 2` types the refusal; generation without a s
   the C# binding mirrors it (`PvxContextParams` 5th field, size-pinned by
   `PvxContextParamsMarshalTests`; `ContextConfig.NRsSeq` pass-through) and the LLM
   layer AUTO-sizes it (8 while `spec_mode draft_mtp` is active).
+
+### Config-surface parity (ABI v8 wave 5) — full llama.cpp config verbs
+Every llama.cpp configuration verb is reachable from C# (engine structs → P/Invoke →
+facade configs). Wave-5 fields are APPENDED ONLY — a zeroed struct is bit-identical to
+the pre-wave-5 load (proven: native suite 48/48, ngram 25/25, stress 31/31 with zeroed
+wave-5 everywhere; C# 230/230). Zero-value semantics: model/context ints and floats at
+0, bools false, and null kv-override lists mean "llama default" — the native side maps
+them to upstream defaults, never to a literal zero override. Knobs whose llama default
+is TRUE (use_extra_bufts, offload_kqv, op_offload, swa_full, kv_unified, no_perf) use
+a tri-state int: 0 = llama default, 1 = force on, 2 = force off — a plain bool could
+not express "unset". kv-override tag mapping: upstream `llama_model_kv_override_type`
+order is INT/FLOAT/BOOL/STR; the pvx ABI uses 0=bool, 1=int64, 2=f64, 3=str — mapped
+explicitly at the native boundary (never by enum order). Seed: <=0 = time entropy
+(llama default), >=1 = deterministic sampling. Wave-5 samplers run inside
+`pooled_selection_chain` in OpenAI-parity order: penalties (repeat/present/frequency)
+→ logit_bias → dry → top_k → typical_p → top_p/min_p → top_n_sigma → xtc → mirostat
+1/2 (mirostat bypasses top_p when active) → dist(seed). Facade pass-through:
+`GgufEngineRequest(Builder).WithAdvanced(ModelConfig?, ContextConfig?)` carries the
+extended knobs; classic With* fields always win in the merge, so existing callers are
+unchanged. ABI sizeof pins (Release, osx-arm64): `pvx_model_params_t` = 72,
+`pvx_context_params_t` = 112, `pvx_sampling_params_t` = 112 (incl. wave-5 sub-struct
+pointer), `pvx_sampling_params_wave5_t` = 72, `pvx_logit_bias_t` = 8,
+`pvx_kv_override_t` = 288 — pinned by `PvxAbiSizeTests` (C#) and probed at build time.
 
 ### Embeddings — architecture-routed
 Routing is by the model's own architecture (`llama_model_has_encoder/has_decoder`); typed
@@ -305,7 +348,19 @@ InferenceEngineBuilder.Gguf(path) / .Decision(path) / .Encoder(path)
 ### Per-handle backend dispatch (engine selection)
 `ModelConfig.Engine` picks the specialist (`metal` = macOS only; `cuda`/`vulkan` =
 Windows/Linux only). `PvxEngineSelector` + `PvxEngineFileResolver` validate fail-closed —
-unknown/empty/wrong-OS pairs refuse, never fall back. `PvxEngineHandle.Open`: resolve file →
+unknown/empty/wrong-OS pairs refuse, never fall back. The native-dir RID is ARCH-AWARE
+on Linux and Windows: `IOSProbe.Architecture()` (injectable seam; `SystemOsProbe` reads
+`RuntimeInformation.ProcessArchitecture`, test doubles override) drives the resolver
+(`linux-arm64`/`linux-x64`, `win-arm64`/`win-x64`); the `PvxNative` static ctor derives
+the same from `ProcessArchitecture` in the bootstrap context (no injectable seam exists
+pre-activation); macOS stays `osx-arm64`. Per-RID payload story: osx-arm64 ships
+checked-in dylibs (inference + metal); win-arm64 ships the checked-in VM-built dll
+(MSVC, ARM64, `pvxinference.dll` + `pvxinference.lib` import lib, provenance in
+`csharp/runtimes/win-arm64/README.md`); linux-x64/win-x64 payloads come from the CI
+5-specialist matrix at NuGet-pack time (cuda/vulkan, not checked in); linux-arm64 has
+NO checked-in payload — source-build the native engine (cmake) and ONNX Runtime for
+arm64 (no official ORT arm64 payload exists), and the resolver looks in
+`runtimes/linux-arm64/native/` for the source-built artifacts. `PvxEngineHandle.Open`: resolve file →
 load image → resolve per-image entry-point tables → ABI handshake → router bundle; the
 process-wide `PvxDispatchRegistry` routes only the activation-window DllImports (steady-state
 calls go through per-handle tables). Ownership chain is constructor-injected:
@@ -327,7 +382,10 @@ Watchdog disabled = single plain commit, zero overhead. Config: `stall_watchdog`
 
 - **Native:** basic + stress C++ suites (`tests/`), Release build, `ctest` green —
   stress covers NULL args, empty inputs, pool exhaustion, double-return, KV boundaries,
-  sampling extremes, race stress (grammar mutex, pool churn).
+  sampling extremes, race stress (grammar mutex, pool churn). Test fixtures are
+  model-agnostic — dims/path fixtures derive from the loaded GGUF at runtime (e.g. the
+  control-vector test scans `<arch>.embedding_length`/`.block_count`), never hardcoded
+  per-model constants; live legs are env-gated (typed skip when the fixture env is unset).
 - **C#:** full suite green (189/189 at last run), one test class per type, all native seams
   faked (`FakeModuleLoader`, fakes) — no test touches a real dylib except env-guarded
   live smoke/journey tests. Decision tests run on tiny real ONNX fixtures.
@@ -340,9 +398,23 @@ Watchdog disabled = single plain commit, zero overhead. Config: `stall_watchdog`
 
 ## CI / NuGet policy
 
+### Windows (MSVC) build portability
+The native tree builds under MSVC (VS 2022, ARM64 and x64) with a fixed portability set:
+explicit `<functional>` include (libc++ transitive, MSVC not), `localtime_s` under
+`_WIN32` (POSIX `localtime_r`), no designated initializers at /std:c++17 (lambda-built
+constant), no raw strings inside the ASSERT macro stringize path, `_USE_MATH_DEFINES`
+for `M_PI`, `WINDOWS_EXPORT_ALL_SYMBOLS ON` (no dllexport in the extern "C" header —
+restores the macOS-parity export surface + import lib), and WIN32 test executables
+link llama/ggml/ggml-base directly (Windows import libs don't re-export transitive
+static-lib symbols).
+
 - CI workflow builds native + C# (Debug + Release, 0 warnings) + runs tests; does NOT
   publish or tag. Planned 5-specialist matrix: osx-arm64 metal/cpu, linux-x64 cpu/cuda/vulkan,
-  win-x64 cpu/cuda/vulkan.
+  win-x64 cpu/cuda/vulkan. A dedicated `windows` CI lane (ci.yml `windows` job,
+  windows-latest) builds the native engine with MSVC (Release) + runs ctest (model-gated
+  legs typed-skip without model files) + runs the C# suite with the fresh x64 dll staged
+  into `csharp/runtimes/win-x64/native/` so the arch-aware resolver finds it. The existing
+  specialist/csharp-build/nuget-pack lanes are untouched.
 - Package `ProvostXInference` prepared (native binaries as `runtimes/{RID}/native/`), not
   shipped. All work stays local — no push, no tags without explicit owner order.
 
@@ -352,10 +424,11 @@ Watchdog disabled = single plain commit, zero overhead. Config: `stall_watchdog`
   `src/pvx_ngram.{cpp,h}` — native core
 - `csharp/` — bindings, facade, Decision domain, tests
 - `assets/models/judge/` — ONNX judge assets (tokenizer.json, judge specs)
-- `docs/CAPABILITY.md` — capability matrix; `TEST-EVIDENCE-spec.md` — evidence policy
+- `docs/CAPABILITY.md` — capability matrix; root `TEST-EVIDENCE-spec.md` — evidence policy
 - `CMakeLists.txt`, `.github/workflows/` — build + CI
 
 **Status:** as-is — native ctest green (Release build), C# suite green, LDC PASS.
+Latest gates: native 48/48 + ngram 27/27 + stress 31/31; C# 235/235; Windows CI lane live.
 
 ## Black-box consumption contract
 
@@ -379,133 +452,3 @@ unchanged). `Decision.Engine.DecisionSessionFactory` therefore constructs parame
 the logger is a settable `Logger` property (quiet default) — so a facade-only caller's
 compiled metadata never drags the `Logging` namespace in (a ctor parameter's member-ref
 signature would do exactly that). No caller passes a logger through the ctor.
-
-## Addendum 2026-10-20 — BL-42: shared-memory draft-MTP heads (gemma4-assistant)
-- **Upstream parity:** the MTP head context now ALWAYS links the trunk via
-  `cp.ctx_other = ctx_tgt` (upstream speculative.cpp ctor sets it unconditionally);
-  self-contained heads (qwen4exp class) ignore it. Shared-memory heads
-  (`gemma4-assistant` — the head attends the trunk KV through ctx_other) now
-  initialize instead of failing typed at "mtp-head-context".
-- **Round semantics per upstream `is_mem_shared`:** NO catch-up decodes (process()
-  skips the whole head decode — the head sees the trunk), NO head seq_rm, and all
-  draft rows ride the SAME position (draft() `dp.pos0` — gemma4 assistant quirk,
-  HF transformers reference); h-row capture/pairing unchanged (seed pairs
-  h_hist.back()). State restore (save/rewind) restores only the h ring for shared
-  heads (no head KV to rebuild).
-- **Out of scope (still typed):** multi-block chain heads (step35 class,
-  n_layer_nextn > 1 — needs `llama_set_nextn_layer_offset` wiring); EAGLE3/DFlash
-  lanes unchanged.
-- **Fixture plumbing:** the vision+MTP live leg accepts `PVX_MTP_MMPROJ_PATH`
-  (family override) before falling back to `PVX_MMPROJ_PATH`/suite MMPROJ —
-  the MTP pair may be a different family than the suite's vision fixtures.
-- **Live evidence (gemma-4-E4B-it Q8_0 + mtp-gemma-4 Q8_0 + mmproj, the primary host Metal):**
-  text 24/24 exact, 16/16 accepted (100%); vision 12/12 exact, 3/15 accepted (20%);
-  audio 12/12 exact, 6/9 accepted (66.7% — first live audio+MTP proof; gemma-4 is
-  the first audio-capable MTP pair in the fleet). Suite 48/48; ngram 25/25;
-  stress 31/31; C# SpecDecode 17/17.
-
-## Addendum 2026-10-20 — BL-21 wave-5: full llama.cpp config-surface parity
-- **Contract:** every llama.cpp configuration verb is reachable from C# (engine
-  structs → P/Invoke → facade configs). ABI v8 wave-5 fields are APPENDED ONLY —
-  a zeroed struct is bit-identical to the pre-wave-5 load (proven: native suite
-  48/48, ngram 25/25, stress 31/31 with zeroed wave-5 everywhere; C# 230/230).
-- **Zero-value semantics:** model/context ints and floats at 0, bools false,
-  and null kv-override lists mean "llama default" — the native side maps them
-  to upstream defaults, never to a literal zero override.
-- **Tri-states:** knobs whose llama default is TRUE (use_extra_bufts,
-  offload_kqv, op_offload, swa_full, kv_unified, no_perf) use a tri-state int:
-  0 = llama default, 1 = force on, 2 = force off — a plain bool could not
-  express "unset".
-- **kv-override tag mapping:** upstream `llama_model_kv_override_type` order is
-  INT/FLOAT/BOOL/STR; the pvx ABI uses 0=bool, 1=int64, 2=f64, 3=str — mapped
-  explicitly at the native boundary (never by enum order).
-- **seed:** <=0 = time entropy (llama default), >=1 = deterministic sampling.
-- **Sampling order:** wave-5 samplers run inside `pooled_selection_chain` in
-  OpenAI-parity order: penalties (repeat/present/frequency) → logit_bias →
-  dry → top_k → typical_p → top_p/min_p → top_n_sigma → xtc → mirostat 1/2
-  (mirostat bypasses top_p when active) → dist(seed).
-- **Facade pass-through:** `GgufEngineRequest(Builder).WithAdvanced(ModelConfig?,
-  ContextConfig?)` carries the extended knobs; classic With* fields always win
-  in the merge, so existing callers are unchanged.
-- **ABI sizeof pins (Release, osx-arm64):** `pvx_model_params_t` = 72,
-  `pvx_context_params_t` = 112, `pvx_sampling_params_t` = 112 (incl. wave-5
-  sub-struct pointer), `pvx_sampling_params_wave5_t` = 72, `pvx_logit_bias_t`
-  = 8, `pvx_kv_override_t` = 288. Pinned by `PvxAbiSizeTests` (C#) and probed
-  at build time.
-
-## Addendum 2026-10-20 — BL-43: arch-aware Linux RID in the C# native probe
-- The C# native discovery no longer hardcodes `linux-x64` for ALL Linux:
-  `IOSProbe.Architecture()` (new seam; `SystemOsProbe` reads
-  `RuntimeInformation.ProcessArchitecture`, test doubles override) drives the
-  resolver (`linux-arm64` / `linux-x64`); the `PvxNative` static ctor derives
-  the same from `ProcessArchitecture` (bootstrap context — no injectable seam
-  exists pre-activation). macOS (`osx-arm64`) and Windows (`win-x64`) paths are
-  UNCHANGED.
-- Payload note (documented, not shipped): the packaged `runtimes/linux-x64`
-  ONNX Runtime payloads are prebuilt x64 ELF — on arm64 Linux, source-build ORT
-  (or a linux-arm64 package payload) is required; the resolver now looks in the
-  CORRECT `linux-arm64` native dir for the source-built artifacts.
-- Found during post-BL-22 Linux ARM64 VM verification (see the LLM-side
-  verification report); registered then scoped per owner order 19:10
-  ("lets clean it up").
-
-
-## Addendum 2026-10-20 — BL-45: multi-block chain draft-MTP heads (step35 class)
-
-The last MTP family: heads whose GGUF carries `n_layer_nextn > 1` (up to one
-trained nextn block per draft step). Upstream llama.cpp SUPPORTS them
-(`common_speculative_impl_draft_mtp`, chain_heads path) — the engine now
-mirrors that exactly instead of the old implicit single-block behavior:
-
-- **Detection (head init, upstream ctor parity)** — `chain_heads =
-  n_mtp_layers > 1 && !is_mem_shared` (pure planner `pvx_mtp_chain_plan`,
-  unit-tested): multi-block NON-shared heads enter chain mode with the chain
-  budget clamped to the trained block count (`n_max = min(n_max,
-  n_mtp_layers)` — an untrained block is never addressed). Shared-memory
-  multi-block heads (gemma4 class) run all blocks in one graph — NOT chain
-  mode, BL-42 path byte-identical. Single-block heads (`n_layer_nextn == 1`)
-  are byte-identical to BL-42 (offset untouched everywhere).
-- **Catch-up / state-restore replay (upstream process() parity)** — chain
-  mode replays the committed rows once PER HEAD: seq_rm `[pos_first, end)`,
-  `llama_set_nextn_layer_offset(head)`, chunked `(t_p, h_{p-1})` replay
-  (factored into `mtp_replay_rows`), then offset restored to 0. The head
-  context KV holds every nextn block (MTP-context layer filter), so each
-  head rebuilds its OWN layer's committed prefix.
-- **Chain drafting (upstream draft() parity)** — draft step i selects head i
-  via `llama_set_nextn_layer_offset(i)` and re-decodes the WHOLE prefix
-  (seed row + drafted so far, pairing row t = `chain_h[t]` = pending h, then
-  each head's own nextn output), per-step seq_rm `(base, -1)`, logits only on
-  the last row (`pvx_mtp_chain_arm` planner, unit-tested); offset restored to
-  0 after the chain loop. Verification/acceptance/commit unchanged — the
-  target-side verify is head-count-agnostic.
-- **Typed refusals**: unchanged for configs upstream also refuses; the
-  multi-block family has NO refusal (upstream supports it) — refusal stays
-  only for non-MTP heads, width mismatch, vocab incompat.
-- No live pair exists on this host — semantics proven from the vendored
-  source (`llama.cpp/common/speculative.cpp` chain_heads path,
-  `llama.cpp/src/models/step35.cpp` `graph_mtp` offset selection) plus the
-  deterministic pure-planner legs; a step35-class pair gets the env-gated
-  live leg where one exists (same `PVX_MTP_TARGET_PATH`/
-  `PVX_MTP_DRAFT_PATH` fixtures as BL-42).
-## Addendum 2026-10-20 — BL-46: win-arm64 payload + Windows CI lane
-
-- The C# native resolver's Windows RID is now arch-aware (`win-arm64` /
-  `win-x64`, derived from ProcessArchitecture — mirrors the BL-43 Linux rule)
-  in BOTH `PvxEngineFileResolver` and the `PvxNative` bootstrap ctor.
-- Shipped payload: `csharp/runtimes/win-arm64/native/pvxinference.dll` +
-  `pvxinference.lib` (MSVC import lib), built on the Windows 11 ARM64 VM
-  (VS 2022 BuildTools 14.44, CMake VS generator -A ARM64, Release, CPU/default
-  specialist, ABI v8 — first MSVC build, see BL-44). This closes the
-  "no win-arm64 runtime payload" follow-up; model-gated E2E on Windows remains
-  unproven until a model is present on a Windows host.
-- Per-RID payload story: osx-arm64 ships checked-in dylibs (inference + metal);
-  win-arm64 ships the checked-in VM-built dll (+ import lib); linux-x64/win-x64
-  payloads come from the CI 5-specialist matrix at NuGet-pack time (cuda/vulkan,
-  not checked in); linux-arm64 has NO checked-in payload — source-build the
-  native engine (cmake) and ONNX Runtime for arm64 (no official ORT arm64
-  payload), the resolver looks in `runtimes/linux-arm64/native/` (BL-43).
-- Windows CI lane (ci.yml, new `windows` job): windows-latest runner — native
-  cmake MSVC Release build + ctest (model-gated legs typed-skip without model
-  files, same as the VM run) + the C# suite (native dll built into
-  `csharp/runtimes/win-x64/native/` first so the resolver finds it). The
-  existing specialist matrix / csharp-build / nuget-pack lanes are untouched.
