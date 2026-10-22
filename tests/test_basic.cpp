@@ -1427,7 +1427,7 @@ static void test_spec_mtp_vision_live_pair() {
     int sizes[] = { (int) img_size };
     char* marker_str = nullptr;
     ASSERT(pvx_mtmd_marker(&marker_str) == PVX_OK);
-    // LIVE LESSON (2026-10-20, the large-memory host 134GB pair): a RAW un-templated prompt
+    // LIVE LESSON (2026-10-20, large-memory host 134GB pair): a RAW un-templated prompt
     // after the image leaves the target's greedy argmax near-tied between
     // ADJACENT end-marker specials (248044/248045) — the head picks the
     // sibling, every draft rejects (accepted=0), exactness holds via the

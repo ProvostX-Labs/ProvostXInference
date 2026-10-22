@@ -6,7 +6,7 @@ A C/C++ inference engine that links llama.cpp directly and exposes a flat C API 
 
 ## Current State (2026-09-25)
 
-- **14/14 tests passing** on macOS Metal (Apple Silicon desktop-class)
+- **14/14 tests passing** on macOS Metal (Apple Silicon, desktop-class)
 - Library size: 11.3MB (statically links llama.cpp + ggml + mtmd)
 - llama.cpp: latest master (e351231c4)
 - Build: cmake with Metal/CPU/CUDA/Vulkan backend flags

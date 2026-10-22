@@ -12,7 +12,7 @@
 
 ## Repro
 - `spike/BL01Spike/` (scratch .NET 10 console; NOT wired into product). Run: `spike/BL01Spike/run.sh` (env `SPIKE_A`, `SPIKE_B` = two built specialist dylib paths).
-- Tested with `build-metal-rel` + `build-metal2` metal specialists (osx-arm64, Apple Apple Silicon desktop-class); both fully initialized metal (35 embedded metal libs each, ~2.5s + cached).
+- Tested with `build-metal-rel` + `build-metal2` metal specialists (osx-arm64, Apple Silicon desktop-class); both fully initialized metal (35 embedded metal libs each, ~2.5s + cached).
 
 ## What Phase B CAN assume (macOS-proven)
 - Two same-specialist dylib images coexist via dlopen path-keying; registry/symbol state is per-image.
