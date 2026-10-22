@@ -82,7 +82,6 @@ public class PvxEngineSelectorTests
     // ── Fail-closed: unknown / empty / null ──
 
     [Theory]
-    [InlineData("cpu")]
     [InlineData("opencl")]
     [InlineData("METAL")]
     [InlineData("ggml")]
@@ -93,6 +92,17 @@ public class PvxEngineSelectorTests
         Assert.False(result.IsValid);
         Assert.Equal(PvxEngineSelectionError.UnknownEngine, result.Error);
         Assert.Null(result.Spec);
+    }
+
+    [Fact]
+    public void CpuEngine_IsKnown_SinceSpecialistMatrixAddition()
+    {
+        // caba7d1 added the cpu engine id to the specialist matrix — it must
+        // no longer be treated as unknown (regression guard for the matrix
+        // addition being reflected in validation).
+        var policy = new PvxEnginePolicy();
+        Assert.Contains("cpu", policy.KnownEngines);
+        Assert.True(policy.IsKnownEngine("cpu"));
     }
 
     [Fact]

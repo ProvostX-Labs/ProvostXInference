@@ -386,3 +386,16 @@ recoverable from this git.
 - Gates (the primary host, clone): native 48/48 (+6 typed live-skips) + ngram 27/27 (incl. BL-45 chain legs) + stress 31/31 via ctest (post WORKING_DIRECTORY fix); C# 235/235 (env-set model paths, matched Qwen3.5-4B pair); LLM 924/924. LDC regen on merged main. Local only, no push/tags.
 - Still open (model-gated): Windows E2E tiers need a model on a Windows host — CI intentionally runs model-free only (no env vars, no model artifacts by design).
 - Status: **done** 2026-10-20.
+
+### BL-47 · Automated real-model journey tier + cross-platform fixture contract (owner order 2026-10-22 07:53)
+- Source: owner review of test coverage — the TEST-MATRIX real-model lanes were manual-only; owner ordered: small real model as the standard test fixture, all testing gaps closed, tests cross-platform.
+- Landed:
+  (1) `csharp/Tests/LiveModelFixtures.cs` — env-driven fixture discovery with repo-relative defaults (small 1B dense model, draft pair, MiniLM encoder, mmproj+hybrid backbone); RAM gate helper (house >60% rule); `LiveModelFactAttribute` = named skip on every OS when the fixture is absent (never a silent pass, never a platform-only unconditional skip).
+  (2) `csharp/Tests/RealModelJourneyTests.cs` — 10 automated real-model journey lanes: load+generate, KV save/restore + checkpoint export/import round-trip, 8-conversation continuous batching, GBNF grammar-constrained sampling, dense MEAN-pooling embeddings (SIGSEGV regression guard) + MiniLM encoder similarity, speculative draft-simple token-exact vs the plain loop, vision mmproj splice, greedy determinism, model/tokenizer hygiene (catches mislabeled-file vocab mismatches).
+  (3) Fixture repair: `Tests/models/spec-draft-1b.gguf` symlink was DANGLING (target `~/models/spec-test/` deleted) — retargeted to the canonical 1B file; `Tests/models/Llama-3.2-1B-Instruct-Q4_K_M.gguf` symlink added so the tier resolves without env vars.
+  (4) Pre-existing test bug fixed: `PvxEngineSelectorTests.UnknownEngine_FailClosed` still listed "cpu" as unknown after caba7d1 added the cpu engine id to the specialist matrix — row removed, positive regression guard added (`CpuEngine_IsKnown_SinceSpecialistMatrixAddition`).
+- Verification (the primary host, Debug, PvxUseProjectRefs): full journey tier 10/10 with real fixtures (Llama-3.2-1B target+draft, MiniLM); full C# suite 247/247 WITH fixtures; 247/247 HERMETIC with all env unset (fixture defaults resolve from repo). Journey lanes ride GpuLayers=0 (CPU) → identical behavior on macOS/Linux/Windows by construction; the vision lane pairs the checked-in mmproj with its hybrid backbone.
+- Scope: csharp/Tests (2 new files, selector test fix, fixture symlinks), ARCHITECTURE.md, LDC artifacts. NOTHING outside.
+- Acceptance: journey tier green with and without fixtures on this host; cross-platform contract = env-driven discovery + typed skips (CI lanes run the suite model-free, skipped-not-failed); native suites untouched and unchanged.
+- Still open (model-gated, unchanged): native CUDA/Vulkan specialists on real models remain unproven until a Windows/Linux host carries a model; MTP end-to-end still awaits a step35-class GGUF pair (BL-45 note).
+- Status: **done** 2026-10-22. Local only, no push/tags.

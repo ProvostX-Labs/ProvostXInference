@@ -1,11 +1,11 @@
 # API-INDEX.md — ProvostXInference
 
-Generated: 2026-10-20T17:52:53.063626+00:00
-Packages: 3  |  Types: 1899
+Generated: 2026-10-22T06:03:07.232130+00:00
+Packages: 3  |  Types: 1904
 
 ---
 
-## Tests (31 types, ~3823 LOC)
+## Tests (36 types, ~4148 LOC)
 
 - 🟡 DecisionEngineOpsTests  (Tests)
 - 🟡 DecisionEngineRequestTests  (Tests)
@@ -24,6 +24,10 @@ Packages: 3  |  Types: 1899
 - 🟡 JsonSchemaGrammarTests  (Tests)
 - 🟡 JudgeSequenceEncoderTests  (Tests)
 - 🟡 JudgeTokenizerTests  (Tests)
+- 🟡 LiveLane  (Tests)
+- 🟡 LiveModelFactAttribute : FactAttribute  (Tests)
+- 🟡 LiveModelFixtures  (Tests)
+- 🟡 MacOSOnlyFactAttribute : FactAttribute  (Tests)
 - 🟡 ModelEngineSelectionTests  (Tests)
 - 🟡 PvxAbiSizeTests  (Tests)
 - 🟡 PvxContextParamsMarshalTests  (Tests)
@@ -32,6 +36,7 @@ Packages: 3  |  Types: 1899
 - 🟡 PvxEngineFileResolverTests  (Tests)
 - 🟡 PvxEngineSelectorTests  (Tests)
 - 🟡 PvxRidDerivationTests  (Tests)
+- 🟡 RealModelJourneyTests  (Tests)
 - 🟡 SmokeTests  (Tests)
 - 🟡 SpecDecodeTests  (Tests)
 - 🟡 StallSafePrefillLiveJourneyTests  (Tests)
@@ -39,7 +44,7 @@ Packages: 3  |  Types: 1899
 - 🟡 StallWatchdogTests  (Tests)
 - 🟡 Wave3FeatureTests  (Tests)
 
-## csharp (91 types, ~5894 LOC)
+## csharp (91 types, ~5897 LOC)
 
 - 🔵 IChunkWallClock  (csharp)
 - 🔵 IConversation : IDisposable  (csharp)
@@ -133,7 +138,7 @@ Packages: 3  |  Types: 1899
 - 🟡 SystemChunkWallClock : IChunkWallClock  (csharp)  deps: [TimeProvider]
 - 🟣 TtsResult  (csharp)  deps: [float, int]
 
-## ProvostXInference (native C++) (1777 types, ~762449 LOC)
+## ProvostXInference (native C++) (1777 types, ~762471 LOC)
 
 - struct (global)::acl_deleter (acl_tensor.h) 
 - class ov::AlignEltwiseOperandRanks (align_eltwise_ranks.h) 

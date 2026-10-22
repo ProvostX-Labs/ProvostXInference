@@ -386,9 +386,19 @@ Watchdog disabled = single plain commit, zero overhead. Config: `stall_watchdog`
   model-agnostic — dims/path fixtures derive from the loaded GGUF at runtime (e.g. the
   control-vector test scans `<arch>.embedding_length`/`.block_count`), never hardcoded
   per-model constants; live legs are env-gated (typed skip when the fixture env is unset).
-- **C#:** full suite green (189/189 at last run), one test class per type, all native seams
+- **C#:** full suite green (247/247 at last run), one test class per type, all native seams
   faked (`FakeModuleLoader`, fakes) — no test touches a real dylib except env-guarded
   live smoke/journey tests. Decision tests run on tiny real ONNX fixtures.
+- **Real-model journey tier (BL-47):** `csharp/Tests/RealModelJourneyTests.cs` +
+  `LiveModelFixtures.cs` — the formerly manual TEST-MATRIX lanes, automated against a small
+  real model (Llama-3.2-1B ≤1 GB: load/generate, KV save/restore + checkpoint round-trip,
+  8-conv batching, GBNF grammar, MEAN-pooling embeddings (SIGSEGV guard) + MiniLM encoder,
+  speculative draft-simple token-exact, vision mmproj splice, greedy determinism, tokenizer
+  hygiene). Fixture discovery is env-driven with repo-relative defaults
+  (`PVX_SMALL_*_PATH` / `Tests/models` symlinks); lanes run CPU-only (GpuLayers=0) so the
+  same suite is cross-platform by construction; a missing fixture yields a named skip, and
+  a RAM gate enforces the >60%-free house rule before every load. The tier is green both
+  with fixtures and hermetically (no env, no models → all live lanes skip typed).
 - **Live capability matrix:** `TEST-MATRIX-2026-10-18.md` — 6 models (dense, hybrid-GDN,
   MoE/Flash-Next, 3B, MiniLM encoder, judge-ONNX) × all lanes (load, sequential gen,
   continuous batching, KV ops, rewind, speculative, grammar, tool calls, vision, embeddings),
