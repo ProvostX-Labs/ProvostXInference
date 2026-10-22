@@ -8,7 +8,7 @@
 
     <!-- NuGet metadata -->
     <PackageId>ProvostXInference</PackageId>
-    <Version>0.0.0</Version>
+    <Version>0.1.0</Version>
     <Authors>ProvostX-Labs</Authors>
     <Description>C/C++ inference engine + C# bindings for ProvostX. Links llama.cpp directly.</Description>
     <RepositoryUrl>https://github.com/ProvostX-Labs/ProvostXInference</RepositoryUrl>
