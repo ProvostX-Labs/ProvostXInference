@@ -1,13 +1,13 @@
 # PACKAGE-MAP.md — ProvostXInference
 
-Generated: 2026-10-22T07:48:52.926538+00:00
+Generated: 2026-10-22T09:32:25.428445+00:00
 
 ---
 
 | Package | Types | LOC | ~Tokens | Dependencies |
 |---|---|---|---|---|
-| Tests | 36 | 4183 | ~1851 | — |
-| csharp | 91 | 5905 | ~6642 | — |
+| Tests | 36 | 4239 | ~1858 | — |
+| csharp | 92 | 5963 | ~6724 | — |
 
 ---
 

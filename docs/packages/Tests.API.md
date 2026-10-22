@@ -1,6 +1,6 @@
 # Tests.API.md
 
-Types: 36  |  LOC: 4183  |  ~1851 tokens
+Types: 36  |  LOC: 4239  |  ~1858 tokens
 
 ---
 
@@ -125,7 +125,7 @@ Cross-package deps: ProvostXInference.Models, ProvostXInference.Interop, Xunit
 
 ### Class: RealModelJourneyTests
 > Real-model journey tier (INF BL-47) — the formerly manual TEST-MATRIX lanes,
-Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Exceptions, ProvostXInference.Implementation, ProvostXInference.Models, Xunit
+Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Exceptions, ProvostXInference.Implementation, ProvostXInference.Engines, ProvostXInference.Models, Xunit
 
 ### Class: SmokeTests
 > Comprehensive test suite for ProvostXInference C# bindings.

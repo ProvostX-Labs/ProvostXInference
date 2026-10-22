@@ -1,11 +1,11 @@
 # API-INDEX.md — ProvostXInference
 
-Generated: 2026-10-22T07:48:52.922448+00:00
-Packages: 3  |  Types: 1904
+Generated: 2026-10-22T09:32:25.426358+00:00
+Packages: 3  |  Types: 1906
 
 ---
 
-## Tests (36 types, ~4183 LOC)
+## Tests (36 types, ~4239 LOC)
 
 - 🟡 DecisionEngineOpsTests  (Tests)
 - 🟡 DecisionEngineRequestTests  (Tests)
@@ -44,7 +44,7 @@ Packages: 3  |  Types: 1904
 - 🟡 StallWatchdogTests  (Tests)
 - 🟡 Wave3FeatureTests  (Tests)
 
-## csharp (91 types, ~5905 LOC)
+## csharp (92 types, ~5963 LOC)
 
 - 🔵 IChunkWallClock  (csharp)
 - 🔵 IConversation : IDisposable  (csharp)
@@ -87,6 +87,7 @@ Packages: 3  |  Types: 1904
 - 🟡 EngineLogging  (csharp)
 - 🟡 EngineMaintenance  (csharp)
 - 🟣 EngineStats  (csharp)  deps: [long, long, long, long, long, long]
+- 🟣 EngineTelemetry  (csharp)  deps: [long, long, long, long, long, long, long]
 - 🟣 EpAttempt  (csharp)  deps: [string, Action]
 - 🟡 ExecutionProviderChain  (csharp)
 - 🟡 ExecutionProviderOptionsApplier  (csharp)
@@ -120,7 +121,7 @@ Packages: 3  |  Types: 1904
 - 🟡 NativeGrammar : IGrammar  (csharp)
 - 🟡 NativeInferenceBackend : IInferenceBackend  (csharp)
 - 🟡 NativeInferenceContext : IInferenceContext  (csharp)
-- 🟡 NativeInferenceModel : IInferenceModel  (csharp)
+- 🟡 NativeInferenceModel : IInferenceModel, IModelTelemetrySource  (csharp)
 - 🟡 NativeInferenceState : IInferenceState  (csharp)
 - 🟡 NativeLogBridge  (csharp)
 - 🟡 NativeLoraAdapter : ILoraAdapter  (csharp)
@@ -138,7 +139,7 @@ Packages: 3  |  Types: 1904
 - 🟡 SystemChunkWallClock : IChunkWallClock  (csharp)  deps: [TimeProvider]
 - 🟣 TtsResult  (csharp)  deps: [float, int]
 
-## ProvostXInference (native C++) (1777 types, ~762471 LOC)
+## ProvostXInference (native C++) (1778 types, ~762662 LOC)
 
 - struct (global)::acl_deleter (acl_tensor.h) 
 - class ov::AlignEltwiseOperandRanks (align_eltwise_ranks.h) 
@@ -1623,6 +1624,7 @@ Packages: 3  |  Types: 1904
 - struct (global)::common_preset (preset.h) 
 - struct (global)::common_preset_context (preset.h) 
 - struct (global)::pvx_model_s (pvx_internal.h) 
+- struct (global)::AuditSink (pvx_internal.h) 
 - struct (global)::pvx_backend_profile (pvx_internal.h) 
 - struct (global)::pvx_context_s (pvx_internal.h) 
 - struct (global)::pvx_grammar_state_s (pvx_internal.h) 

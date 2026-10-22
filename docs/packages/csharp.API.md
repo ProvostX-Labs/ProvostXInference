@@ -1,6 +1,6 @@
 # csharp.API.md
 
-Types: 91  |  LOC: 5905  |  ~6642 tokens
+Types: 92  |  LOC: 5963  |  ~6724 tokens
 
 ---
 
@@ -139,6 +139,7 @@ Methods:
   - ITtsSession CreateTtsSession(string ttsMmprojPath, uint contextSize = 0)
   - EngineStats GetExecutorStats(IStandardExecutor executor)
   - EngineStats GetConversationStats(IConversation conversation)
+  - EngineTelemetry GetEngineTelemetry()
 Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Models
 
 ### Interface: IGgufModelLoader
@@ -481,7 +482,7 @@ Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Exceptions
 
 ### Class: NativeInferenceModel
 > Wraps a native pvx_model_t. Factory: Load(). BL-02: EVERY pvx_* call this
-Implements: IInferenceModel
+Implements: IInferenceModel, IModelTelemetrySource
 Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Exceptions, ProvostXInference.Interop, ProvostXInference.Models, ProvostXInference.SafeHandles
 
 ### Class: NativeInferenceState
@@ -573,6 +574,11 @@ Constructor:
 > ABI v8 (wave 3, feature 12): copy-out stats snapshot of one lane
 Constructor:
   - EngineStats(long Tokens, long KvPositions, long PromptTokens, long DecodeSteps, long SpecDrafted, long SpecAccepted)
+
+### Record: EngineTelemetry
+> ABI v9 (per-engine telemetry, owner order 2026-10-22): MODEL-aggregate
+Constructor:
+  - EngineTelemetry(long PromptTokens, long DecodeSteps, long CommittedTokens, long SpecDrafted, long SpecAccepted, long Errors, long ContextsAlive)
 
 ### Record: EpAttempt
 > One candidate configuration for an EP session init: a label for
