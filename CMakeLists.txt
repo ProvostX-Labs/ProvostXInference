@@ -115,7 +115,11 @@ if(PVX_BACKEND_CUDA AND NOT WIN32 AND NOT APPLE)
     endforeach()
     if(PVX_CUDA_STUB)
         message(STATUS "PVX CUDA: linking driver stub ${PVX_CUDA_STUB}")
-        target_link_libraries(pvxinference PRIVATE "${PVX_CUDA_STUB}")
+        # PUBLIC, not PRIVATE: the stub must satisfy cu* references at the
+        # final link of every consumer too (test executables link against the
+        # specialist .so and ld re-resolves its undefined driver-API symbols
+        # there; a PRIVATE link leaves those undefined for the consumer).
+        target_link_libraries(pvxinference PUBLIC "${PVX_CUDA_STUB}")
     else()
         message(FATAL_ERROR "PVX CUDA: driver stub libcuda.so not found in toolkit stubs dirs (${CUDAToolkit_LIBRARY_DIR}/stubs, /usr/local/cuda*/lib64/stubs) — driverless runners cannot link the cuda specialist")
     endif()
