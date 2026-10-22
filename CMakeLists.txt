@@ -95,6 +95,24 @@ target_link_libraries(pvxinference
         llama-common-base
 )
 
+# CUDA driver-API link (CI fix 2026-10-22): ggml-cuda references driver API
+# entry points (cuGetErrorString et al.), which live in libcuda.so.1 — the
+# GPU *driver*, not the toolkit. CI runners have no GPU driver, so the
+# specialist .so failed to link its consumers with undefined references.
+# Link the toolkit's stub libcuda (Linux only; Windows ships libcuda in
+# System32-side CUDA dirs and links fine — win-x64-cuda was already green).
+if(PVX_BACKEND_CUDA AND NOT WIN32 AND NOT APPLE)
+    find_package(CUDAToolkit REQUIRED)
+    find_library(PVX_CUDA_DRIVER_STUB libcuda.so
+        PATHS "${CUDAToolkit_LIBRARY_DIR}/stubs" "/usr/local/cuda/lib64/stubs"
+        NO_DEFAULT_PATH)
+    if(PVX_CUDA_DRIVER_STUB)
+        target_link_libraries(pvxinference PRIVATE "${PVX_CUDA_DRIVER_STUB}")
+    else()
+        message(WARNING "PVX CUDA: driver stub libcuda.so not found — link may fail on driverless runners")
+    endif()
+endif()
+
 target_compile_definitions(pvxinference PRIVATE PVXINFERENCE_EXPORTS)
 
 # Windows DLL export parity (2026-10-20, Windows ARM64 verify): the header is a

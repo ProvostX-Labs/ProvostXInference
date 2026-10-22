@@ -92,6 +92,17 @@ jobs:
         with:
           version: 1.3.296.0
           cache: true
+      - name: Install SPIRV-Headers (Windows vulkan)
+        # ggml-vulkan does find_package(SPIRV-Headers CONFIG REQUIRED); the
+        # Windows SDK installer does not ship its CMake config file, while the
+        # Linux SDK does (that lane configures fine). Provide it explicitly.
+        if: matrix.backend == 'VULKAN' && matrix.os == 'windows-2022'
+        shell: bash
+        run: |
+          git clone --depth 1 --branch vulkan-sdk-1.3.296.0 https://github.com/KhronosGroup/SPIRV-Headers spirv-headers
+          cmake -S spirv-headers -B spirv-headers-build -DCMAKE_INSTALL_PREFIX="$PWD/spirv-prefix"
+          cmake --install spirv-headers-build
+          echo "CMAKE_PREFIX_PATH=$(cygpath -m "$PWD/spirv-prefix")" >> "$GITHUB_ENV"
 
       - name: Install build deps (Linux)
         if: matrix.os == 'ubuntu-22.04'
