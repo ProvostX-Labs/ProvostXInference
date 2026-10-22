@@ -100,6 +100,7 @@ internal sealed class PvxHandleEntryPoints : IPvxEntryPoints
     private readonly PvxAbiDelegates.PvxSampleGrammarDelegate _executorSampleGrammar;
     private readonly PvxAbiDelegates.PvxSampleGrammarDelegate _conversationSampleGrammar;
     private readonly PvxAbiDelegates.PvxApplyChatTemplateDelegate _applyChatTemplate;
+    private readonly PvxAbiDelegates.PvxApplyChatTemplateV2Delegate _applyChatTemplateV2; // ABI v9
     private readonly PvxAbiDelegates.PvxPromptWithImagesDelegate _executorPromptWithImages;
     private readonly PvxAbiDelegates.PvxModelSpecCapabilitiesDelegate _modelSpecCapabilities;
     private readonly PvxAbiDelegates.PvxModelSpecValidateDelegate _modelSpecValidate;
@@ -223,6 +224,7 @@ internal sealed class PvxHandleEntryPoints : IPvxEntryPoints
         _executorSampleGrammar = Bind<PvxAbiDelegates.PvxSampleGrammarDelegate>(loader, image, "pvx_executor_sample_grammar");
         _conversationSampleGrammar = Bind<PvxAbiDelegates.PvxSampleGrammarDelegate>(loader, image, "pvx_conversation_sample_grammar");
         _applyChatTemplate = Bind<PvxAbiDelegates.PvxApplyChatTemplateDelegate>(loader, image, "pvx_apply_chat_template");
+        _applyChatTemplateV2 = Bind<PvxAbiDelegates.PvxApplyChatTemplateV2Delegate>(loader, image, "pvx_apply_chat_template_v2");
         _executorPromptWithImages = Bind<PvxAbiDelegates.PvxPromptWithImagesDelegate>(loader, image, "pvx_executor_prompt_with_images");
         _modelSpecCapabilities = Bind<PvxAbiDelegates.PvxModelSpecCapabilitiesDelegate>(loader, image, "pvx_model_spec_capabilities");
         _modelSpecValidate = Bind<PvxAbiDelegates.PvxModelSpecValidateDelegate>(loader, image, "pvx_model_spec_validate");
@@ -422,6 +424,11 @@ internal sealed class PvxHandleEntryPoints : IPvxEntryPoints
     // ── Chat template ──
 
     public PvxResult ApplyChatTemplate(IntPtr model, string? tmpl, IntPtr messages, int nMessages, bool addAssistant, int enableThinking, out IntPtr outText) => _applyChatTemplate(model, tmpl, messages, nMessages, addAssistant, enableThinking, out outText);
+
+    /// <summary>ABI v9: tools-aware template application. tools=nullptr/nTools&lt;=0 = legacy parity.</summary>
+    public PvxResult ApplyChatTemplateV2(IntPtr model, string? tmpl, IntPtr messages, int nMessages, IntPtr tools, int nTools,
+        bool addAssistant, int enableThinking, out IntPtr outText) =>
+        _applyChatTemplateV2(model, tmpl, messages, nMessages, tools, nTools, addAssistant, enableThinking, out outText);
 
     // ── Vision on standard executor ──
 

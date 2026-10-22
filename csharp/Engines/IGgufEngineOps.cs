@@ -60,6 +60,11 @@ public interface IGgufEngineOps
     string ApplyChatTemplate(string? template, IReadOnlyList<(string role, string content)> messages,
         bool addAssistant = true, int enableThinking = -1);
 
+    /// <summary>ABI v9: tools-aware template application — the model's OWN embedded template
+    /// renders tool docs in its trained format. Null/empty tools = legacy behavior.</summary>
+    string ApplyChatTemplate(string? template, IReadOnlyList<(string role, string content)> messages,
+        IReadOnlyList<InferenceToolSpec> tools, bool addAssistant = true, int enableThinking = -1);
+
     /// <summary>Tokenize on the context.</summary>
     int[] Tokenize(string text, bool addBos = false, bool parseSpecial = true);
 

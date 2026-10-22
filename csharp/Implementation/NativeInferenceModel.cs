@@ -258,6 +258,72 @@ public sealed class NativeInferenceModel : IInferenceModel, Abstractions.IModelT
         }
     }
 
+    /// <summary>ABI v9: tools-aware chat template application. null/empty tools = EXACT legacy
+    /// behavior (native v2 delegates to the legacy path — parity pinned by tests).</summary>
+    public string ApplyChatTemplate(string? template, IReadOnlyList<(string role, string content)> messages,
+        IReadOnlyList<InferenceToolSpec> tools, bool addAssistant = true, int enableThinking = -1)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (tools is null || tools.Count == 0)
+        {
+            return ApplyChatTemplate(template, messages, addAssistant, enableThinking);
+        }
+
+        var nMsg = messages.Count;
+        var msgSize = System.Runtime.InteropServices.Marshal.SizeOf<PvxChatMessage>();
+        var msgPtr = System.Runtime.InteropServices.Marshal.AllocHGlobal(nMsg * msgSize);
+        var nTool = tools.Count;
+        var toolSize = System.Runtime.InteropServices.Marshal.SizeOf<PvxChatTool>();
+        var toolPtr = System.Runtime.InteropServices.Marshal.AllocHGlobal(nTool * toolSize);
+        try
+        {
+            var allocatedStrings = new List<IntPtr>();
+            try
+            {
+                for (int i = 0; i < nMsg; i++)
+                {
+                    var (role, content) = messages[i];
+                    var rolePtr = PvxNative.AllocUTF8(role);
+                    var contentPtr = PvxNative.AllocUTF8(content);
+                    allocatedStrings.Add(rolePtr);
+                    allocatedStrings.Add(contentPtr);
+                    var msg = new PvxChatMessage { Role = rolePtr, Content = contentPtr };
+                    System.Runtime.InteropServices.Marshal.StructureToPtr(msg, msgPtr + i * msgSize, false);
+                }
+                for (int i = 0; i < nTool; i++)
+                {
+                    var spec = tools[i];
+                    var namePtr = PvxNative.AllocUTF8(spec.Name);
+                    var descPtr = PvxNative.AllocUTF8(spec.Description ?? "");
+                    var paramsPtr = PvxNative.AllocUTF8(spec.ParametersJson ?? "");
+                    allocatedStrings.Add(namePtr);
+                    allocatedStrings.Add(descPtr);
+                    allocatedStrings.Add(paramsPtr);
+                    var tool = new PvxChatTool { Name = namePtr, Description = descPtr, ParametersJson = paramsPtr };
+                    System.Runtime.InteropServices.Marshal.StructureToPtr(tool, toolPtr + i * toolSize, false);
+                }
+
+                EntryPoints.ApplyChatTemplateV2(_handle.DangerousGetHandle(), template,
+                    msgPtr, nMsg, toolPtr, nTool, addAssistant, enableThinking, out var textPtr)
+                    .ThrowIfError(EntryPoints, _handle.DangerousGetHandle());
+                try
+                {
+                    return System.Runtime.InteropServices.Marshal.PtrToStringUTF8(textPtr) ?? string.Empty; /* F15 */
+                }
+                finally { EntryPoints.FreeString(textPtr); }
+            }
+            finally
+            {
+                foreach (var p in allocatedStrings) System.Runtime.InteropServices.Marshal.FreeHGlobal(p);
+            }
+        }
+        finally
+        {
+            System.Runtime.InteropServices.Marshal.FreeHGlobal(msgPtr);
+            System.Runtime.InteropServices.Marshal.FreeHGlobal(toolPtr);
+        }
+    }
+
     public IGrammar CreateGrammar(string grammarStr, string grammarRoot)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);

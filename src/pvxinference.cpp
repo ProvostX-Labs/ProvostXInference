@@ -11,6 +11,7 @@
 #include "llama-arch.h"
 #include "llama-model.h"
 #include "gguf.h"
+#include "chat.h"   // common_chat_templates_* — ABI v9 tools-aware template render
 #include <fstream>
 #include <algorithm>
 #include <cmath>
@@ -3098,6 +3099,91 @@ pvx_result_t pvx_apply_chat_template(pvx_model_t* model, const char* tmpl,
     }
 
         *out_text = buf;
+    return PVX_OK;
+}
+
+// ── Chat template v2 (ABI v9, format-agnostic tools) ──
+// Renders the model's OWN embedded Jinja template with tool definitions in
+// context, so each model family receives tool docs in its own trained format.
+// Zero per-model code: the template that ships in the GGUF is the authority.
+pvx_result_t pvx_apply_chat_template_v2(pvx_model_t* model, const char* tmpl,
+                                        const pvx_chat_message_t* messages, int n_messages,
+                                        const pvx_chat_tool_t* tools, int n_tools,
+                                        bool add_assistant, int enable_thinking,
+                                        char** out_text) {
+    if (!model || !messages || n_messages <= 0 || !out_text) return PVX_ERR_INVALID_ARG;
+
+    // Parity contract: no tools → byte-identical legacy path (pinned by tests).
+    if (!tools || n_tools <= 0) {
+        return pvx_apply_chat_template(model, tmpl, messages, n_messages,
+                                       add_assistant, enable_thinking, out_text);
+    }
+
+    // Build modern-API messages (role/content only — tool-call history arrives
+    // as role:"tool" content rows from the server, same as the legacy path).
+    std::vector<common_chat_msg> chat;
+    chat.reserve(n_messages);
+    for (int i = 0; i < n_messages; i++) {
+        common_chat_msg m;
+        m.role = messages[i].role ? messages[i].role : "";
+        m.content = messages[i].content ? messages[i].content : "";
+        chat.push_back(std::move(m));
+    }
+
+    // OpenAI function shape: parameters_json is the raw JSON Schema string.
+    std::vector<common_chat_tool> ctools;
+    ctools.reserve(n_tools);
+    for (int i = 0; i < n_tools; i++) {
+        common_chat_tool t;
+        t.name = tools[i].name ? tools[i].name : "";
+        t.description = tools[i].description ? tools[i].description : "";
+        t.parameters = tools[i].parameters_json ? tools[i].parameters_json : "";
+        ctools.push_back(std::move(t));
+    }
+
+    auto tmpls = common_chat_templates_init(model->model, tmpl ? tmpl : "");
+    common_chat_templates_inputs inputs;
+    inputs.messages = std::move(chat);
+    inputs.tools = std::move(ctools);
+    inputs.add_generation_prompt = add_assistant;
+    inputs.use_jinja = true;
+    // -1 auto → template default (leave the field true = upstream default only
+    // when the caller did not explicitly disable); 0 = off; 1 = on.
+    inputs.enable_thinking = (enable_thinking != 0);
+
+    common_chat_params rendered;
+    try {
+        rendered = common_chat_templates_apply(tmpls.get(), inputs);
+    } catch (const std::exception& e) {
+        model->last_error = std::string("chat template v2 apply failed: ") + e.what();
+        return PVX_ERR_INTERNAL;
+    }
+
+    std::string prompt = rendered.prompt.str();
+
+    // v15 empty-think-block prefill (same semantics as v1): when thinking is
+    // explicitly OFF and the vocabulary structurally carries a think marker as
+    // a single special token, prefill an EMPTY block after the assistant
+    // header. Skip when the template already rendered one (Jinja templates that
+    // honor enable_thinking emit the block themselves — double-prefill guard).
+    if (enable_thinking == 0 && add_assistant) {
+        for (const auto& marker : model->reasoning_markers) {
+            llama_token probe[4];
+            int32_t n_tok = llama_tokenize(model->vocab, marker.c_str(),
+                                            (int32_t)marker.size(), probe, 4, false, true);
+            if (n_tok != 1) continue;
+            std::string block = marker + "\n\n" + marker_with_slash(marker) + "\n\n";
+            if (prompt.find(block) == std::string::npos) {
+                prompt += block;
+            }
+            break;  // first match wins
+        }
+    }
+
+    char* buf = (char*)malloc(prompt.size() + 1);
+    if (!buf) return PVX_ERR_INTERNAL;
+    memcpy(buf, prompt.c_str(), prompt.size() + 1);
+    *out_text = buf;
     return PVX_OK;
 }
 

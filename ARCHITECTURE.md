@@ -90,6 +90,22 @@ write is gated behind `audit.enabled` — an unconfigured engine executes one br
 per commit and nothing else (owner directive 10:42). Rates are derived by the caller
 between two snapshots; the native side stays stateless.
 
+### Format-agnostic tool templates (ABI v9 wave 2, owner-approved 2026-10-22)
+Append-only: `pvx_chat_tool_t` (`name`, `description`, `parameters_json` — OpenAI
+function shape, raw JSON Schema string) and `pvx_apply_chat_template_v2`. The v2
+entry renders the model's OWN embedded Jinja template with the tool definitions in
+context (modern `common_chat_templates_apply` path), so each model family receives
+tool docs in its own trained format — ZERO per-model code and no wire-format
+assumption in the engine. Null/empty tools = EXACT legacy behavior (v2 delegates to
+`pvx_apply_chat_template`; parity pinned by tests). The v15 empty-think-block
+prefill (enable_thinking=0, structural single-token marker probe) is preserved, with
+a double-prefill guard: the block is appended only when the template did not already
+render one (Jinja templates that honor enable_thinking emit it themselves).
+Motivation (live-verified failure): models whose trained tool emission does not match
+a server's decoder emitted their native tag syntax as plain text on tool requests;
+with tool docs rendered by the model's own template plus server-side grammar
+constraints, the trained format becomes irrelevant.
+
 - **`pvxinference.cpp`** — core: model load, tokenize, chat template, context, conversation
   pool, batched + executor inference, sampling, KV ops (save/restore/copy/rewind/shift),
   embeddings, speculative decode, chunked decode (all decode paths split pending tokens into

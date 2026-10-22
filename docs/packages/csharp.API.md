@@ -1,6 +1,6 @@
 # csharp.API.md
 
-Types: 92  |  LOC: 5963  |  ~6724 tokens
+Types: 93  |  LOC: 6050  |  ~6773 tokens
 
 ---
 
@@ -584,6 +584,11 @@ Constructor:
 > One candidate configuration for an EP session init: a label for
 Constructor:
   - EpAttempt(string Label, Action<SessionOptions> Apply)
+
+### Record: InferenceToolSpec
+> ABI v9: one function tool definition passed to the model's chat template.
+Constructor:
+  - InferenceToolSpec(string Name, string Description, string ParametersJson)
 
 ### Record: JudgeOption
 > One rendered option of a judge question: its answer label and its

@@ -55,6 +55,12 @@ public sealed class GgufEngineOps : IGgufEngineOps, IDisposable
         bool addAssistant = true, int enableThinking = -1) =>
         _model.ApplyChatTemplate(template, messages, addAssistant, enableThinking);
 
+    /// <summary>ABI v9: tools-aware template application (delegates to the facade model).
+    /// Null/empty tools = EXACT legacy behavior.</summary>
+    public string ApplyChatTemplate(string? template, IReadOnlyList<(string role, string content)> messages,
+        IReadOnlyList<InferenceToolSpec> tools, bool addAssistant = true, int enableThinking = -1) =>
+        _model.ApplyChatTemplate(template, messages, tools, addAssistant, enableThinking);
+
     public int[] Tokenize(string text, bool addBos = false, bool parseSpecial = true) =>
         _context.Tokenize(text, addBos, parseSpecial);
 

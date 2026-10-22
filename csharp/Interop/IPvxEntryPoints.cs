@@ -135,6 +135,8 @@ internal interface IPvxEntryPoints
 
     // ── Chat template ──
     PvxResult ApplyChatTemplate(IntPtr model, string? tmpl, IntPtr messages, int nMessages, bool addAssistant, int enableThinking, out IntPtr outText);
+    /// <summary>ABI v9: tools-aware template application (null tools = legacy parity).</summary>
+    PvxResult ApplyChatTemplateV2(IntPtr model, string? tmpl, IntPtr messages, int nMessages, IntPtr tools, int nTools, bool addAssistant, int enableThinking, out IntPtr outText);
 
     // ── Vision on standard executor ──
     PvxResult ExecutorPromptWithImages(IntPtr executor, IntPtr model, string text, IntPtr[] imageData, int[] imageSizes, int nImages);

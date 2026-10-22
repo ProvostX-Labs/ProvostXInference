@@ -697,6 +697,36 @@ pvx_result_t pvx_apply_chat_template(pvx_model_t* model, const char* tmpl,
                                         bool add_assistant, int enable_thinking,
                                         char** out_text);
 
+/* ABI v9 (format-agnostic tools, owner-approved 2026-10-22): tools-aware chat
+ * template application. Renders the model's OWN embedded Jinja template with
+ * the tool definitions in context, so each model family receives tool docs in
+ * its own trained format — no per-model code anywhere.
+ *
+ * tools: array of {name, description, parameters_json} (OpenAI function shape;
+ * parameters_json is the raw JSON Schema string, may be null/empty for a
+ * schema-less tool). NULL/n_tools<=0 = EXACT legacy behavior (delegates to
+ * pvx_apply_chat_template — parity pinned by tests).
+ *
+ * Template selection: the model's embedded Jinja template (tmpl override wins
+ * when set). Fail-closed on templates WITHOUT tool rendering: the tool docs
+ * are then not injected; the caller (server) still grammar-constrains output
+ * shape, so calls stay parseable. Detection is structural — no model-name
+ * checks anywhere.
+ * enable_thinking semantics identical to pvx_apply_chat_template.
+ * out_text: receives the formatted prompt (caller frees with pvx_free_string).
+ * Returns PVX_OK or error. */
+typedef struct {
+    const char* name;            /* required */
+    const char* description;     /* may be null/empty */
+    const char* parameters_json; /* JSON Schema string; null/empty = schema-less */
+} pvx_chat_tool_t;
+
+pvx_result_t pvx_apply_chat_template_v2(pvx_model_t* model, const char* tmpl,
+                                        const pvx_chat_message_t* messages, int n_messages,
+                                        const pvx_chat_tool_t* tools, int n_tools,
+                                        bool add_assistant, int enable_thinking,
+                                        char** out_text);
+
 /* ════════════════════════════════════════════════════
  *  Vision on standard executor
  * ════════════════════════════════════════════════════ */

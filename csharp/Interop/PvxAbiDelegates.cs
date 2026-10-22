@@ -78,6 +78,10 @@ internal static class PvxAbiDelegates
         [MarshalAs(UnmanagedType.LPUTF8Str)] string grammarRoot);
     internal delegate PvxResult PvxApplyChatTemplateDelegate(IntPtr model, [MarshalAs(UnmanagedType.LPUTF8Str)] string? tmpl,
         IntPtr messages, int nMessages, [MarshalAs(UnmanagedType.U1)] bool addAssistant, int enableThinking, out IntPtr outText);
+    /// <summary>ABI v9: tools-aware chat template application (null tools = legacy parity).</summary>
+    internal delegate PvxResult PvxApplyChatTemplateV2Delegate(IntPtr model, [MarshalAs(UnmanagedType.LPUTF8Str)] string? tmpl,
+        IntPtr messages, int nMessages, IntPtr tools, int nTools,
+        [MarshalAs(UnmanagedType.U1)] bool addAssistant, int enableThinking, out IntPtr outText);
 
     // ── Speculative decoding (INF BL-05) ──
     internal delegate PvxResult PvxModelSpecCapabilitiesDelegate(IntPtr model, out PvxSpecCapabilities capabilities);

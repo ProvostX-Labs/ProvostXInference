@@ -15,6 +15,15 @@ public interface IInferenceModel : IDisposable
 /// header (Qwen3 enable_thinking=false mechanism). Structural detection only.
 /// </summary>
 string ApplyChatTemplate(string? template, IReadOnlyList<(string role, string content)> messages, bool addAssistant = true, int enableThinking = -1);
+
+    /// <summary>ABI v9: tools-aware chat template application — renders the model's OWN
+    /// embedded template with the tool definitions in context (each model family gets
+    /// tool docs in its own trained format). Null/empty tools = EXACT legacy behavior
+    /// (parity pinned by tests). Default implementation delegates to the legacy
+    /// signature so existing implementers (and test doubles) stay source-compatible.</summary>
+    string ApplyChatTemplate(string? template, IReadOnlyList<(string role, string content)> messages,
+        IReadOnlyList<InferenceToolSpec> tools, bool addAssistant = true, int enableThinking = -1)
+        => ApplyChatTemplate(template, messages, addAssistant, enableThinking);
     IGrammar CreateGrammar(string grammarStr, string grammarRoot);
 
     /// <summary>ABI v7: convert a JSON Schema document into a grammar

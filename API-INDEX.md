@@ -1,11 +1,11 @@
 # API-INDEX.md — ProvostXInference
 
-Generated: 2026-10-22T09:47:22.342580+00:00
-Packages: 3  |  Types: 1906
+Generated: 2026-10-22T21:48:47.338537+00:00
+Packages: 3  |  Types: 1907
 
 ---
 
-## Tests (36 types, ~4239 LOC)
+## Tests (36 types, ~4301 LOC)
 
 - 🟡 DecisionEngineOpsTests  (Tests)
 - 🟡 DecisionEngineRequestTests  (Tests)
@@ -44,7 +44,7 @@ Packages: 3  |  Types: 1906
 - 🟡 StallWatchdogTests  (Tests)
 - 🟡 Wave3FeatureTests  (Tests)
 
-## csharp (92 types, ~5963 LOC)
+## csharp (93 types, ~6050 LOC)
 
 - 🔵 IChunkWallClock  (csharp)
 - 🔵 IConversation : IDisposable  (csharp)
@@ -100,6 +100,7 @@ Packages: 3  |  Types: 1906
 - 🟡 InferenceEngineBuilder  (csharp)
 - 🟡 InferenceEngineFactory : IInferenceEngineFactory  (csharp)  deps: [IGgufModelLoader? ggufLoader =, IDecisionSessionFactory? decisionFactory =, IExecutionProviderDefaultSource? epDefaultSource =, IInferenceBackend? backend =]
 - 🟡 InferenceException : Exception  (csharp)
+- 🟣 InferenceToolSpec  (csharp)  deps: [string, string, string]
 - 🟡 InvalidEngineRequestException : InferenceException  (csharp)  deps: [string]
 - 🟡 JudgeModelNotReadyException : Exception  (csharp)  deps: [string, string]
 - 🟣 JudgeOption  (csharp)  deps: [string, string]
@@ -139,7 +140,7 @@ Packages: 3  |  Types: 1906
 - 🟡 SystemChunkWallClock : IChunkWallClock  (csharp)  deps: [TimeProvider]
 - 🟣 TtsResult  (csharp)  deps: [float, int]
 
-## ProvostXInference (native C++) (1778 types, ~762662 LOC)
+## ProvostXInference (native C++) (1778 types, ~762795 LOC)
 
 - struct (global)::acl_deleter (acl_tensor.h) 
 - class ov::AlignEltwiseOperandRanks (align_eltwise_ranks.h) 
