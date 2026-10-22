@@ -75,6 +75,26 @@ struct pvx_model_s {
     // fail-closed (no UAF on the wrapper's shared pointer), and pvx_free_model
     // waits until every wrapper is freed before releasing mtmd_ctx.
     int mtmd_shared_refs = 0;   // live mmproj wrappers sharing model->mtmd_ctx
+
+    // ── ABI v9: per-engine audit + telemetry (owner order 2026-10-22) ──
+    // Per-MODEL audit sink: own file, own mutex — never process-wide. An LLM
+    // array of engines gets one audit log per engine instance.
+    struct AuditSink {
+        bool enabled = false;
+        bool include_prompts = false;
+        std::string path;
+        FILE* file = nullptr;            // opened append at load, closed at free
+        std::mutex mtx;                  // serializes writes + counter bumps
+        // Model-aggregate telemetry counters (the per-lane pvx_stats_t stay
+        // per executor/conversation; these roll up the whole engine).
+        int64_t n_prompt_tokens = 0;
+        int64_t n_decode_steps = 0;
+        int64_t n_committed_tokens = 0;
+        int64_t spec_drafted = 0;
+        int64_t spec_accepted = 0;
+        int64_t n_errors = 0;
+        ~AuditSink();
+    } audit;
 };
 
 // Backend probe profile — what the probe discovered about THIS context's

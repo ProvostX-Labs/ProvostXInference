@@ -13,7 +13,7 @@ namespace ProvostXInference.Implementation;
 /// OWNING ENGINE's per-handle dispatch tables — resolved once at engine open
 /// and injected down the whole object graph; no global P/Invoke routing.
 /// </summary>
-public sealed class NativeInferenceModel : IInferenceModel
+public sealed class NativeInferenceModel : IInferenceModel, Abstractions.IModelTelemetrySource
 {
     private readonly ModelSafeHandle _handle;
     private readonly ModelConfig _config;
@@ -45,6 +45,7 @@ public sealed class NativeInferenceModel : IInferenceModel
         // method scope so the finally below can free it on every exit path.
         var kvPtr = IntPtr.Zero;
         var kvCount = 0;
+        var auditPtr = IntPtr.Zero;
         try
         {
             if (config.ReasoningMarkers is { Length: > 0 })
@@ -60,7 +61,6 @@ public sealed class NativeInferenceModel : IInferenceModel
             // native loader copies what it consumes during LoadModel; the
             // OUTER finally frees the pin).
             if (config.KvOverrides is { Count: > 0 })
-                if (config.KvOverrides is { Count: > 0 })
                 {
                     kvCount = config.KvOverrides.Count;
                     var one = System.Runtime.InteropServices.Marshal.SizeOf<PvxKvOverride>();
@@ -73,11 +73,13 @@ public sealed class NativeInferenceModel : IInferenceModel
                         System.Runtime.InteropServices.Marshal.StructureToPtr(native, kvPtr + i * one, fDeleteOld: false);
                     }
                 }
+            auditPtr = string.IsNullOrEmpty(config.AuditPath) ? IntPtr.Zero : PvxNative.AllocUTF8(config.AuditPath);
             var nativeParams = new PvxModelParams(pathPtr, config.GpuLayers, config.Threads,
                 config.FlashAttention, (PvxKvType)config.KvCacheType,
                 markerArrayPtr, markerPtrs.Count,
                 kvPtr, kvCount, config.LazyMode, config.UseExtraBuftsTri,
-                config.VocabOnly, config.CheckTensors, config.NoHost, config.NoAlloc, config.LoadMtp);
+                config.VocabOnly, config.CheckTensors, config.NoHost, config.NoAlloc, config.LoadMtp,
+                auditPtr, config.AuditIncludePrompts ? 1 : 0);
             try
             {
                 entryPoints.LoadModel(in nativeParams, out var raw).ThrowIfError(entryPoints);
@@ -98,6 +100,7 @@ public sealed class NativeInferenceModel : IInferenceModel
             if (kvPtr != IntPtr.Zero) Marshal.FreeHGlobal(kvPtr);
             foreach (var p in markerPtrs) Marshal.FreeHGlobal(p);
             if (markerArrayPtr != IntPtr.Zero) Marshal.FreeHGlobal(markerArrayPtr);
+            if (auditPtr != IntPtr.Zero) Marshal.FreeHGlobal(auditPtr);
             Marshal.FreeHGlobal(pathPtr);
         }
     }
@@ -319,6 +322,16 @@ public sealed class NativeInferenceModel : IInferenceModel
         if (_disposed) return;
         _disposed = true;
         _handle.Dispose();
+    }
+
+    /// <summary>ABI v9: model-wide telemetry snapshot (per-engine seam).</summary>
+    Models.EngineTelemetry Abstractions.IModelTelemetrySource.GetTelemetry()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        EntryPoints.EngineTelemetry(_handle.DangerousGetHandle(), out var t)
+            .ThrowIfError(EntryPoints, IntPtr.Zero);
+        return new Models.EngineTelemetry(t.NPromptTokens, t.NDecodeSteps, t.NCommittedTokens,
+            t.SpecDrafted, t.SpecAccepted, t.NErrors, t.NContextsAlive);
     }
 
     // ── ABI v8 (wave 3): audio input / TTS / adapters ──

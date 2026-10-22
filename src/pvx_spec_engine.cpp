@@ -1080,9 +1080,11 @@ pvx_result_t PvxBLSpecEngine::generate(const pvx_sampling_params_t* params,
                 if (is_ngram) {
                     ngram_draft(draft, max_draft, first_top.token);
                     m_n_drafted += (int64_t) draft.size();
+                    if (m_model_tgt && m_model_tgt->audit.enabled) m_model_tgt->audit.spec_drafted += (int64_t) draft.size();  // ABI v9
                 } else {
                     draft.push_back(first_top.token);
                     m_n_drafted++;
+                    if (m_model_tgt && m_model_tgt->audit.enabled) m_model_tgt->audit.spec_drafted++;  // ABI v9
                     // Draft token i sits at absolute position n_kv_pos + i.
                     llama_pos next_pos = *m_stream.n_kv_pos;
                     for (int i = 1; i <= max_draft; i++) {
@@ -1099,6 +1101,7 @@ pvx_result_t PvxBLSpecEngine::generate(const pvx_sampling_params_t* params,
                         if (llama_vocab_is_eog(ctx->vocab, d_top.token)) break;
                         draft.push_back(d_top.token);
                         m_n_drafted++;
+                        if (m_model_tgt && m_model_tgt->audit.enabled) m_model_tgt->audit.spec_drafted++;  // ABI v9
                     }
                 }
             }
@@ -1179,6 +1182,7 @@ pvx_result_t PvxBLSpecEngine::generate(const pvx_sampling_params_t* params,
                 if (s != draft[i]) break; // first disagreeing sample IS the commit
                 accepted.push_back(draft[i]);
                 m_n_accepted++;
+                if (m_model_tgt && m_model_tgt->audit.enabled) m_model_tgt->audit.spec_accepted++;  // ABI v9
                 feed.push_back(draft[i]);
                 if (stop_at_eog(draft[i])) {
                     // Mid-chain EOG: accepted, nothing commits past an EOG.
@@ -1703,6 +1707,7 @@ pvx_result_t PvxBLSpecEngine::generate_eagle(const pvx_sampling_params_t* params
             if (llama_vocab_is_eog(ctx->vocab, d_top.token)) break;
             chain.push_back(d_top.token);
             m_n_drafted++;
+            if (m_model_tgt && m_model_tgt->audit.enabled) m_model_tgt->audit.spec_drafted++;  // ABI v9
             if ((int) chain.size() >= round_cap) break;
             if (!eagle_pair_decode(chain.back(), prenorm.data(), next_pos)) {
                 ctx->last_error = "eagle3 chain decode failed";
@@ -1765,6 +1770,7 @@ pvx_result_t PvxBLSpecEngine::generate_eagle(const pvx_sampling_params_t* params
                 if (s != chain[i]) break;
                 n_acc++;
                 m_n_accepted++;
+                if (m_model_tgt && m_model_tgt->audit.enabled) m_model_tgt->audit.spec_accepted++;  // ABI v9
                 feed.push_back(chain[i]);
                 if (stop_at_eog(chain[i])) { hit_eog = true; break; }
                 if (i + 1 < m) {
@@ -2335,6 +2341,7 @@ pvx_result_t PvxBLSpecEngine::generate_mtp(const pvx_sampling_params_t* params,
                 if (llama_vocab_is_eog(ctx->vocab, d_top.token)) break;
                 chain.push_back(d_top.token);
                 m_n_drafted++;
+                if (m_model_tgt && m_model_tgt->audit.enabled) m_model_tgt->audit.spec_drafted++;  // ABI v9
                 chain_h.insert(chain_h.end(), h_step.begin(), h_step.end());
             }
             llama_set_nextn_layer_offset(m_ctx_dft, 0); // restore default for non-draft decodes (upstream speculative.cpp:1844)
@@ -2357,6 +2364,7 @@ pvx_result_t PvxBLSpecEngine::generate_mtp(const pvx_sampling_params_t* params,
             if (llama_vocab_is_eog(ctx->vocab, d_top.token)) break;
             chain.push_back(d_top.token);
             m_n_drafted++;
+            if (m_model_tgt && m_model_tgt->audit.enabled) m_model_tgt->audit.spec_drafted++;  // ABI v9
             if ((int) chain.size() >= round_cap) break;
             if (!mtp_pair_decode(chain.back(), h_step.data(), next_pos,
                                  /*output_logits=*/ true)) {
@@ -2426,6 +2434,7 @@ pvx_result_t PvxBLSpecEngine::generate_mtp(const pvx_sampling_params_t* params,
                 if (s != chain[i]) break;
                 n_acc++;
                 m_n_accepted++;
+                if (m_model_tgt && m_model_tgt->audit.enabled) m_model_tgt->audit.spec_accepted++;  // ABI v9
                 feed.push_back(chain[i]);
                 if (stop_at_eog(chain[i])) { hit_eog = true; break; }
                 if (i + 1 < m) {

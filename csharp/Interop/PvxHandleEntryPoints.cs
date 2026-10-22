@@ -131,6 +131,7 @@ internal sealed class PvxHandleEntryPoints : IPvxEntryPoints
     private readonly PvxAbiDelegates.PvxContextSetControlVectorDelegate _contextSetControlVector; // ABI v8
     private readonly PvxAbiDelegates.PvxStatsDelegate _executorStats; // ABI v8
     private readonly PvxAbiDelegates.PvxStatsDelegate _conversationStats; // ABI v8
+    private readonly PvxAbiDelegates.PvxEngineTelemetryDelegate _engineTelemetry; // ABI v9
 
     public PvxHandleEntryPoints(IntPtr image, IPvxModuleLoader loader)
     {
@@ -251,6 +252,7 @@ internal sealed class PvxHandleEntryPoints : IPvxEntryPoints
         _contextSetControlVector = Bind<PvxAbiDelegates.PvxContextSetControlVectorDelegate>(loader, image, "pvx_context_set_control_vector");
         _executorStats = Bind<PvxAbiDelegates.PvxStatsDelegate>(loader, image, "pvx_executor_stats");
         _conversationStats = Bind<PvxAbiDelegates.PvxStatsDelegate>(loader, image, "pvx_conversation_stats");
+        _engineTelemetry = Bind<PvxAbiDelegates.PvxEngineTelemetryDelegate>(loader, image, "pvx_engine_telemetry");
         _abiVersion = Bind<PvxAbiDelegates.PvxAbiVersionDelegate>(loader, image, "pvx_abi_version");
     }
 
@@ -461,6 +463,7 @@ internal sealed class PvxHandleEntryPoints : IPvxEntryPoints
     public PvxResult ContextSetControlVector(IntPtr context, IntPtr cvec, int layerStart, int layerEnd) => _contextSetControlVector(context, cvec, layerStart, layerEnd);
     public PvxResult ExecutorStats(IntPtr executor, out PvxStats stats) => _executorStats(executor, out stats);
     public PvxResult ConversationStats(IntPtr conversation, out PvxStats stats) => _conversationStats(conversation, out stats);
+    public PvxResult EngineTelemetry(IntPtr model, out PvxEngineTelemetry telemetry) => _engineTelemetry(model, out telemetry);
 
     // ── Handshake ──
 

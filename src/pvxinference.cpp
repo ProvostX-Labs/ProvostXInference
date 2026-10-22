@@ -139,6 +139,64 @@ static void set_error(pvx_context_t* ctx, const std::string& msg) {
 
 // ── Model ──
 
+// ── ABI v9: per-engine audit + telemetry (owner order 2026-10-22) ──
+// The audit sink is PER-MODEL (own FILE*, own mutex) — never process globals.
+// Counter bumps happen under the call sites' existing infer mutex (decode/
+// prompt commit paths already hold it), so the counters are plain int64 —
+// no extra synchronization on the hot path.
+
+pvx_model_s::AuditSink::~AuditSink() {
+    if (file) { fclose(file); file = nullptr; }
+}
+
+// One JSON line per event: {"ts":"...","seq":N,"event":"...","detail":"..."}
+// Failures to write NEVER abort inference — audit is observability, not a
+// correctness dependency (best-effort; the write failure itself is silent).
+static void pvx_audit_write(pvx_model_t* m, const char* event, const char* detail) {
+    if (!m || !m->audit.enabled || !m->audit.file) return;
+    static std::atomic<uint64_t> seq_counter{0};
+    char ts[32];
+    {
+        std::time_t now = std::time(nullptr);
+        std::tm tm_now{};
+#ifdef _WIN32
+        localtime_s(&tm_now, &now);
+#else
+        localtime_r(&now, &tm_now);
+#endif
+        std::strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", &tm_now);
+    }
+    std::lock_guard<std::mutex> lk(m->audit.mtx);
+    const uint64_t seq = seq_counter.fetch_add(1) + 1;
+    if (detail && detail[0]) {
+        fprintf(m->audit.file, "{\"ts\":\"%s\",\"seq\":%llu,\"event\":\"%s\",\"detail\":\"%s\"}\n",
+                ts, (unsigned long long) seq, event, detail);
+    } else {
+        fprintf(m->audit.file, "{\"ts\":\"%s\",\"seq\":%llu,\"event\":\"%s\"}\n",
+                ts, (unsigned long long) seq, event);
+    }
+    // Line-buffered flush per event: audit trails must survive a hard kill.
+    fflush(m->audit.file);
+}
+
+// Telemetry counter bumps — called from sites that ALREADY hold the owning
+// context's infer mutex (commit paths), so plain increments are safe.
+// Owner directive 2026-10-22 10:42: the feature is DEAD when not actively
+// configured — no counter bumps, no writes, zero compute beyond the branch.
+// Telemetry rides the audit config (audit_path set = feature on).
+static void pvx_tel_decode(pvx_context_t* ctx) {
+    if (ctx && ctx->owning_model && ctx->owning_model->audit.enabled) ctx->owning_model->audit.n_decode_steps++;
+}
+static void pvx_tel_prompt(pvx_context_t* ctx, int64_t n_tokens) {
+    if (ctx && ctx->owning_model && ctx->owning_model->audit.enabled) ctx->owning_model->audit.n_prompt_tokens += n_tokens;
+}
+static void pvx_tel_committed(pvx_context_t* ctx, int64_t n_tokens) {
+    if (ctx && ctx->owning_model && ctx->owning_model->audit.enabled) ctx->owning_model->audit.n_committed_tokens += n_tokens;
+}
+static void pvx_tel_error(pvx_model_t* m) {
+    if (m && m->audit.enabled) m->audit.n_errors++;
+}
+
 pvx_result_t pvx_load_model(const pvx_model_params_t* params, pvx_model_t** out_model) {
     if (!params || !params->model_path || !out_model) return PVX_ERR_INVALID_ARG;
 
@@ -218,6 +276,24 @@ pvx_result_t pvx_load_model(const pvx_model_params_t* params, pvx_model_t** out_
     m->gpu_layers = params->gpu_layers;   // caller's requested config — backend
                                           // profile reads this for truthful
                                           // gpu-layer visibility (per-context)
+    // ABI v9: per-engine audit sink — opened HERE (per-model, own FILE*),
+    // closed in the AuditSink destructor at pvx_free_model. Empty path = off.
+    if (params->audit_path && params->audit_path[0]) {
+        m->audit.path = params->audit_path;
+        m->audit.include_prompts = params->audit_include_prompts != 0;
+        m->audit.file = fopen(m->audit.path.c_str(), "a");
+        if (m->audit.file) {
+            m->audit.enabled = true;
+            pvx_audit_write(m, "model_loaded", m->audit.path.c_str());
+        } else {
+            // Audit requested but unusable: NOT a load failure (audit is
+            // observability, never correctness) — record in the debug log
+            // and continue disabled.
+            PVX_LOG(PVX_LOG_WARN, "Audit", "audit_path '%s' unusable (fopen failed) — audit disabled",
+                    m->audit.path.c_str());
+            m->audit.enabled = false;
+        }
+    }
     // Data-driven reasoning-marker list (owner-approved 2026-09-26): caller may
     // override the built-in default ({"think"}) - extend per release via config,
     // no code change. Kept as a COPY; caller owns its array lifetime.
@@ -252,6 +328,7 @@ void pvx_free_model(pvx_model_t* model) {
         model->mtmd_ctx = nullptr;
     }
     if (model->model) llama_model_free(model->model);
+    pvx_audit_write(model, "model_freed", nullptr);  // ABI v9: last audit line before the sink closes
     delete model;
 }
 
@@ -268,6 +345,8 @@ pvx_result_t pvx_create_context(pvx_model_t* model,
     c->vocab = model->vocab;
     c->pool_type = params->pooling_type;
 
+    // ABI v9: per-engine audit — context lifecycle events (per-model sink).
+    pvx_audit_write(model, "context_created", nullptr);
     llama_context_params cp = llama_context_default_params();
     cp.n_ctx = params->context_size;
     cp.n_batch = params->batch_size;
@@ -380,6 +459,10 @@ pvx_result_t pvx_create_context(pvx_model_t* model,
 
 void pvx_free_context(pvx_context_t* ctx) {
     if (!ctx) return;
+
+    // ABI v9: per-engine audit — context lifecycle event BEFORE teardown
+    // (the model pointer is valid here; free clears the back-reference).
+    if (ctx->owning_model) pvx_audit_write(ctx->owning_model, "context_freed", nullptr);
 
     // Free the llama context first. llama_free releases all GPU buffers
     // (Metal residency sets, CUDA allocations, etc.) owned by this context.
@@ -772,6 +855,7 @@ pvx_result_t pvx_executor_prompt(pvx_executor_t* exec, const char* text) {
     exec->pending_tokens.insert(exec->pending_tokens.end(), tokens.begin(), tokens.end());
     exec->has_pending = true;
     exec->n_prompt_tokens += (int64_t) tokens.size();  // ABI v8 stats
+    pvx_tel_prompt(exec->ctx_ref, (int64_t) tokens.size());  // ABI v9 model-wide
     return PVX_OK;
 }
 
@@ -783,6 +867,7 @@ pvx_result_t pvx_executor_prompt_tokens(pvx_executor_t* exec, const int32_t* tok
     exec->pending_tokens.insert(exec->pending_tokens.end(), tokens, tokens + count);
     exec->has_pending = true;
     exec->n_prompt_tokens += count;  // ABI v8 stats
+    pvx_tel_prompt(exec->ctx_ref, count);  // ABI v9 model-wide
     return PVX_OK;
 }
 
@@ -865,6 +950,7 @@ pvx_decode_result_t pvx_executor_infer(pvx_executor_t* exec) {
             }
         }
         exec->n_decode_steps++;  // ABI v8 stats
+        pvx_tel_decode(exec->ctx_ref);  // ABI v9 model-wide telemetry
         exec->n_tokens += slice;
         exec->n_kv_pos += slice;
         if (last_slice) {
@@ -1159,6 +1245,7 @@ pvx_result_t pvx_executor_spec_init(pvx_executor_t* exec,
 
     if (params->mode == PVX_SPEC_OFF) {
         exec->spec.reset();
+        pvx_audit_write(exec->ctx_ref->owning_model, "spec_disabled", "executor-lane");
         return PVX_OK;
     }
 
@@ -1212,6 +1299,7 @@ pvx_result_t pvx_executor_spec_init(pvx_executor_t* exec,
     }
     engine->bind(exec);
     exec->spec = std::move(engine);
+    pvx_audit_write(exec->ctx_ref->owning_model, "spec_enabled", "executor-lane");  // ABI v9
     return PVX_OK;
 }
 
@@ -1327,6 +1415,7 @@ pvx_result_t pvx_conversation_spec_init(pvx_conversation_t* conv,
     }
     engine->bind_conversation(conv);
     conv->spec = std::move(engine);
+    pvx_audit_write(conv->ctx_ref->owning_model, "spec_enabled", "conversation-lane");  // ABI v9
     return PVX_OK;
 }
 
@@ -1607,6 +1696,7 @@ pvx_result_t pvx_conversation_prompt(pvx_conversation_t* conv, const char* text)
     conv->pending_tokens.insert(conv->pending_tokens.end(), tokens.begin(), tokens.end());
     conv->has_pending_prompt = true;
     conv->n_prompt_tokens += (int64_t) tokens.size();  // ABI v8 stats
+    pvx_tel_prompt(conv->ctx_ref, (int64_t) tokens.size());  // ABI v9 model-wide
     return PVX_OK;
 }
 
@@ -1616,6 +1706,7 @@ pvx_result_t pvx_conversation_prompt_tokens(pvx_conversation_t* conv,
     conv->pending_tokens.insert(conv->pending_tokens.end(), tokens, tokens + count);
     conv->has_pending_prompt = true;
     conv->n_prompt_tokens += count;  // ABI v8 stats
+    pvx_tel_prompt(conv->ctx_ref, count);  // ABI v9 model-wide
     return PVX_OK;
 }
 
@@ -1947,6 +2038,7 @@ pvx_decode_result_t pvx_infer(pvx_context_t* ctx) {
             if (s >= e) continue;
             int covered = e - s;
             cp.conv->n_decode_steps++;  // ABI v8 stats (this conv rode this decode)
+            pvx_tel_decode(cp.conv->ctx_ref);  // ABI v9 model-wide telemetry
             cp.conv->n_tokens += covered;
             cp.conv->n_kv_pos += covered;
             cp.conv->recent_tokens.insert(cp.conv->recent_tokens.end(),
@@ -2315,8 +2407,11 @@ pvx_result_t pvx_conversation_prompt_with_images(pvx_conversation_t* conv,
                         set_error(conv->ctx_ref, std::string("text flush before image decode failed: ") + std::to_string(rc2));
                         return PVX_ERR_DECODE_FAILED;
                     }
-                    conv->n_tokens += n_slice; conv->n_kv_pos += n_slice;
+                    conv->n_tokens += n_slice;
+                    pvx_tel_committed(conv->ctx_ref, n_slice);  // ABI v9 model-wide
+        conv->n_kv_pos += n_slice;
                     conv->n_decode_steps++;  // ABI v8 stats (text flush)
+                    pvx_tel_decode(conv->ctx_ref);  // ABI v9 model-wide telemetry
                     conv->recent_tokens.insert(conv->recent_tokens.end(),
                                                conv->pending_tokens.begin() + flushed,
                                                conv->pending_tokens.begin() + flushed + n_slice);
@@ -2385,8 +2480,12 @@ pvx_result_t pvx_conversation_prompt_with_images(pvx_conversation_t* conv,
                     return PVX_ERR_DECODE_FAILED;
                 }
 
-                conv->n_tokens += n_tokens; conv->n_kv_pos += n_tokens;
+                conv->n_tokens += n_tokens;
+
+                pvx_tel_committed(conv->ctx_ref, n_tokens);  // ABI v9 model-wide
+        conv->n_kv_pos += n_tokens;
                 conv->n_decode_steps++;  // ABI v8 stats (image embd decode)
+                pvx_tel_decode(conv->ctx_ref);  // ABI v9 model-wide telemetry
                 // ABI v7 feature 5: embd rows enter the conversation mirror at
                 // their pinned (plain, batched-lane) positions — the spec
                 // engine replays them by pointer exactly like the executor
@@ -2515,6 +2614,7 @@ pvx_result_t pvx_conversation_shift_left(pvx_conversation_t* conv, int n_tokens)
 
 pvx_result_t pvx_executor_shift_left(pvx_executor_t* exec, int n_tokens) {
     if (!exec || n_tokens <= 0) return PVX_ERR_INVALID_ARG;
+    pvx_audit_write(exec->ctx_ref->owning_model, "kv_shifted", nullptr);  // ABI v9: destructive KV op
     if (n_tokens >= exec->n_tokens) {
         return pvx_executor_reset(exec);
     }
@@ -2585,6 +2685,7 @@ pvx_result_t pvx_kv_clear_seq(pvx_context_t* ctx, int seq_id) {
     if (seq_id < 0 || (uint32_t)seq_id >= ctx->n_seq_max) return PVX_ERR_INVALID_ARG;
     std::lock_guard<std::mutex> lock(ctx->infer_mtx);
     llama_memory_seq_rm(ctx->mem, seq_id, 0, -1);
+    pvx_audit_write(ctx->owning_model, "kv_cleared", "seq");  // ABI v9: destructive KV op
     return PVX_OK;
 }
 
@@ -3108,6 +3209,7 @@ pvx_result_t pvx_executor_prompt_with_images(pvx_executor_t* exec,
                 exec->n_tokens += n;
                 exec->n_kv_pos += n;
                 exec->n_decode_steps++;  // ABI v8 stats (text flush)
+                pvx_tel_decode(exec->ctx_ref);  // ABI v9 model-wide telemetry
                 // Committed window grew: mirror + penalty history advance with
                 // it (same bookkeeping as the conversation lane's text flush).
                 exec->recent_tokens.insert(exec->recent_tokens.end(),
@@ -3232,8 +3334,10 @@ pvx_result_t pvx_executor_prompt_with_images(pvx_executor_t* exec,
                     return PVX_ERR_DECODE_FAILED;
                 }
                 exec->n_tokens += n_tokens;
+                pvx_tel_committed(exec->ctx_ref, n_tokens);  // ABI v9 model-wide
                 exec->n_kv_pos += n_tokens;
                 exec->n_decode_steps++;  // ABI v8 stats (image embd decode)
+                pvx_tel_decode(exec->ctx_ref);  // ABI v9 model-wide telemetry
                 exec->last_batch_idx = n_tokens - 1;
                 // Snapshot the last row now — it is only valid until the next
                 // decode on this shared context (same discipline as the
@@ -3548,6 +3652,7 @@ static void exec_audio_queue_text(void* obj, const llama_token* tokens, size_t n
     exec->pending_tokens.insert(exec->pending_tokens.end(), tokens, tokens + n);
     exec->has_pending = true;
     exec->n_prompt_tokens += (int64_t) n;  // ABI v8 stats
+    pvx_tel_prompt(exec->ctx_ref, (int64_t) n);  // ABI v9 model-wide
 }
 
 // Flush pending text tokens through chunked llama_decode (same slicing as
@@ -3605,8 +3710,10 @@ static pvx_result_t exec_audio_flush(void* obj) {
             }
         }
         exec->n_tokens += n_slice;
+        pvx_tel_committed(exec->ctx_ref, n_slice);  // ABI v9 model-wide
         exec->n_kv_pos += n_slice;
         exec->n_decode_steps++;  // ABI v8 stats
+        pvx_tel_decode(exec->ctx_ref);  // ABI v9 model-wide telemetry
         flushed += n_slice;
     }
     exec->pending_tokens.clear();
@@ -3689,8 +3796,10 @@ static pvx_result_t exec_audio_decode(void* obj, mtmd_context* mctx, const mtmd_
         return PVX_ERR_DECODE_FAILED;
     }
     exec->n_tokens += n_tokens;
+    pvx_tel_committed(exec->ctx_ref, n_tokens);  // ABI v9 model-wide
     exec->n_kv_pos += n_tokens;
     exec->n_decode_steps++;  // ABI v8 stats
+    pvx_tel_decode(exec->ctx_ref);  // ABI v9 model-wide telemetry
     exec->last_batch_idx = n_tokens - 1;
     snapshot_logits_row(exec->ctx_ref->ctx, exec->last_logits, n_tokens - 1);
     return PVX_OK;
@@ -3758,8 +3867,11 @@ static pvx_result_t conv_audio_flush(void* obj) {
                                        conv->pending_tokens.begin() + flushed);
             return PVX_ERR_DECODE_FAILED;
         }
-        conv->n_tokens += n_slice; conv->n_kv_pos += n_slice;
+        conv->n_tokens += n_slice;
+        pvx_tel_committed(conv->ctx_ref, n_slice);  // ABI v9 model-wide
+        conv->n_kv_pos += n_slice;
         conv->n_decode_steps++;  // ABI v8 stats
+        pvx_tel_decode(conv->ctx_ref);  // ABI v9 model-wide telemetry
         conv->recent_tokens.insert(conv->recent_tokens.end(),
                                    conv->pending_tokens.begin() + flushed,
                                    conv->pending_tokens.begin() + flushed + n_slice);
@@ -3799,8 +3911,11 @@ static pvx_result_t conv_audio_decode(void* obj, mtmd_context* mctx, const mtmd_
         llama_batch_free(ebatch);
         if (need_non_causal) llama_set_causal_attn(conv->ctx, true);
         if (rc3 != 0) return PVX_ERR_DECODE_FAILED;
-        conv->n_tokens += n_tokens; conv->n_kv_pos += n_tokens;
+        conv->n_tokens += n_tokens;
+        pvx_tel_committed(conv->ctx_ref, n_tokens);  // ABI v9 model-wide
+        conv->n_kv_pos += n_tokens;
         conv->n_decode_steps++;  // ABI v8 stats
+        pvx_tel_decode(conv->ctx_ref);  // ABI v9 model-wide telemetry
         for (int j = 0; j < n_tokens; j++) {
             const std::array<llama_pos, 4> rp = { embd_base + j, embd_base + j,
                                                   embd_base + j, embd_base + j };
@@ -3858,6 +3973,19 @@ pvx_result_t pvx_conversation_stats(pvx_conversation_t* conv, pvx_stats_t* out_s
     out_stats->n_decode_steps = conv->n_decode_steps;
     out_stats->spec_drafted = conv->spec ? conv->spec->drafted() : 0;
     out_stats->spec_accepted = conv->spec ? conv->spec->accepted() : 0;
+    return PVX_OK;
+}
+
+pvx_result_t pvx_engine_telemetry(pvx_model_t* model, pvx_engine_telemetry_t* out) {
+    if (!model || !out) return PVX_ERR_INVALID_ARG;
+    std::lock_guard<std::mutex> lk(model->audit.mtx);
+    out->n_prompt_tokens    = model->audit.n_prompt_tokens;
+    out->n_decode_steps     = model->audit.n_decode_steps;
+    out->n_committed_tokens = model->audit.n_committed_tokens;
+    out->spec_drafted       = model->audit.spec_drafted;
+    out->spec_accepted      = model->audit.spec_accepted;
+    out->n_errors           = model->audit.n_errors;
+    out->n_contexts_alive   = model->active_context_count;
     return PVX_OK;
 }
 

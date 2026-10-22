@@ -183,6 +183,8 @@ internal interface IPvxEntryPoints
     // ── ABI v8: stats export ──
     PvxResult ExecutorStats(IntPtr executor, out PvxStats stats);
     PvxResult ConversationStats(IntPtr conversation, out PvxStats stats);
+    // ABI v9: model-wide telemetry snapshot (per-engine, never process-wide)
+    PvxResult EngineTelemetry(IntPtr model, out PvxEngineTelemetry telemetry);
 
     // ── Handshake ──
     int AbiVersion();

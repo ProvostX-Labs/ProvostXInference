@@ -91,6 +91,12 @@ typedef struct {
     bool no_host;                           /* false = llama default */
     bool no_alloc;                          /* false = llama default */
     bool load_mtp;                          /* false = llama default (model's OWN MTP layers unloaded) */
+    /* ABI v9 (per-engine audit/telemetry, owner order 2026-10-22): appended.
+     * Zeroed struct = audit disabled — bit-identical loads as before. The
+     * audit sink is PER-MODEL (own file handle + own mutex, no process
+     * statics) so an LLM array of engines gets one audit log per engine. */
+    const char* audit_path;                 /* NULL/empty = audit disabled */
+    int32_t audit_include_prompts;          /* 0 = events only; 1 = also record prompt token counts + template events */
 } pvx_model_params_t;
 
 /* ── Context params ── */
@@ -981,7 +987,37 @@ typedef struct {
 pvx_result_t pvx_executor_stats(pvx_executor_t* exec, pvx_stats_t* out_stats);
 pvx_result_t pvx_conversation_stats(pvx_conversation_t* conv, pvx_stats_t* out_stats);
 
-#define PVX_ABI_VERSION 8
+/* ── Per-engine audit + telemetry (ABI v9, append-only; owner order 2026-10-22) ──
+ *
+ * AUDIT: a per-MODEL event sink (own file handle + own mutex — never process
+ * globals), configured via pvx_model_params_t.audit_path. Events are one JSON
+ * line each (timestamped, monotonic seq) so an LLM running an ARRAY of engines
+ * gets one tamper-evident trail per engine instance. Recorded events:
+ *   model_loaded / model_freed / context_created / context_freed /
+ *   spec_enabled / spec_disabled / kv_cleared (destructive KV ops) /
+ *   load_failed / decode_failed / prompt_recorded (only when
+ *   audit_include_prompts=1 — token counts, never prompt TEXT: prompts may
+ *   carry user content and audit logs must not become a content sink).
+ *
+ * TELEMETRY: pvx_engine_telemetry_t is a MODEL-aggregate snapshot (roll-up of
+ * all executor/conversation lanes + spec + error counts), pulled via
+ * pvx_engine_telemetry — zero new locks (rides the audit mutex when audit is
+ * on; reads atomic-ish int64 copies otherwise). Rates (tok/s) are DERIVED by
+ * the caller between two snapshots — the native side stays stateless.
+ */
+typedef struct {
+    int64_t n_prompt_tokens;   /* model-wide prompt tokens fed */
+    int64_t n_decode_steps;    /* model-wide llama decode calls */
+    int64_t n_committed_tokens;/* model-wide committed stream tokens */
+    int64_t spec_drafted;      /* model-wide spec drafts proposed */
+    int64_t spec_accepted;     /* model-wide spec drafts accepted */
+    int64_t n_errors;          /* typed failures recorded in audit */
+    int64_t n_contexts_alive;  /* live contexts right now */
+} pvx_engine_telemetry_t;
+
+pvx_result_t pvx_engine_telemetry(pvx_model_t* model, pvx_engine_telemetry_t* out);
+
+#define PVX_ABI_VERSION 9
 int pvx_abi_version(void);
 
 #ifdef __cplusplus

@@ -31,7 +31,7 @@ internal static class PvxNative
     /// v8 (wave 3): audio input (MTMD_INPUT_CHUNK_TYPE_AUDIO), TTS gen-audio,
     /// rerank (RANK pooling), LoRA runtime attach/detach, control vectors,
     /// stats export.
-    internal const int ExpectedAbiVersion = 8;
+    internal const int ExpectedAbiVersion = 9;
 
     /// <summary>
     /// NATIVE RESOLUTION (2026-09-27 fix, retained): load the native library

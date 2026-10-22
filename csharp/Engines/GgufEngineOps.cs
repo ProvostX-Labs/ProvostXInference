@@ -192,6 +192,15 @@ public sealed class GgufEngineOps : IGgufEngineOps, IDisposable
         return conversation.GetStats();
     }
 
+    /// <summary>ABI v9: model-wide telemetry snapshot for THIS engine instance
+    /// (per-engine, never process-wide). Rates derive between two snapshots.</summary>
+    public EngineTelemetry GetEngineTelemetry()
+    {
+        if (_model is not Abstractions.IModelTelemetrySource source)
+            throw new InvalidOperationException("this engine does not expose telemetry (non-native model)");
+        return source.GetTelemetry();
+    }
+
     /// <summary>Scoped LoRA attach (ABI v8): detaches and disposes the adapter
     /// on Dispose — weights-surface only, KV untouched.</summary>
     private sealed class LoraScope : IDisposable

@@ -286,6 +286,7 @@ internal static class PvxExportTypeMap
         "pvx_context_set_control_vector" => typeof(PvxAbiDelegates.PvxContextSetControlVectorDelegate),
         "pvx_executor_stats" => typeof(PvxAbiDelegates.PvxStatsDelegate),
         "pvx_conversation_stats" => typeof(PvxAbiDelegates.PvxStatsDelegate),
+        "pvx_engine_telemetry" => typeof(PvxAbiDelegates.PvxEngineTelemetryDelegate),
         _ => throw new InvalidOperationException($"unknown export '{exportName}'")
     };
 }

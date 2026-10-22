@@ -165,4 +165,9 @@ public interface IGgufEngineOps
 
     /// <summary>Stats snapshot of one conversation lane.</summary>
     EngineStats GetConversationStats(IConversation conversation);
+
+    /// <summary>ABI v9: model-wide telemetry snapshot for THIS engine instance
+    /// (per-engine, never process-wide). Pull-based; derive rates between two
+    /// snapshots in the caller.</summary>
+    EngineTelemetry GetEngineTelemetry();
 }

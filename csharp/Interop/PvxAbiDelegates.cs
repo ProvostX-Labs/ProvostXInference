@@ -135,4 +135,6 @@ internal static class PvxAbiDelegates
     internal delegate PvxResult PvxContextSetControlVectorDelegate(IntPtr context, IntPtr cvec, int layerStart, int layerEnd);
     // ── ABI v8: stats export ──
     internal delegate PvxResult PvxStatsDelegate(IntPtr handle, out PvxStats stats);
+    // ── ABI v9: per-engine telemetry export ──
+    internal delegate PvxResult PvxEngineTelemetryDelegate(IntPtr model, out PvxEngineTelemetry telemetry);
 }

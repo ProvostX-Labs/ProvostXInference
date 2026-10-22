@@ -55,4 +55,13 @@ public sealed record ModelConfig
     /// <summary>Load the model's OWN MTP layers (upstream load_mtp — llama
     /// default false: MTP tensors stay unloaded unless asked).</summary>
     public bool LoadMtp { get; init; } = false;
+    // ── ABI v9 (per-engine audit/telemetry, owner order 2026-10-22) ──
+    /// <summary>Per-engine audit trail path (JSON-lines). Null/empty = audit
+    /// disabled. The sink is PER-MODEL (own file + own mutex) — an LLM array
+    /// of engines gets one audit log per engine instance. Never prompt text:
+    /// only typed lifecycle/operation events (prompt token COUNTS optional
+    /// via AuditIncludePrompts).</summary>
+    public string? AuditPath { get; init; } = null;
+    /// <summary>Also record prompt token counts (never prompt TEXT) in the audit trail.</summary>
+    public bool AuditIncludePrompts { get; init; } = false;
 }

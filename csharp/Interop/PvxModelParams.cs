@@ -27,13 +27,18 @@ internal readonly struct PvxModelParams
     public readonly byte NoHost;                // false = llama default
     public readonly byte NoAlloc;               // false = llama default
     public readonly byte LoadMtp;              // false = llama default (model's own MTP layers stay unloaded)
+    // ── ABI v9 (per-engine audit/telemetry, owner order 2026-10-22) — appended;
+    // zeroed = audit disabled, bit-identical to pre-v9 loads ──
+    public readonly IntPtr AuditPath;          // pinned UTF-8 path; IntPtr.Zero = audit disabled
+    public readonly int AuditIncludePrompts;   // 0 = events only; 1 = also record prompt token counts
 
     public PvxModelParams(IntPtr modelPath, int gpuLayers, int threads, bool flashAttn, PvxKvType kvCacheType,
         IntPtr reasoningMarkers = default, int nReasoningMarkers = 0,
         IntPtr kvOverrides = default, int nKvOverrides = 0,
         int lazyMode = 0, int useExtraBuftsTri = 0,
         bool vocabOnly = false, bool checkTensors = false,
-        bool noHost = false, bool noAlloc = false, bool loadMtp = false)
+        bool noHost = false, bool noAlloc = false, bool loadMtp = false,
+        IntPtr auditPath = default, int auditIncludePrompts = 0)
     {
         ModelPath = modelPath;
         GpuLayers = gpuLayers;
@@ -51,6 +56,8 @@ internal readonly struct PvxModelParams
         NoHost = noHost ? (byte)1 : (byte)0;
         NoAlloc = noAlloc ? (byte)1 : (byte)0;
         LoadMtp = loadMtp ? (byte)1 : (byte)0;
+        AuditPath = auditPath;
+        AuditIncludePrompts = auditIncludePrompts;
     }
 }
 

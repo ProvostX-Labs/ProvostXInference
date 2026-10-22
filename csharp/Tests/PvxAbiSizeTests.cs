@@ -14,7 +14,7 @@ public sealed class PvxAbiSizeTests
     [Fact]
     public void Mirrors_Match_Native_Sizeof()
     {
-        Assert.Equal(72,  Marshal.SizeOf<PvxModelParams>());
+        Assert.Equal(88,  Marshal.SizeOf<PvxModelParams>());  // ABI v9: +audit_path (ptr) + audit_include_prompts (int)
         Assert.Equal(112, Marshal.SizeOf<PvxContextParams>());
         Assert.Equal(112, Marshal.SizeOf<PvxSamplingParams>());
         Assert.Equal(72,  Marshal.SizeOf<PvxSamplingParamsWave5>());

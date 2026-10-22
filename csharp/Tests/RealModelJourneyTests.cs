@@ -3,6 +3,7 @@ using System.IO;
 using ProvostXInference.Abstractions;
 using ProvostXInference.Exceptions;
 using ProvostXInference.Implementation;
+using ProvostXInference.Engines;
 using ProvostXInference.Models;
 using Xunit;
 
@@ -332,6 +333,73 @@ public class RealModelJourneyTests
         var b = Run(model, "Once upon a time");
         Assert.Equal(a, b);
         Assert.NotEmpty(a);
+    }
+
+    // ═══════════════════════════════════════════════════
+    // Lane 10 — ABI v9 per-engine audit + telemetry (owner order 2026-10-22):
+    // the audit trail is PER-MODEL (own file), telemetry is a model-wide
+    // snapshot; counters advance with real work.
+    // ═══════════════════════════════════════════════════
+
+    // VERIFICATION STATUS (2026-10-22): pending — dotnet test runner hung on
+    // this lane five consecutive times (~10:09-11:05, all identical failure
+    // mode, machine clean of test processes between runs); native gates
+    // (ctest 3/3) and the full C# suite (251/251 at 10:19, pre-lane) are
+    // green. See BACKLOG BL-50 for the hang analysis before trusting a rerun.
+    [LiveModelFact]
+    public void Journey10_PerEngineAudit_AndTelemetry()
+    {
+        if (SmallModel is null || !RamOk()) return;
+        var auditPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(),
+            $"pvx-audit-{Guid.NewGuid():N}.jsonl");
+        try
+        {
+            var cfg = new ModelConfig
+            {
+                Path = SmallModel!, GpuLayers = 0,
+                AuditPath = auditPath, AuditIncludePrompts = true,
+            };
+            using var model = NativeInferenceModel.Load(cfg);
+
+            // Do real work so the counters advance.
+            using var ctx = model.CreateContext(new ContextConfig { ContextSize = 1024, BatchSize = 512, SeqMax = 1 });
+            using var exec = ctx.CreateExecutor();
+            exec.Prompt("Count: one two three");
+            Assert.Equal(InferResult.Ok, exec.Infer());
+            var t0 = exec.Sample(new SamplingConfig { Temperature = 0.0f, MaxTokens = 4 });
+            Assert.True(t0 >= 0);
+
+            var ops = new GgufEngineOps(model, new ContextConfig { ContextSize = 1024, BatchSize = 512, SeqMax = 1 },
+                new SamplingConfig(), new NativeInferenceBackend());
+            var tel = ops.GetEngineTelemetry();
+            Assert.True(tel.PromptTokens > 0, "prompt tokens must be counted model-wide");
+            Assert.True(tel.DecodeSteps > 0, "decode steps must be counted model-wide");
+            Assert.True(tel.CommittedTokens > 0, "committed tokens must be counted model-wide");
+            Assert.True(tel.ContextsAlive >= 1);
+            ops.Dispose();
+
+            // Audit file: JSON-lines, load event + context events present.
+            Assert.True(File.Exists(auditPath), "audit file must exist after audited load");
+            var lines = File.ReadAllLines(auditPath);
+            Assert.NotEmpty(lines);
+            Assert.Contains(lines, l => l.Contains("\"event\":\"model_loaded\""));
+            Assert.All(lines, l => Assert.StartsWith("{", l));
+
+            // Per-engine isolation: a SECOND engine with its own audit path
+            // must NOT see the first engine's events (the whole point of
+            // per-engine audit for the LLM's engine array).
+            var auditPath2 = auditPath + ".2";
+            using var model2 = NativeInferenceModel.Load(new ModelConfig
+            { Path = SmallModel!, GpuLayers = 0, AuditPath = auditPath2 });
+            var lines2 = File.ReadAllLines(auditPath2);
+            Assert.Single(lines2); // only its own model_loaded event
+            Assert.DoesNotContain(lines2, l => l.Contains("context_created"));
+        }
+        finally
+        {
+            if (File.Exists(auditPath)) File.Delete(auditPath);
+            if (File.Exists(auditPath + ".2")) File.Delete(auditPath + ".2");
+        }
     }
 
     // ═══════════════════════════════════════════════════
