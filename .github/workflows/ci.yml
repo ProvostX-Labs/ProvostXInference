@@ -226,11 +226,20 @@ jobs:
           mkdir -p csharp/runtimes/osx-arm64/native
           mkdir -p csharp/runtimes/linux-x64/native
           mkdir -p csharp/runtimes/win-x64/native
-          if [ -f native-libs/native-osx-arm64-metal/libpvx-metal.dylib ]; then
-            cp native-libs/native-osx-arm64-metal/libpvx-metal.dylib  csharp/runtimes/osx-arm64/native/
-          else
-            # metal specialist built under the generic payload name
-            cp native-libs/native-osx-arm64-metal/libpvxinference.dylib csharp/runtimes/osx-arm64/native/
+          # osx metal: locate the actually-produced dylib name (CMake may emit
+          # liblibpvx-metal.dylib — double 'lib' prefix — or the plain names)
+          found=""
+          for name in liblibpvx-metal.dylib libpvx-metal.dylib libpvxinference.dylib; do
+            if [ -f "native-libs/native-osx-arm64-metal/$name" ]; then
+              cp "native-libs/native-osx-arm64-metal/$name" csharp/runtimes/osx-arm64/native/
+              found="$name"
+              break
+            fi
+          done
+          if [ -z "$found" ]; then
+            echo "osx metal dylib not found in artifact; artifact contents:"
+            ls -la native-libs/native-osx-arm64-metal/
+            exit 1
           fi
           cp native-libs/native-linux-x64-cuda/libpvx-cuda.so        csharp/runtimes/linux-x64/native/
           cp native-libs/native-linux-x64-vulkan/libpvx-vulkan.so    csharp/runtimes/linux-x64/native/
