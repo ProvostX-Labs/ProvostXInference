@@ -290,7 +290,11 @@ jobs:
 
       - name: Push to nuget.org (trusted publish)
         run: |
+          if [ -z "$NUGET_API_KEY" ]; then
+            echo "::error::NUGET_API_KEY was not set by the login step"
+            exit 1
+          fi
           dotnet nuget push "nupkg/*.nupkg" \
-            --api-key "${{ steps.login.outputs.nugetApiKey }}" \
+            --api-key "$NUGET_API_KEY" \
             --source https://api.nuget.org/v3/index.json \
             --skip-duplicate
