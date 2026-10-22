@@ -31,6 +31,10 @@ internal sealed class FakeModuleLoader : IPvxModuleLoader
     private readonly Dictionary<IntPtr, string> _lastExportImage = new();
     private readonly Dictionary<IntPtr, List<string>> _provenanceByImage = new();
     private readonly Dictionary<IntPtr, Dictionary<string, IntPtr>> _fpByExport = new();
+    // Root managed stub thunks: a collected delegate invalidates its function
+    // pointer (Windows CI flake) — every GetFunctionPointerForDelegate result
+    // must keep its delegate reachable for the loader's lifetime.
+    private readonly List<Delegate> _rootedStubs = new();
     private IntPtr _next = new(0x50000);
 
     public IReadOnlyList<FakeImage> Images => _images;
@@ -79,8 +83,7 @@ internal sealed class FakeModuleLoader : IPvxModuleLoader
         if (!table.TryGetValue(exportName, out var fp))
         {
             fp = exportName == "pvx_abi_version"
-                ? Marshal.GetFunctionPointerForDelegate(
-                    (PvxAbiDelegates.PvxAbiVersionDelegate)(() => fake.ScriptedAbi))
+                ? RootedAbiStub(fake)
                 : StubFactory.PointerFor(exportName);
             table[exportName] = fp;
         }
@@ -94,6 +97,17 @@ internal sealed class FakeModuleLoader : IPvxModuleLoader
         return _byPath.TryGetValue(path, out var image)
             ? image.Handle
             : IntPtr.Zero;
+    }
+
+    /// <summary>ABI stub whose delegate is rooted for the loader's lifetime —
+    /// an unrooted managed thunk can be GC-collected and reused, which makes
+    /// GetDelegateForFunctionPointer throw cross-type InvalidCastException
+    /// (Windows CI flake, 2026-10-22).</summary>
+    private IntPtr RootedAbiStub(FakeImage fake)
+    {
+        var stub = (PvxAbiDelegates.PvxAbiVersionDelegate)(() => fake.ScriptedAbi);
+        _rootedStubs.Add(stub);
+        return Marshal.GetFunctionPointerForDelegate(stub);
     }
 
     public bool Free(IntPtr image)
@@ -114,6 +128,11 @@ internal static class StubFactory
 {
     private static readonly object Gate = new();
     private static readonly Dictionary<Type, IntPtr> PointersByDelegateType = new();
+    // Root the DynamicMethod delegates: the pointer alone does NOT keep the
+    // thunk alive — once the delegate is collected the thunk memory is reused
+    // and GetDelegateForFunctionPointer fails (Windows-only flake in CI:
+    // InvalidCastException naming a different delegate type).
+    private static readonly Dictionary<Type, Delegate> RootsByDelegateType = new();
 
     /// <summary>A pointer for the given export: resolved against the known
     /// export→delegate-type map of the ABI table (first matching delegate
@@ -127,7 +146,9 @@ internal static class StubFactory
         lock (Gate)
         {
             if (PointersByDelegateType.TryGetValue(delegateType, out var fp)) return fp;
-            fp = Marshal.GetFunctionPointerForDelegate((Delegate)CreateStub(delegateType));
+            var stub = CreateStub(delegateType);
+            fp = Marshal.GetFunctionPointerForDelegate(stub);
+            RootsByDelegateType[delegateType] = stub; // keep the thunk alive
             PointersByDelegateType[delegateType] = fp;
             return fp;
         }

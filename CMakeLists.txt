@@ -103,13 +103,21 @@ target_link_libraries(pvxinference
 # System32-side CUDA dirs and links fine — win-x64-cuda was already green).
 if(PVX_BACKEND_CUDA AND NOT WIN32 AND NOT APPLE)
     find_package(CUDAToolkit REQUIRED)
-    find_library(PVX_CUDA_DRIVER_STUB libcuda.so
-        PATHS "${CUDAToolkit_LIBRARY_DIR}/stubs" "/usr/local/cuda/lib64/stubs"
-        NO_DEFAULT_PATH)
-    if(PVX_CUDA_DRIVER_STUB)
-        target_link_libraries(pvxinference PRIVATE "${PVX_CUDA_DRIVER_STUB}")
+    # ggml-cuda references driver API entry points (cuGetErrorString,
+    # cuMemCreate et al.) that live in libcuda.so.1 — the GPU *driver*, not
+    # the toolkit. Driverless CI runners must link the toolkit's stub.
+    set(PVX_CUDA_STUB "")
+    foreach(_dir "${CUDAToolkit_LIBRARY_DIR}/stubs" "/usr/local/cuda/lib64/stubs" "/usr/local/cuda-12.4/lib64/stubs" "/usr/local/cuda-13.0/lib64/stubs")
+        if(EXISTS "${_dir}/libcuda.so")
+            set(PVX_CUDA_STUB "${_dir}/libcuda.so")
+            break()
+        endif()
+    endforeach()
+    if(PVX_CUDA_STUB)
+        message(STATUS "PVX CUDA: linking driver stub ${PVX_CUDA_STUB}")
+        target_link_libraries(pvxinference PRIVATE "${PVX_CUDA_STUB}")
     else()
-        message(WARNING "PVX CUDA: driver stub libcuda.so not found — link may fail on driverless runners")
+        message(FATAL_ERROR "PVX CUDA: driver stub libcuda.so not found in toolkit stubs dirs (${CUDAToolkit_LIBRARY_DIR}/stubs, /usr/local/cuda*/lib64/stubs) — driverless runners cannot link the cuda specialist")
     endif()
 endif()
 
