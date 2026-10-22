@@ -399,3 +399,14 @@ recoverable from this git.
 - Acceptance: journey tier green with and without fixtures on this host; cross-platform contract = env-driven discovery + typed skips (CI lanes run the suite model-free, skipped-not-failed); native suites untouched and unchanged.
 - Still open (model-gated, unchanged): native CUDA/Vulkan specialists on real models remain unproven until a Windows/Linux host carries a model; MTP end-to-end still awaits a step35-class GGUF pair (BL-45 note).
 - Status: **done** 2026-10-22. Local only, no push/tags.
+
+### BL-48 · cpu-specialist generic-payload fallback + VM fixture discovery hardening (owner order 2026-10-22 08:34)
+- Source: the large-memory host VM test round (owner order) — the checked-in win-arm64 payload (BL-46) ships `pvxinference.dll`, but the resolver/selector only accepted specialist-named files (`pvx-cpu.dll`); manual staging was needed to get green. Owner: "fix the resolver and modelfixture".
+- Landed:
+  (1) `PvxEngineFileResolver.EffectiveFileName()` (new interface member): cpu falls back to the generic payload name (`pvxinference.dll` / `libpvxinference.so`) when no specialist-named copy is staged; cuda/vulkan NEVER fall back (backend-specific binaries). `FileExists` honors the effective name so `AvailableEngines`/default-engine selection see the generic payload too.
+  (2) `LiveModelFixtures.Resolve` tries multiple repo-relative defaults: `Tests/models` symlinks first, then the repo-root `models/` dir (how the lab VMs are provisioned — real files, no symlinks).
+  (3) Regression tests: generic-fallback (win), specialist-preferred (linux), backend-never-fallback (cuda/vulkan); `ScriptedResolver` honors the scripted disk for the fallback.
+- Verification: the primary host 251/251; lab-windows ARM64 249+2skip/251 (generic `pvxinference.dll` alone, manual `pvx-cpu.dll` deleted); lab-linux ARM64 249+2skip/251 (generic `libpvxinference.so` alone, staged `libpvx-cpu.so` removed). LDC regen + enforcement PASS.
+- Sync infra note: tar-over-ssh to lab-windows silently failed twice; the working route is HTTP from the large-memory host (python http.server) pulled via the VM NAT gateway (10.0.2.2). scp fails (publickey channel), cmd lacks cat/mv.
+- Scope: csharp/Models (resolver + interface), csharp/Interop/PvxEngineHandle.cs, csharp/Tests (fakes + resolver tests + fixtures), ARCHITECTURE.md, LDC artifacts. NOTHING outside.
+- Status: **done** 2026-10-22. Local only, no push/tags.

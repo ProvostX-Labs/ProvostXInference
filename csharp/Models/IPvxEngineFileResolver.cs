@@ -12,6 +12,12 @@ internal interface IPvxEngineFileResolver
     /// (throws fail-closed when the (engine, OS) pair is not in the matrix).</summary>
     string FileName(string validatedEngine);
 
+    /// <summary>BL-48: the file name to actually LOAD — equals FileName for
+    /// cuda/vulkan/metal; for the cpu specialist falls back to the generic
+    /// payload name (pvxinference.dll/.so) when no specialist-named copy is
+    /// staged (that is what the checked-in win-arm64 payload ships).</summary>
+    string EffectiveFileName(string validatedEngine);
+
     /// <summary>Whether the specialist file exists next to this assembly.</summary>
     bool FileExists(string validatedEngine);
 

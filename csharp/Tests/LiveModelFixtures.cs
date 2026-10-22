@@ -13,19 +13,25 @@ namespace ProvostXInference.Tests;
 /// </summary>
 public static class LiveModelFixtures
 {
-    private static string? Resolve(string envVar, string relativeDefault)
+    private static string? Resolve(string envVar, params string[] relativeDefaults)
     {
         // Env wins when set AND the file exists (CI mounts fixtures explicitly).
         var env = Environment.GetEnvironmentVariable(envVar);
         if (!string.IsNullOrEmpty(env) && File.Exists(env)) return env;
 
+        // BL-48: try each default in order — Tests/models symlinks first
+        // (host-canonical store), then the repo-root models/ dir (how the
+        // Linux/Windows lab VMs are provisioned: real files, no symlinks).
         // Walk upward from the test assembly to the repo root so the same
-        // relative default works regardless of the build layout.
+        // relative defaults work regardless of the build layout.
         var dir = AppContext.BaseDirectory;
         for (int i = 0; i < 10 && dir is not null; i++)
         {
-            var candidate = Path.Combine(dir, relativeDefault);
-            if (File.Exists(candidate)) return candidate;
+            foreach (var rel in relativeDefaults)
+            {
+                var candidate = Path.Combine(dir, rel);
+                if (File.Exists(candidate)) return candidate;
+            }
             dir = Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(dir));
         }
         return null;
@@ -33,25 +39,29 @@ public static class LiveModelFixtures
 
     /// <summary>Small dense generative model (~1B, ≤1 GB) — the standard live lane fixture.</summary>
     public static string? SmallModel =>
-        Resolve("PVX_SMALL_MODEL_PATH", "models/Llama-3.2-1B-Instruct-Q4_K_M.gguf")
-        ?? Resolve("PVX_MODEL_PATH", "models/Llama-3.2-1B-Instruct-Q4_K_M.gguf");
+        Resolve("PVX_SMALL_MODEL_PATH",
+            Path.Combine("models", "Llama-3.2-1B-Instruct-Q4_K_M.gguf"),
+            Path.Combine("models", "Qwen3.5-4B-Q4_K_M.gguf"))
+        ?? Resolve("PVX_MODEL_PATH",
+            Path.Combine("models", "Llama-3.2-1B-Instruct-Q4_K_M.gguf"),
+            Path.Combine("models", "Qwen3.5-4B-Q4_K_M.gguf"));
 
     /// <summary>Speculative draft model — must share the target's vocab family.</summary>
     public static string? DraftModel =>
-        Resolve("PVX_SMALL_DRAFT_MODEL_PATH", "models/spec-draft-1b.gguf")
-        ?? Resolve("PVX_DRAFT_MODEL_PATH", "models/spec-draft-1b.gguf");
+        Resolve("PVX_SMALL_DRAFT_MODEL_PATH", Path.Combine("models", "spec-draft-1b.gguf"), Path.Combine("models", "Llama-3.2-1B-Instruct-Q4_K_M.gguf"))
+        ?? Resolve("PVX_DRAFT_MODEL_PATH", Path.Combine("models", "spec-draft-1b.gguf"), Path.Combine("models", "Llama-3.2-1B-Instruct-Q4_K_M.gguf"));
 
     /// <summary>Embedding encoder (MiniLM-class).</summary>
     public static string? EmbedModel =>
-        Resolve("PVX_SMALL_EMBED_MODEL_PATH", "models/all-MiniLM-L6-v2-Q5_K_M.gguf");
+        Resolve("PVX_SMALL_EMBED_MODEL_PATH", Path.Combine("models", "all-MiniLM-L6-v2-Q5_K_M.gguf"));
 
     /// <summary>Vision projector (mmproj) — pairs with a multimodal backbone.</summary>
     public static string? MmprojModel =>
-        Resolve("PVX_SMALL_MMPROJ_PATH", "models/mmproj-Qwen3.5-4B-BF16.gguf");
+        Resolve("PVX_SMALL_MMPROJ_PATH", Path.Combine("models", "mmproj-Qwen3.5-4B-BF16.gguf"));
 
     /// <summary>Multimodal backbone for the vision projector (LLM repo fixture contract).</summary>
     public static string? HybridModel =>
-        Resolve("PVX_SMALL_HYBRID_MODEL_PATH", "models/Qwen3.5-4B-Q4_K_M.gguf");
+        Resolve("PVX_SMALL_HYBRID_MODEL_PATH", Path.Combine("models", "Qwen3.5-4B-Q4_K_M.gguf"));
 
     /// <summary>
     /// RAM safety gate (house rule): refuse to load when free memory cannot

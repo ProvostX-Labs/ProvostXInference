@@ -75,4 +75,7 @@ internal sealed class FakeFileResolver : IPvxEngineFileResolver
 
     public bool FileExists(string validatedEngine) => _existing.Contains(validatedEngine);
     public IReadOnlyList<string> AvailableEngines() => _existing.OrderBy(e => e).ToList();
+
+    // Fakes never exercise the generic-payload fallback — FileName identity.
+    public string EffectiveFileName(string validatedEngine) => FileName(validatedEngine);
 }

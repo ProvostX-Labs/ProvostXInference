@@ -47,7 +47,7 @@ internal sealed class PvxEngineHandle : IPvxEngineHandle
     /// pair before any load — unknown engines/wrong-OS pairs never reach here).</summary>
     internal static IPvxEngineHandle Open(PvxEngineSpec spec, IPvxEngineFileResolver resolver, IPvxModuleLoader loader, IPvxFileExistence fileExistence)
     {
-        var path = Path.Combine(resolver.RuntimeDirectory, resolver.FileName(spec.Engine));
+        var path = Path.Combine(resolver.RuntimeDirectory, resolver.EffectiveFileName(spec.Engine));
         if (!fileExistence.Exists(path))
             throw new DllNotFoundException(
                 $"inference specialist '{spec.Engine}' is not available on this machine " +

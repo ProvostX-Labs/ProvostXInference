@@ -1,6 +1,6 @@
 # Tests.API.md
 
-Types: 31  |  LOC: 3823  |  ~1642 tokens
+Types: 36  |  LOC: 4183  |  ~1851 tokens
 
 ---
 
@@ -72,6 +72,24 @@ Cross-package deps: Xunit, ProvostXInference.Decision.Engine
 > Judge tokenizer tests (wave 2): the committed vector fixture
 Cross-package deps: Xunit, ProvostXInference.Decision.Engine
 
+### Class: LiveLane
+> Cross-platform live-model test tier (INF BL-47). A small real GGUF model is
+Cross-package deps: Xunit
+
+### Class: LiveModelFactAttribute
+> Cross-platform live-model test tier (INF BL-47). A small real GGUF model is
+Implements: FactAttribute
+Cross-package deps: Xunit
+
+### Class: LiveModelFixtures
+> Cross-platform live-model test tier (INF BL-47). A small real GGUF model is
+Cross-package deps: Xunit
+
+### Class: MacOSOnlyFactAttribute
+> Fact that runs only on macOS — for tests asserting macOS-specific
+Implements: FactAttribute
+Cross-package deps: Xunit
+
 ### Class: ModelEngineSelectionTests
 > Model-config engine field (BL-02 stage 1): ModelConfig selects WHICH
 Cross-package deps: ProvostXInference.Implementation, ProvostXInference.Interop, ProvostXInference.Models, Xunit
@@ -104,6 +122,10 @@ Cross-package deps: ProvostXInference.Interop, ProvostXInference.Models, Xunit
 ### Class: PvxRidDerivationTests
 > BL-43: the native-dir RID follows the process architecture on
 Cross-package deps: ProvostXInference.Models, ProvostXInference.Interop, Xunit
+
+### Class: RealModelJourneyTests
+> Real-model journey tier (INF BL-47) — the formerly manual TEST-MATRIX lanes,
+Cross-package deps: ProvostXInference.Abstractions, ProvostXInference.Exceptions, ProvostXInference.Implementation, ProvostXInference.Models, Xunit
 
 ### Class: SmokeTests
 > Comprehensive test suite for ProvostXInference C# bindings.

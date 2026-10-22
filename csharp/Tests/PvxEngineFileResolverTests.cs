@@ -79,6 +79,36 @@ public class PvxEngineFileResolverTests
         Assert.Empty(resolver.AvailableEngines());
     }
 
+    // ── BL-48: cpu specialist falls back to the generic payload name ──
+
+    [Fact]
+    public void Cpu_EffectiveFileName_FallsBackToGenericPayload_WhenSpecialistAbsent()
+    {
+        // The checked-in win-arm64 payload (BL-46) and a plain CPU-source
+        // build ship the GENERIC name — the cpu specialist must still load.
+        var resolver = new ScriptedResolver(FakeOsProbe.Windows(), onDisk: new[] { "pvxinference.dll" });
+        Assert.Equal("pvxinference.dll", resolver.EffectiveFileName("cpu"));
+    }
+
+    [Fact]
+    public void Cpu_EffectiveFileName_PrefersSpecialistName_WhenStaged()
+    {
+        var resolver = new ScriptedResolver(FakeOsProbe.Linux(), onDisk: new[] { "libpvx-cpu.so", "libpvxinference.so" });
+        Assert.Equal("libpvx-cpu.so", resolver.EffectiveFileName("cpu"));
+    }
+
+    [Theory]
+    [InlineData("cuda")]
+    [InlineData("vulkan")]
+    public void BackendSpecialists_NeverFallBackToGenericName(string engine)
+    {
+        // cuda/vulkan binaries are backend-specific by construction — a
+        // generic payload must never be silently substituted for them.
+        var resolver = new ScriptedResolver(FakeOsProbe.Windows(), onDisk: new[] { "pvxinference.dll" });
+        Assert.NotEqual("pvxinference.dll", resolver.EffectiveFileName(engine));
+        Assert.Equal(resolver.FileName(engine), resolver.EffectiveFileName(engine));
+    }
+
     /// <summary>Scriptable-filesystem resolver over the injected OS probe:
     /// file names come from the real matrix mapping, existence from a script —
     /// no real filesystem involved.</summary>
@@ -98,6 +128,15 @@ public class PvxEngineFileResolverTests
 
         public IReadOnlyList<string> AvailableEngines() =>
             new[] { "metal", "cuda", "vulkan" }.Where(FileExists).ToList();
+
+        // BL-48: the fallback must honor the SCRIPTED disk, not the real one —
+        // specialist name wins when staged, else the cpu-generic payload name.
+        public string EffectiveFileName(string validatedEngine)
+        {
+            var specialist = FileName(validatedEngine);
+            if (validatedEngine != "cpu" || onDisk.Contains(specialist)) return specialist;
+            return os.IsWindows() ? "pvxinference.dll" : "libpvxinference.so";
+        }
 
         public string RuntimeDirectory => new PvxEngineFileResolver(os).RuntimeDirectory;
     }

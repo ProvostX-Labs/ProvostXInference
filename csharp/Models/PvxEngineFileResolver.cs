@@ -37,11 +37,29 @@ internal sealed class PvxEngineFileResolver : IPvxEngineFileResolver
             "(metal = macOS only; cuda/vulkan/cpu = Windows/Linux only)")
     };
 
+    /// <summary>BL-48: the cpu specialist may ship under the GENERIC payload
+    /// name (pvxinference.dll/.so) — that is what the checked-in win-arm64
+    /// payload (BL-46) and a plain CPU-source build produce. Specialist-named
+    /// files win; the generic name is the documented fallback. cuda/vulkan
+    /// NEVER fall back: their binaries are backend-specific by construction.</summary>
+    public string EffectiveFileName(string validatedEngine)
+    {
+        var specialist = FileName(validatedEngine);
+        if (validatedEngine != "cpu") return specialist;
+        var generic = _os.IsWindows() ? "pvxinference.dll" : "libpvxinference.so";
+        return File.Exists(Path.Combine(RuntimeDirectory, specialist)) ? specialist : generic;
+    }
+
     public bool FileExists(string validatedEngine)
     {
         try
         {
-            return System.IO.File.Exists(Path.Combine(RuntimeDirectory, FileName(validatedEngine)));
+            // BL-48: existence follows the EFFECTIVE name — the cpu specialist
+            // is "available" when either its specialist-named copy or the
+            // generic payload file is staged (selector default-engine logic
+            // depends on this list; the checked-in win-arm64 payload ships
+            // only the generic name).
+            return System.IO.File.Exists(Path.Combine(RuntimeDirectory, EffectiveFileName(validatedEngine)));
         }
         catch (DllNotFoundException)
         {
