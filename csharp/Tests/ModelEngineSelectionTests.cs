@@ -45,7 +45,7 @@ public class ModelEngineSelectionTests
         Assert.Contains("libpvx-metal.dylib", ex.Message);
     }
 
-    [Fact]
+    [MacOSOnlyFact]
     public void UnconfiguredEngine_MacOS_DefaultsToMetal()
     {
         var activator = new StandardEngineActivator(
@@ -76,7 +76,7 @@ public class ModelEngineSelectionTests
         Assert.Contains("No inference specialist found", ex.Message);
     }
 
-    [Fact]
+    [MacOSOnlyFact]
     public void LoadedModel_CarriesItsOwnEngineHandle()
     {
         // Two models → two independently constructed handle instances from the
