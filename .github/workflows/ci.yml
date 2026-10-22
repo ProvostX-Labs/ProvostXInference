@@ -78,14 +78,19 @@ jobs:
       - name: Install Vulkan SDK (vulkan specialists)
         if: matrix.backend == 'VULKAN'
         uses: lukka/get-cmake@latest
-      - name: Install Vulkan dev packages (Linux vulkan)
+      - name: Install Vulkan SDK (Linux vulkan)
         if: matrix.backend == 'VULKAN' && matrix.os == 'ubuntu-22.04'
-        run: sudo apt-get update && sudo apt-get install -y libvulkan-dev vulkan-tools
+        uses: humbletim/install-vulkan-sdk@v1.2
+        with:
+          version: 1.3.296.0
+          cache: true
+        # full SDK incl. glslc — apt's libvulkan-dev lacks the shader compiler,
+        # which made ggml-vulkan's find_package(Vulkan) fail configure
       - name: Install Vulkan SDK (Windows vulkan)
         if: matrix.backend == 'VULKAN' && matrix.os == 'windows-2022'
         uses: humbletim/install-vulkan-sdk@v1.2
         with:
-          version: 1.3.283.0
+          version: 1.3.296.0
           cache: true
 
       - name: Install build deps (Linux)
@@ -99,7 +104,12 @@ jobs:
             -DPVX_BACKEND_${{ matrix.backend }}=ON \
             -DPVX_BACKEND_CPU=OFF \
             -DCMAKE_BUILD_TYPE=Release
-          cmake --build build-${{ matrix.specialist }} --config Release -j
+          if [ "${{ matrix.backend }}" = "CUDA" ]; then
+            # nvcc OOM-kills on 7 GB shared runners with full parallelism — cap it
+            cmake --build build-${{ matrix.specialist }} --config Release -j2
+          else
+            cmake --build build-${{ matrix.specialist }} --config Release -j
+          fi
 
       - name: Locate specialist module
         shell: bash
@@ -112,6 +122,8 @@ jobs:
             [ -f "$FILE" ] || FILE="build-${{ matrix.specialist }}/Release/pvxinference.dll"
           elif [ "${{ matrix.os }}" = "macos-14" ]; then
             FILE="build-${{ matrix.specialist }}/libpvx-metal.dylib"
+            # metal specialist may build under the generic payload name
+            [ -f "$FILE" ] || FILE="build-${{ matrix.specialist }}/libpvxinference.dylib"
           else
             FILE="build-${{ matrix.specialist }}/libpvx-${{ matrix.specialist }}.so"
           fi
@@ -200,7 +212,12 @@ jobs:
           mkdir -p csharp/runtimes/osx-arm64/native
           mkdir -p csharp/runtimes/linux-x64/native
           mkdir -p csharp/runtimes/win-x64/native
-          cp native-libs/native-osx-arm64-metal/libpvx-metal.dylib   csharp/runtimes/osx-arm64/native/
+          if [ -f native-libs/native-osx-arm64-metal/libpvx-metal.dylib ]; then
+            cp native-libs/native-osx-arm64-metal/libpvx-metal.dylib  csharp/runtimes/osx-arm64/native/
+          else
+            # metal specialist built under the generic payload name
+            cp native-libs/native-osx-arm64-metal/libpvxinference.dylib csharp/runtimes/osx-arm64/native/
+          fi
           cp native-libs/native-linux-x64-cuda/libpvx-cuda.so        csharp/runtimes/linux-x64/native/
           cp native-libs/native-linux-x64-vulkan/libpvx-vulkan.so    csharp/runtimes/linux-x64/native/
           cp native-libs/native-win-x64-cuda/pvx-cuda.dll            csharp/runtimes/win-x64/native/

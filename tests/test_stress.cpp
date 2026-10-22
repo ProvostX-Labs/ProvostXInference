@@ -25,6 +25,19 @@ static int tests_run = 0, tests_passed = 0, tests_skipped = 0;
     tests_passed++; \
     fprintf(stderr, "OK\n");
 
+// Model-gated test: typed-skip (not fail) when no model fixture is present —
+// the same contract the C# suite follows; keeps CI model-free and green.
+#define TEST_M(name) \
+    tests_run++; \
+    if (model_available()) { \
+        fprintf(stderr, "  [%d] %s ... ", tests_run, #name); \
+        test_##name(); \
+        tests_passed++; \
+        fprintf(stderr, "OK\n"); \
+    } else { \
+        fprintf(stderr, "  [%d] %s ... SKIP (model file not found)\n", tests_run, #name); \
+    }
+
 #define ASSERT(cond) \
     if (!(cond)) { \
         fprintf(stderr, "FAIL: line %d: %s\n", __LINE__, #cond); \
@@ -985,39 +998,39 @@ int main() {
 
     fprintf(stderr, "\n=== ProvostXInference Stress Tests ===\n");
     fprintf(stderr, "Model: %s\n", file_exists(MODEL_PATH) ? MODEL_PATH : "(not found)");
-    fprintf(stderr, "Embed: %s\n\n", file_exists(EMBED_MODEL_PATH) ? EMBED_MODEL_PATH : "(not found");
+    fprintf(stderr, "Embed: %s\n\n", file_exists(EMBED_MODEL_PATH) ? EMBED_MODEL_PATH : "(not found)");
 
     TEST(null_args);
-    TEST(empty_prompt);
-    TEST(empty_tokenize);
-    TEST(detokenize_empty);
-    TEST(pool_exhaust_lease_return_cycle);
-    TEST(pool_return_double);
-    TEST(pool_prompt_return_without_infer);
-    TEST(tiny_context);
-    TEST(rewind_to_zero);
-    TEST(shift_left_edge);
-    TEST(kv_copy_invalid_seqs);
-    TEST(sampling_extremes);
-    TEST(sampling_no_decode);
-    TEST(state_save_empty);
-    TEST(state_restore_wrong_state);
-    TEST(state_save_seq_max_1);
-    TEST(batched_mixed_sizes);
-    TEST(batched_infer_no_work);
-    TEST(batched_partial_prompt);
-    TEST(batched_large_prompt_small_nbatch);
-    TEST(batched_multi_conv_chunked_sample);
-    TEST(repeated_generation);
-    TEST(repeated_pool_cycles);
-    TEST(backend_probe);
-    TEST(embedding_empty_string);
-    TEST(embedding_all_pooling_types);
-    TEST(cpu_only_model);
-    TEST(fa_disabled);
-    TEST(q8_kv_cache);
-    TEST(conversation_rewind_edge);
-    TEST(model_reload);
+    TEST(empty_prompt);          // self-gates on model_available()
+    TEST_M(empty_tokenize);
+    TEST_M(detokenize_empty);
+    TEST_M(pool_exhaust_lease_return_cycle);
+    TEST_M(pool_return_double);
+    TEST_M(pool_prompt_return_without_infer);
+    TEST_M(tiny_context);
+    TEST_M(rewind_to_zero);
+    TEST_M(shift_left_edge);
+    TEST_M(kv_copy_invalid_seqs);
+    TEST_M(sampling_extremes);
+    TEST_M(sampling_no_decode);
+    TEST_M(state_save_empty);
+    TEST_M(state_restore_wrong_state);
+    TEST_M(state_save_seq_max_1);
+    TEST_M(batched_mixed_sizes);
+    TEST_M(batched_infer_no_work);
+    TEST_M(batched_partial_prompt);
+    TEST_M(batched_large_prompt_small_nbatch);
+    TEST_M(batched_multi_conv_chunked_sample);
+    TEST_M(repeated_generation);
+    TEST_M(repeated_pool_cycles);
+    TEST_M(backend_probe);
+    TEST_M(embedding_empty_string);
+    TEST_M(embedding_all_pooling_types);
+    TEST_M(cpu_only_model);
+    TEST_M(fa_disabled);
+    TEST_M(q8_kv_cache);
+    TEST_M(conversation_rewind_edge);
+    TEST_M(model_reload);
 
     fprintf(stderr, "\n=== %d/%d passed, %d skipped ===\n", tests_passed, tests_run, tests_skipped);
     return 0;

@@ -165,7 +165,9 @@ static void test_ngram_cache_save_load_roundtrip() {
     cache.emplace(k, part);
 
     const char* tmp = getenv("PVX_TEST_TMP");
-    std::string path = tmp ? std::string(tmp) : std::string("/tmp");
+    if (!tmp) tmp = getenv("TEMP");
+    if (!tmp) tmp = getenv("TMP");
+    std::string path = tmp ? std::string(tmp) : std::string(".");
     path += "/pvx_ngram_cache_test.bin";
     ngram_cache_save(cache, path);
 
@@ -179,7 +181,9 @@ static void test_ngram_cache_save_load_roundtrip() {
 
 static void test_ngram_cache_load_corrupt_fails_closed() {
     const char* tmp = getenv("PVX_TEST_TMP");
-    std::string path = tmp ? std::string(tmp) : std::string("/tmp");
+    if (!tmp) tmp = getenv("TEMP");
+    if (!tmp) tmp = getenv("TMP");
+    std::string path = tmp ? std::string(tmp) : std::string(".");
     path += "/pvx_ngram_corrupt_test.bin";
     FILE* f = fopen(path.c_str(), "wb");
     ASSERT(f);
