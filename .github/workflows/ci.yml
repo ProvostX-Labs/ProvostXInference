@@ -51,6 +51,12 @@ jobs:
             rid: win-x64
             specialist: vulkan
             artifact: native-win-x64-vulkan
+          - name: win-arm64-cpu
+            os: windows-2022
+            backend: CPU
+            rid: win-arm64
+            specialist: cpu
+            artifact: native-win-arm64-cpu
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -97,6 +103,8 @@ jobs:
           set -e
           if [ "${{ matrix.os }}" = "windows-2022" ]; then
             FILE="build-${{ matrix.specialist }}/Release/pvx-${{ matrix.specialist }}.dll"
+            # cpu specialist on Windows builds under the generic payload name
+            [ -f "$FILE" ] || FILE="build-${{ matrix.specialist }}/Release/pvxinference.dll"
           elif [ "${{ matrix.os }}" = "macos-14" ]; then
             FILE="build-${{ matrix.specialist }}/libpvx-metal.dylib"
           else
@@ -192,6 +200,7 @@ jobs:
           cp native-libs/native-linux-x64-vulkan/libpvx-vulkan.so    csharp/runtimes/linux-x64/native/
           cp native-libs/native-win-x64-cuda/pvx-cuda.dll            csharp/runtimes/win-x64/native/
           cp native-libs/native-win-x64-vulkan/pvx-vulkan.dll        csharp/runtimes/win-x64/native/
+          cp native-libs/native-win-arm64-cpu/pvxinference.dll       csharp/runtimes/win-arm64/native/
 
       - name: Pack NuGet
         run: |

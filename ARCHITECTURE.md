@@ -353,16 +353,18 @@ on Linux and Windows: `IOSProbe.Architecture()` (injectable seam; `SystemOsProbe
 `RuntimeInformation.ProcessArchitecture`, test doubles override) drives the resolver
 (`linux-arm64`/`linux-x64`, `win-arm64`/`win-x64`); the `PvxNative` static ctor derives
 the same from `ProcessArchitecture` in the bootstrap context (no injectable seam exists
-pre-activation); macOS stays `osx-arm64`. Per-RID payload story: osx-arm64 ships
-checked-in dylibs (inference + metal); win-arm64 ships the checked-in VM-built dll
-(MSVC, ARM64, `pvxinference.dll` + `pvxinference.lib` import lib, provenance in
-`csharp/runtimes/win-arm64/README.md`); linux-x64/win-x64 payloads come from the CI
-5-specialist matrix at NuGet-pack time (cuda/vulkan, not checked in); linux-arm64 has
+pre-activation); macOS stays `osx-arm64`. Per-RID payload story (BL-49): NO native
+binaries are checked in — every RID slice (osx-arm64 metal + generic, win-arm64 cpu
+generic, win-x64/linux-x64 cuda+vulkan) is built by the CI specialist matrix at
+NuGet-pack time. This keeps compiler-baked build paths out of the repository
+(anonymity rule — MSVC/ld embed absolute paths in debug strings); local payloads
+remain gitignored working-tree artifacts for VM testing only. linux-arm64 has
 NO checked-in payload — source-build the native engine (cmake) and ONNX Runtime for
 arm64 (no official ORT arm64 payload exists), and the resolver looks in
-`runtimes/linux-arm64/native/` for the source-built artifacts. `PvxEngineHandle.Open`: resolve file →
-load image → resolve per-image entry-point tables → ABI handshake → router bundle; the
-process-wide `PvxDispatchRegistry` routes only the activation-window DllImports (steady-state
+`runtimes/linux-arm64/native/` for the source-built artifacts. NO native binaries are
+checked in — every RID slice (osx-arm64 metal, win-arm64 cpu, win-x64/linux-x64
+cuda+vulkan) is built by the CI specialist matrix at NuGet-pack time; this also keeps
+MSVC/ldld-baked build paths out of the repository (anonymity rule). `PvxEngineHandle.Open`: resolve file →
 calls go through per-handle tables). Ownership chain is constructor-injected:
 Model → Context → Pool/Executor → Conversation.
 

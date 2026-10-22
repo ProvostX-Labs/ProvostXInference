@@ -36,3 +36,7 @@ build-metal-rel/
 build/*
 
 .tmp/
+
+# Native payloads are CI-built (BL-49) — never check binaries in (anonymity: build paths)
+csharp/runtimes/*/native/*
+!csharp/runtimes/*/native/.gitkeep
