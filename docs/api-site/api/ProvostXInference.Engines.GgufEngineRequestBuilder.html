@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+
+  <head>
+    <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>Class GgufEngineRequestBuilder | ProvostXInference API </title>
+      <meta name="viewport" content="width=device-width">
+      <meta name="title" content="Class GgufEngineRequestBuilder | ProvostXInference API ">
+    
+    <meta name="description" content="Fluent builder for .  yields a VALIDATED request (fail-closed);  builds + factory-creates an engine in one step.">
+      <link rel="shortcut icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../styles/docfx.vendor.min.css">
+      <link rel="stylesheet" href="../styles/docfx.css">
+      <link rel="stylesheet" href="../styles/main.css">
+      <meta property="docfx:navrel" content="">
+      <meta property="docfx:tocrel" content="toc.html">
+    
+    <meta property="docfx:rel" content="../">
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+
+        <div id="search-results">
+          <div class="search-list">Search Results for <span></span></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination" data-first=First data-prev=Previous data-next=Next data-last=Last></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder">
+
+
+
+  <h1 id="ProvostXInference_Engines_GgufEngineRequestBuilder" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder" class="text-break">Class GgufEngineRequestBuilder</h1>
+  <div class="markdown level0 summary">Fluent builder for <a class="xref" href="ProvostXInference.Engines.GgufEngineRequest.html">GgufEngineRequest</a>. <a class="xref" href="ProvostXInference.Engines.GgufEngineRequestBuilder.html#ProvostXInference_Engines_GgufEngineRequestBuilder_Build">Build()</a> yields a
+VALIDATED request (fail-closed); <a class="xref" href="ProvostXInference.Engines.GgufEngineRequestBuilder.html#ProvostXInference_Engines_GgufEngineRequestBuilder_Create_ProvostXInference_Engines_IInferenceEngineFactory_">Create(IInferenceEngineFactory)</a> builds + factory-creates
+an engine in one step.</div>
+  <div class="markdown level0 conceptual"></div>
+  <div class="inheritance">
+    <h5>Inheritance</h5>
+    <div class="level0"><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object">object</a></div>
+    <div class="level1"><span class="xref">GgufEngineRequestBuilder</span></div>
+  </div>
+  <div class="inheritedMembers">
+    <h5>Inherited Members</h5>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)">object.Equals(object)</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)">object.Equals(object, object)</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.gethashcode">object.GetHashCode()</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.gettype">object.GetType()</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.referenceequals">object.ReferenceEquals(object, object)</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.tostring">object.ToString()</a>
+    </div>
+  </div>
+  <h6><strong>Namespace</strong>: <span class="xref">ProvostXInference</span>.<a class="xref" href="ProvostXInference.Engines.html">Engines</a></h6>
+  <h6><strong>Assembly</strong>: ProvostXInference.dll</h6>
+  <h5 id="ProvostXInference_Engines_GgufEngineRequestBuilder_syntax">Syntax</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public sealed class GgufEngineRequestBuilder</code></pre>
+  </div>
+  <h3 id="constructors">Constructors
+</h3>
+  <a id="ProvostXInference_Engines_GgufEngineRequestBuilder__ctor_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.#ctor*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineRequestBuilder__ctor_System_String_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.#ctor(System.String)">GgufEngineRequestBuilder(string)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public GgufEngineRequestBuilder(string modelPath)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td><span class="parametername">modelPath</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="properties">Properties
+</h3>
+  <a id="ProvostXInference_Engines_GgufEngineRequestBuilder_AdvancedContext_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.AdvancedContext*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineRequestBuilder_AdvancedContext" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.AdvancedContext">AdvancedContext</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public ContextConfig? AdvancedContext { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.ContextConfig.html">ContextConfig</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineRequestBuilder_AdvancedModel_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.AdvancedModel*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineRequestBuilder_AdvancedModel" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.AdvancedModel">AdvancedModel</h4>
+  <div class="markdown level1 summary">BL-21 wave-5 advanced knobs (set via <a class="xref" href="ProvostXInference.Engines.GgufEngineRequestBuilder.html#ProvostXInference_Engines_GgufEngineRequestBuilder_WithAdvanced_ProvostXInference_Models_ModelConfig_ProvostXInference_Models_ContextConfig_">WithAdvanced(ModelConfig?, ContextConfig?)</a>).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public ModelConfig? AdvancedModel { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.ModelConfig.html">ModelConfig</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineRequestBuilder_BatchSize_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.BatchSize*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineRequestBuilder_BatchSize" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.BatchSize">BatchSize</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public uint BatchSize { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.uint32">uint</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineRequestBuilder_ContextSize_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.ContextSize*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineRequestBuilder_ContextSize" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.ContextSize">ContextSize</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public uint ContextSize { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.uint32">uint</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineRequestBuilder_DraftModelPath_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.DraftModelPath*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineRequestBuilder_DraftModelPath" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.DraftModelPath">DraftModelPath</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string? DraftModelPath { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineRequestBuilder_EngineId_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.EngineId*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineRequestBuilder_EngineId" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.EngineId">EngineId</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string? EngineId { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineRequestBuilder_FlashAttention_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.FlashAttention*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineRequestBuilder_FlashAttention" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.FlashAttention">FlashAttention</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool FlashAttention { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineRequestBuilder_GpuLayers_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.GpuLayers*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineRequestBuilder_GpuLayers" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.GpuLayers">GpuLayers</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public int GpuLayers { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineRequestBuilder_KvCacheType_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.KvCacheType*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineRequestBuilder_KvCacheType" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.KvCacheType">KvCacheType</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public KvType KvCacheType { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.KvType.html">KvType</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineRequestBuilder_MmprojPath_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.MmprojPath*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineRequestBuilder_MmprojPath" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.MmprojPath">MmprojPath</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string? MmprojPath { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineRequestBuilder_PoolingType_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.PoolingType*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineRequestBuilder_PoolingType" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.PoolingType">PoolingType</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public PoolingType PoolingType { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.PoolingType.html">PoolingType</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineRequestBuilder_ReasoningMarkers_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.ReasoningMarkers*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineRequestBuilder_ReasoningMarkers" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.ReasoningMarkers">ReasoningMarkers</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string[]? ReasoningMarkers { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a>[]</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineRequestBuilder_SeqMax_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.SeqMax*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineRequestBuilder_SeqMax" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.SeqMax">SeqMax</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public uint SeqMax { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.uint32">uint</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineRequestBuilder_Threads_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.Threads*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineRequestBuilder_Threads" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.Threads">Threads</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public int Threads { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="methods">Methods
+</h3>
+  <a id="ProvostXInference_Engines_GgufEngineRequestBuilder_Build_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.Build*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineRequestBuilder_Build" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.Build">Build()</h4>
+  <div class="markdown level1 summary">Validated request (fail-closed — Build() itself validates).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public GgufEngineRequest Build()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Engines.GgufEngineRequest.html">GgufEngineRequest</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineRequestBuilder_Create_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.Create*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineRequestBuilder_Create_ProvostXInference_Engines_IInferenceEngineFactory_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.Create(ProvostXInference.Engines.IInferenceEngineFactory)">Create(IInferenceEngineFactory)</h4>
+  <div class="markdown level1 summary">Build + create the engine (still UNLOADED — call Initialize()).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public IInferenceEngine Create(IInferenceEngineFactory factory)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Engines.IInferenceEngineFactory.html">IInferenceEngineFactory</a></td>
+        <td><span class="parametername">factory</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Engines.IInferenceEngine.html">IInferenceEngine</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineRequestBuilder_WithAdvanced_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.WithAdvanced*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineRequestBuilder_WithAdvanced_ProvostXInference_Models_ModelConfig_ProvostXInference_Models_ContextConfig_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.WithAdvanced(ProvostXInference.Models.ModelConfig,ProvostXInference.Models.ContextConfig)">WithAdvanced(ModelConfig?, ContextConfig?)</h4>
+  <div class="markdown level1 summary">BL-21 wave-5 pass-through: advanced model-load and/or context knobs.
+    The classic With* values take precedence; the advanced records supply the
+    extended knob surface (kv overrides, rope/yarn, tri-states, …).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public GgufEngineRequestBuilder WithAdvanced(ModelConfig? model = null, ContextConfig? context = null)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.ModelConfig.html">ModelConfig</a></td>
+        <td><span class="parametername">model</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.ContextConfig.html">ContextConfig</a></td>
+        <td><span class="parametername">context</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Engines.GgufEngineRequestBuilder.html">GgufEngineRequestBuilder</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineRequestBuilder_WithBatchSize_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.WithBatchSize*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineRequestBuilder_WithBatchSize_System_UInt32_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.WithBatchSize(System.UInt32)">WithBatchSize(uint)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public GgufEngineRequestBuilder WithBatchSize(uint batch)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.uint32">uint</a></td>
+        <td><span class="parametername">batch</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Engines.GgufEngineRequestBuilder.html">GgufEngineRequestBuilder</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineRequestBuilder_WithContextSize_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.WithContextSize*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineRequestBuilder_WithContextSize_System_UInt32_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.WithContextSize(System.UInt32)">WithContextSize(uint)</h4>
+  <div class="markdown level1 summary">Context window size.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public GgufEngineRequestBuilder WithContextSize(uint ctx)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.uint32">uint</a></td>
+        <td><span class="parametername">ctx</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Engines.GgufEngineRequestBuilder.html">GgufEngineRequestBuilder</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineRequestBuilder_WithDraftModel_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.WithDraftModel*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineRequestBuilder_WithDraftModel_System_String_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.WithDraftModel(System.String)">WithDraftModel(string?)</h4>
+  <div class="markdown level1 summary">Optional speculative-decoding draft model sidecar.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public GgufEngineRequestBuilder WithDraftModel(string? path)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td><span class="parametername">path</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Engines.GgufEngineRequestBuilder.html">GgufEngineRequestBuilder</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineRequestBuilder_WithEngineId_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.WithEngineId*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineRequestBuilder_WithEngineId_System_String_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.WithEngineId(System.String)">WithEngineId(string?)</h4>
+  <div class="markdown level1 summary">Native specialist id ("metal"/"cuda"/"vulkan"); null = platform default.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public GgufEngineRequestBuilder WithEngineId(string? engineId)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td><span class="parametername">engineId</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Engines.GgufEngineRequestBuilder.html">GgufEngineRequestBuilder</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineRequestBuilder_WithFlashAttention_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.WithFlashAttention*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineRequestBuilder_WithFlashAttention_System_Boolean_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.WithFlashAttention(System.Boolean)">WithFlashAttention(bool)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public GgufEngineRequestBuilder WithFlashAttention(bool on)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></td>
+        <td><span class="parametername">on</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Engines.GgufEngineRequestBuilder.html">GgufEngineRequestBuilder</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineRequestBuilder_WithGpuLayers_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.WithGpuLayers*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineRequestBuilder_WithGpuLayers_System_Int32_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.WithGpuLayers(System.Int32)">WithGpuLayers(int)</h4>
+  <div class="markdown level1 summary">GPU layers (-1 = all).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public GgufEngineRequestBuilder WithGpuLayers(int gpuLayers)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td><span class="parametername">gpuLayers</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Engines.GgufEngineRequestBuilder.html">GgufEngineRequestBuilder</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineRequestBuilder_WithKvCacheType_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.WithKvCacheType*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineRequestBuilder_WithKvCacheType_ProvostXInference_Models_KvType_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.WithKvCacheType(ProvostXInference.Models.KvType)">WithKvCacheType(KvType)</h4>
+  <div class="markdown level1 summary">llama.cpp KV cache quantization knob.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public GgufEngineRequestBuilder WithKvCacheType(KvType kvType)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.KvType.html">KvType</a></td>
+        <td><span class="parametername">kvType</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Engines.GgufEngineRequestBuilder.html">GgufEngineRequestBuilder</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineRequestBuilder_WithMmproj_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.WithMmproj*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineRequestBuilder_WithMmproj_System_String_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.WithMmproj(System.String)">WithMmproj(string?)</h4>
+  <div class="markdown level1 summary">Optional vision projector sidecar.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public GgufEngineRequestBuilder WithMmproj(string? path)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td><span class="parametername">path</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Engines.GgufEngineRequestBuilder.html">GgufEngineRequestBuilder</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineRequestBuilder_WithPooling_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.WithPooling*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineRequestBuilder_WithPooling_ProvostXInference_Models_PoolingType_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.WithPooling(ProvostXInference.Models.PoolingType)">WithPooling(PoolingType)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public GgufEngineRequestBuilder WithPooling(PoolingType pooling)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.PoolingType.html">PoolingType</a></td>
+        <td><span class="parametername">pooling</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Engines.GgufEngineRequestBuilder.html">GgufEngineRequestBuilder</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineRequestBuilder_WithReasoningMarkers_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.WithReasoningMarkers*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineRequestBuilder_WithReasoningMarkers_System_String___" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.WithReasoningMarkers(System.String[])">WithReasoningMarkers(params string[])</h4>
+  <div class="markdown level1 summary">Reasoning-marker probe list (data-driven; default {"think"}-family).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public GgufEngineRequestBuilder WithReasoningMarkers(params string[] markers)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a>[]</td>
+        <td><span class="parametername">markers</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Engines.GgufEngineRequestBuilder.html">GgufEngineRequestBuilder</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineRequestBuilder_WithSeqMax_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.WithSeqMax*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineRequestBuilder_WithSeqMax_System_UInt32_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.WithSeqMax(System.UInt32)">WithSeqMax(uint)</h4>
+  <div class="markdown level1 summary">Max parallel KV sequences.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public GgufEngineRequestBuilder WithSeqMax(uint seqMax)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.uint32">uint</a></td>
+        <td><span class="parametername">seqMax</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Engines.GgufEngineRequestBuilder.html">GgufEngineRequestBuilder</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineRequestBuilder_WithThreads_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.WithThreads*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineRequestBuilder_WithThreads_System_Int32_" data-uid="ProvostXInference.Engines.GgufEngineRequestBuilder.WithThreads(System.Int32)">WithThreads(int)</h4>
+  <div class="markdown level1 summary">CPU threads (0 = auto).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public GgufEngineRequestBuilder WithThreads(int threads)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td><span class="parametername">threads</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Engines.GgufEngineRequestBuilder.html">GgufEngineRequestBuilder</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+
+</article>
+          </div>
+
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In this article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="../index.html">Home</a>&ensp;&middot;&ensp;<a href="#top">Back to top</a>
+            </span>
+      ProvostXInference — MIT
+      
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script type="text/javascript" src="../styles/docfx.vendor.min.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>

@@ -1,6 +1,6 @@
 # API-INDEX.md — ProvostXInference
 
-Generated: 2026-10-22T09:41:17.415646+00:00
+Generated: 2026-10-22T09:47:22.342580+00:00
 Packages: 3  |  Types: 1906
 
 ---

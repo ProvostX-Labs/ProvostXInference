@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+
+  <head>
+    <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>Interface IConversation | ProvostXInference API </title>
+      <meta name="viewport" content="width=device-width">
+      <meta name="title" content="Interface IConversation | ProvostXInference API ">
+    
+    
+      <link rel="shortcut icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../styles/docfx.vendor.min.css">
+      <link rel="stylesheet" href="../styles/docfx.css">
+      <link rel="stylesheet" href="../styles/main.css">
+      <meta property="docfx:navrel" content="">
+      <meta property="docfx:tocrel" content="toc.html">
+    
+    <meta property="docfx:rel" content="../">
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+
+        <div id="search-results">
+          <div class="search-list">Search Results for <span></span></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination" data-first=First data-prev=Previous data-next=Next data-last=Last></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="ProvostXInference.Abstractions.IConversation">
+
+
+
+  <h1 id="ProvostXInference_Abstractions_IConversation" data-uid="ProvostXInference.Abstractions.IConversation" class="text-break">Interface IConversation</h1>
+  <div class="markdown level0 summary"></div>
+  <div class="markdown level0 conceptual"></div>
+  <div class="inheritedMembers">
+    <h5>Inherited Members</h5>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.idisposable.dispose">IDisposable.Dispose()</a>
+    </div>
+  </div>
+  <h6><strong>Namespace</strong>: <span class="xref">ProvostXInference</span>.<a class="xref" href="ProvostXInference.Abstractions.html">Abstractions</a></h6>
+  <h6><strong>Assembly</strong>: ProvostXInference.dll</h6>
+  <h5 id="ProvostXInference_Abstractions_IConversation_syntax">Syntax</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public interface IConversation : IDisposable</code></pre>
+  </div>
+  <h3 id="properties">Properties
+</h3>
+  <a id="ProvostXInference_Abstractions_IConversation_ActiveSpeculation_" data-uid="ProvostXInference.Abstractions.IConversation.ActiveSpeculation*"></a>
+  <h4 id="ProvostXInference_Abstractions_IConversation_ActiveSpeculation" data-uid="ProvostXInference.Abstractions.IConversation.ActiveSpeculation">ActiveSpeculation</h4>
+  <div class="markdown level1 summary">Live mirror of the active speculative config (null when no
+    session is enabled on this conversation).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">SpeculativeConfig? ActiveSpeculation { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.SpeculativeConfig.html">SpeculativeConfig</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Abstractions_IConversation_TokenCount_" data-uid="ProvostXInference.Abstractions.IConversation.TokenCount*"></a>
+  <h4 id="ProvostXInference_Abstractions_IConversation_TokenCount" data-uid="ProvostXInference.Abstractions.IConversation.TokenCount">TokenCount</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">int TokenCount { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="methods">Methods
+</h3>
+  <a id="ProvostXInference_Abstractions_IConversation_DisableSpeculation_" data-uid="ProvostXInference.Abstractions.IConversation.DisableSpeculation*"></a>
+  <h4 id="ProvostXInference_Abstractions_IConversation_DisableSpeculation" data-uid="ProvostXInference.Abstractions.IConversation.DisableSpeculation">DisableSpeculation()</h4>
+  <div class="markdown level1 summary">Teardown of the conversation's spec session (idempotent; pool
+    return and context teardown also tear it down natively).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">void DisableSpeculation()</code></pre>
+  </div>
+  <a id="ProvostXInference_Abstractions_IConversation_EnableSpeculation_" data-uid="ProvostXInference.Abstractions.IConversation.EnableSpeculation*"></a>
+  <h4 id="ProvostXInference_Abstractions_IConversation_EnableSpeculation_ProvostXInference_Models_SpeculativeConfig_" data-uid="ProvostXInference.Abstractions.IConversation.EnableSpeculation(ProvostXInference.Models.SpeculativeConfig)">EnableSpeculation(SpeculativeConfig)</h4>
+  <div class="markdown level1 summary">Enable speculative decoding on THIS pooled conversation (one
+    spec session per conversation; requires ≥2 seq slots on the owning
+    context — the native side types the refusal). Capability-gated: the
+    facade validates against the model self-report first; enabling still
+    re-validates fail-closed natively (mode/path/capability/vocab).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">void EnableSpeculation(SpeculativeConfig config)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.SpeculativeConfig.html">SpeculativeConfig</a></td>
+        <td><span class="parametername">config</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Abstractions_IConversation_ExportCheckpoint_" data-uid="ProvostXInference.Abstractions.IConversation.ExportCheckpoint*"></a>
+  <h4 id="ProvostXInference_Abstractions_IConversation_ExportCheckpoint" data-uid="ProvostXInference.Abstractions.IConversation.ExportCheckpoint">ExportCheckpoint()</h4>
+  <div class="markdown level1 summary">Serializes the conversation's FULL inference state (KV cells, counters,
+pending tokens, penalty window) into an opaque blob for suspend-to-disk.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">byte[] ExportCheckpoint()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.byte">byte</a>[]</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Abstractions_IConversation_GenerateSpeculative_" data-uid="ProvostXInference.Abstractions.IConversation.GenerateSpeculative*"></a>
+  <h4 id="ProvostXInference_Abstractions_IConversation_GenerateSpeculative_ProvostXInference_Models_SamplingConfig_System_Int32_System_Action_System_Int32__" data-uid="ProvostXInference.Abstractions.IConversation.GenerateSpeculative(ProvostXInference.Models.SamplingConfig,System.Int32,System.Action{System.Int32})">GenerateSpeculative(SamplingConfig?, int, Action&lt;int&gt;?)</h4>
+  <div class="markdown level1 summary">Speculative token loop over this conversation: identical
+    contract to the executor trio — draft → target-verify → accept into the
+    conversation's normal state; token-exact with the plain lane for
+    identical params. Typed refusal (never a silent plain run) when no spec
+    session is active.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">IReadOnlyList&lt;int&gt; GenerateSpeculative(SamplingConfig? config, int maxTokens, Action&lt;int&gt;? onToken = null)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.SamplingConfig.html">SamplingConfig</a></td>
+        <td><span class="parametername">config</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td><span class="parametername">maxTokens</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.action-1">Action</a>&lt;<a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a>&gt;</td>
+        <td><span class="parametername">onToken</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.ireadonlylist-1">IReadOnlyList</a>&lt;<a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a>&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Abstractions_IConversation_GetStats_" data-uid="ProvostXInference.Abstractions.IConversation.GetStats*"></a>
+  <h4 id="ProvostXInference_Abstractions_IConversation_GetStats" data-uid="ProvostXInference.Abstractions.IConversation.GetStats">GetStats()</h4>
+  <div class="markdown level1 summary">ABI v8: stats snapshot of this conversation lane.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">EngineStats GetStats()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.EngineStats.html">EngineStats</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Abstractions_IConversation_ImportCheckpoint_" data-uid="ProvostXInference.Abstractions.IConversation.ImportCheckpoint*"></a>
+  <h4 id="ProvostXInference_Abstractions_IConversation_ImportCheckpoint_System_Byte___" data-uid="ProvostXInference.Abstractions.IConversation.ImportCheckpoint(System.Byte[])">ImportCheckpoint(byte[])</h4>
+  <div class="markdown level1 summary">Restores a previously exported checkpoint INTO this (empty) conversation.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">void ImportCheckpoint(byte[] data)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.byte">byte</a>[]</td>
+        <td><span class="parametername">data</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Abstractions_IConversation_Prompt_" data-uid="ProvostXInference.Abstractions.IConversation.Prompt*"></a>
+  <h4 id="ProvostXInference_Abstractions_IConversation_Prompt_System_String_" data-uid="ProvostXInference.Abstractions.IConversation.Prompt(System.String)">Prompt(string)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">void Prompt(string text)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td><span class="parametername">text</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Abstractions_IConversation_PromptTokens_" data-uid="ProvostXInference.Abstractions.IConversation.PromptTokens*"></a>
+  <h4 id="ProvostXInference_Abstractions_IConversation_PromptTokens_System_Int32___" data-uid="ProvostXInference.Abstractions.IConversation.PromptTokens(System.Int32[])">PromptTokens(int[])</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">void PromptTokens(int[] tokens)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a>[]</td>
+        <td><span class="parametername">tokens</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Abstractions_IConversation_PromptWithAudio_" data-uid="ProvostXInference.Abstractions.IConversation.PromptWithAudio*"></a>
+  <h4 id="ProvostXInference_Abstractions_IConversation_PromptWithAudio_System_String_ProvostXInference_Abstractions_IInferenceModel_ProvostXInference_Models_AudioChunk_" data-uid="ProvostXInference.Abstractions.IConversation.PromptWithAudio(System.String,ProvostXInference.Abstractions.IInferenceModel,ProvostXInference.Models.AudioChunk)">PromptWithAudio(string, IInferenceModel, AudioChunk)</h4>
+  <div class="markdown level1 summary">ABI v8: conversation-lane prompt with ONE raw audio clip
+    (PCM F32 mono; media marker must appear in text). Typed refusal when
+    the projector lacks an audio adapter.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">void PromptWithAudio(string text, IInferenceModel modelWithMmproj, AudioChunk audio)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td><span class="parametername">text</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IInferenceModel.html">IInferenceModel</a></td>
+        <td><span class="parametername">modelWithMmproj</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.AudioChunk.html">AudioChunk</a></td>
+        <td><span class="parametername">audio</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Abstractions_IConversation_PromptWithImages_" data-uid="ProvostXInference.Abstractions.IConversation.PromptWithImages*"></a>
+  <h4 id="ProvostXInference_Abstractions_IConversation_PromptWithImages_System_String_ProvostXInference_Abstractions_IVisionEncoder_System_Byte_____" data-uid="ProvostXInference.Abstractions.IConversation.PromptWithImages(System.String,ProvostXInference.Abstractions.IVisionEncoder,System.Byte[][])">PromptWithImages(string, IVisionEncoder, params byte[][])</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">void PromptWithImages(string text, IVisionEncoder vision, params byte[][] images)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td><span class="parametername">text</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IVisionEncoder.html">IVisionEncoder</a></td>
+        <td><span class="parametername">vision</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.byte">byte</a>[][]</td>
+        <td><span class="parametername">images</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Abstractions_IConversation_Reset_" data-uid="ProvostXInference.Abstractions.IConversation.Reset*"></a>
+  <h4 id="ProvostXInference_Abstractions_IConversation_Reset" data-uid="ProvostXInference.Abstractions.IConversation.Reset">Reset()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">void Reset()</code></pre>
+  </div>
+  <a id="ProvostXInference_Abstractions_IConversation_ResetGrammarState_" data-uid="ProvostXInference.Abstractions.IConversation.ResetGrammarState*"></a>
+  <h4 id="ProvostXInference_Abstractions_IConversation_ResetGrammarState" data-uid="ProvostXInference.Abstractions.IConversation.ResetGrammarState">ResetGrammarState()</h4>
+  <div class="markdown level1 summary">Resets grammar sampler state — call once per generation before a grammar-constrained sample loop.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">void ResetGrammarState()</code></pre>
+  </div>
+  <a id="ProvostXInference_Abstractions_IConversation_RestoreState_" data-uid="ProvostXInference.Abstractions.IConversation.RestoreState*"></a>
+  <h4 id="ProvostXInference_Abstractions_IConversation_RestoreState_ProvostXInference_Abstractions_IConversationPool_ProvostXInference_Abstractions_IConversationState_" data-uid="ProvostXInference.Abstractions.IConversation.RestoreState(ProvostXInference.Abstractions.IConversationPool,ProvostXInference.Abstractions.IConversationState)">RestoreState(IConversationPool, IConversationState)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">void RestoreState(IConversationPool pool, IConversationState state)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IConversationPool.html">IConversationPool</a></td>
+        <td><span class="parametername">pool</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IConversationState.html">IConversationState</a></td>
+        <td><span class="parametername">state</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Abstractions_IConversation_Rewind_" data-uid="ProvostXInference.Abstractions.IConversation.Rewind*"></a>
+  <h4 id="ProvostXInference_Abstractions_IConversation_Rewind_System_Int32_" data-uid="ProvostXInference.Abstractions.IConversation.Rewind(System.Int32)">Rewind(int)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">void Rewind(int tokenCount)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td><span class="parametername">tokenCount</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Abstractions_IConversation_Sample_" data-uid="ProvostXInference.Abstractions.IConversation.Sample*"></a>
+  <h4 id="ProvostXInference_Abstractions_IConversation_Sample_ProvostXInference_Models_SamplingConfig_" data-uid="ProvostXInference.Abstractions.IConversation.Sample(ProvostXInference.Models.SamplingConfig)">Sample(SamplingConfig?)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">int Sample(SamplingConfig? config = null)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.SamplingConfig.html">SamplingConfig</a></td>
+        <td><span class="parametername">config</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Abstractions_IConversation_SampleWithGrammar_" data-uid="ProvostXInference.Abstractions.IConversation.SampleWithGrammar*"></a>
+  <h4 id="ProvostXInference_Abstractions_IConversation_SampleWithGrammar_ProvostXInference_Models_SamplingConfig_ProvostXInference_Abstractions_IGrammar_" data-uid="ProvostXInference.Abstractions.IConversation.SampleWithGrammar(ProvostXInference.Models.SamplingConfig,ProvostXInference.Abstractions.IGrammar)">SampleWithGrammar(SamplingConfig?, IGrammar)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">int SampleWithGrammar(SamplingConfig? config, IGrammar grammar)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.SamplingConfig.html">SamplingConfig</a></td>
+        <td><span class="parametername">config</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IGrammar.html">IGrammar</a></td>
+        <td><span class="parametername">grammar</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Abstractions_IConversation_SaveState_" data-uid="ProvostXInference.Abstractions.IConversation.SaveState*"></a>
+  <h4 id="ProvostXInference_Abstractions_IConversation_SaveState" data-uid="ProvostXInference.Abstractions.IConversation.SaveState">SaveState()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">IConversationState SaveState()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IConversationState.html">IConversationState</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Abstractions_IConversation_ShiftLeft_" data-uid="ProvostXInference.Abstractions.IConversation.ShiftLeft*"></a>
+  <h4 id="ProvostXInference_Abstractions_IConversation_ShiftLeft_System_Int32_" data-uid="ProvostXInference.Abstractions.IConversation.ShiftLeft(System.Int32)">ShiftLeft(int)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">void ShiftLeft(int tokenCount)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td><span class="parametername">tokenCount</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Abstractions_IConversation_SpeculationStats_" data-uid="ProvostXInference.Abstractions.IConversation.SpeculationStats*"></a>
+  <h4 id="ProvostXInference_Abstractions_IConversation_SpeculationStats" data-uid="ProvostXInference.Abstractions.IConversation.SpeculationStats">SpeculationStats()</h4>
+  <div class="markdown level1 summary">Spec-session acceptance telemetry for this conversation.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">SpeculationStats SpeculationStats()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.SpeculationStats.html">SpeculationStats</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+
+</article>
+          </div>
+
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In this article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="../index.html">Home</a>&ensp;&middot;&ensp;<a href="#top">Back to top</a>
+            </span>
+      ProvostXInference — MIT
+      
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script type="text/javascript" src="../styles/docfx.vendor.min.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>

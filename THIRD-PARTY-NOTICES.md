@@ -20,10 +20,21 @@ third-party components.
   (Linux/Windows builds)** are platform libraries provided by the OS vendor and are
   not redistributed by this project; they are linked from the user's installed SDKs.
 
+## Microsoft.ML.OnnxRuntime (C# Decision lane)
+
+- **Used for:** the ONNX judge execution lane (`csharp/Decision/`) — tokenizer-driven
+  decision sessions over ONNX models
+- **Packages:** `Microsoft.ML.OnnxRuntime` 1.30.0 (+ `.Gpu` and `.Gpu.Linux` variants)
+- **License:** MIT — verified against the package file
+  `~/.nuget/packages/microsoft.ml.onnxruntime/1.30.0/LICENSE`
+  (Copyright (c) Microsoft Corporation)
+- **Note:** the GPU variants enable CUDA/TensorRT execution-provider chains; the
+  decision lane runs CPU-only on hosts without them (typed, truthful provider report).
+
 ## C# bindings
 
-The `csharp/` project is a dependency-free .NET 8 class library — it P/Invokes the
-native library directly and takes no third-party NuGet packages.
+Beyond the ONNX Runtime packages above, the `csharp/` project P/Invokes the native
+library directly and takes no further third-party NuGet packages.
 
 If you redistribute ProvostXInference (as a NuGet package or as part of a combined
 installation), you must preserve the llama.cpp/ggml MIT license text as described above.

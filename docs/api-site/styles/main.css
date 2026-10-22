@@ -1,0 +1,743 @@
+/* ProvostX corporate design v1.1 — DocFX site skin (loaded last, wins the cascade).
+   Palette derived from the official ProvostX logo: mark #050537, canvas #A3B8CD. */
+
+:root {
+  --pvx-mark: #050537;
+  --pvx-mark-hue: #161A38;
+  --pvx-canvas: #A3B8CD;
+  --pvx-canvas-hue: #E6EBF2;
+  --pvx-body: #334155;
+  --pvx-muted: #5A6B80;
+  --pvx-accent: #6366F1;
+  --pvx-accent-strong: #4F46E5;
+  --pvx-accent-hue: #EEF2FF;
+  --pvx-paper: #F8FAFC;
+  --pvx-line: #E2E8F0;
+  --pvx-code-bg: #EEF1F6;
+  --pvx-dark-bg: #0E1E3E;
+  --pvx-dark-surface: #152B54;
+  --pvx-dark-text: #E6EBF2;
+  --pvx-dark-muted: #A4B8D8;
+  --pvx-dark-line: #28406E;
+}
+
+/* — Base typography — */
+body,
+.body-content {
+  font-family: -apple-system, "Segoe UI", Inter, Roboto, sans-serif !important;
+  background: var(--pvx-paper) !important;
+  color: var(--pvx-body) !important;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--pvx-mark) !important;
+  font-weight: 700;
+  font-family: inherit;
+  line-height: 1.25;
+}
+h1 { font-size: 2.5rem; }
+h2 { font-size: 2rem; margin-top: 2.4rem; padding-bottom: .35rem; border-bottom: 2px solid var(--pvx-line); }
+h3 { font-size: 1.5rem; margin-top: 2rem; }
+h4 { font-size: 1.25rem; font-weight: 600; color: var(--pvx-body) !important; }
+
+a { color: var(--pvx-accent) !important; text-decoration: none; }
+a:hover { color: var(--pvx-accent-strong) !important; text-decoration: underline; }
+
+/* — Navbar: mark navy, brand wordmark — */
+.navbar,
+.navbar-inverse,
+nav#navbar {
+  background: var(--pvx-mark) !important;
+  border: none !important;
+  box-shadow: 0 1px 0 rgba(163, 184, 205, .25);
+}
+.navbar a,
+.navbar-inverse .navbar-brand,
+.navbar-inverse .navbar-nav > li > a {
+  color: #E6EBF2 !important;
+  font-weight: 600;
+}
+.navbar-inverse .navbar-brand { font-size: 1.25rem; letter-spacing: .02em; }
+.navbar-inverse .navbar-brand:hover { color: #fff !important; }
+.navbar-inverse .navbar-nav > li > a:hover { background: var(--pvx-mark-hue) !important; color: #fff !important; }
+
+/* — Sidebar / TOC: quiet, canvas-lined — */
+.bs-docs-sidebar,
+.toc,
+.sideaffix {
+  background: transparent !important;
+  font-size: .875rem;
+}
+.bs-docs-sidebar .nav > li > a,
+.toc .nav > li > a {
+  color: var(--pvx-muted) !important;
+  border-left: 2px solid transparent;
+  padding: .35rem .75rem;
+  display: block;
+}
+.bs-docs-sidebar .nav > li > a:hover,
+.bs-docs-sidebar .nav > li > a:focus,
+.bs-docs-sidebar .nav > .active > a,
+.toc .nav > li > a:hover,
+.toc .nav > .active > a {
+  color: var(--pvx-mark) !important;
+  border-left-color: var(--pvx-accent) !important;
+  background: var(--pvx-accent-hue) !important;
+  font-weight: 600;
+}
+
+/* — Breadcrumb — */
+.breadcrumb {
+  background: transparent !important;
+  padding: .5rem 0 0;
+  font-size: .875rem;
+  color: var(--pvx-muted);
+}
+.breadcrumb > li + li::before { color: var(--pvx-canvas); }
+
+/* — Content cards / article — */
+.article {
+  background: transparent !important;
+  margin: 0;
+}
+.content.wrap {
+  padding: 1.5rem 2rem;
+  max-width: 108rem;
+}
+h1 + p, h2 + p { color: var(--pvx-muted); font-size: 1.05rem; }
+
+/* — Tables — */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1.25rem 0;
+  font-size: .9375rem;
+}
+th {
+  background: var(--pvx-accent-hue) !important;
+  color: var(--pvx-mark) !important;
+  text-align: left;
+  font-weight: 600;
+  padding: .5rem .75rem;
+  border: 1px solid var(--pvx-line) !important;
+}
+td {
+  padding: .5rem .75rem;
+  border: 1px solid var(--pvx-line) !important;
+  color: var(--pvx-body);
+}
+tbody tr:nth-child(even) { background: #FBFCFE; }
+tbody tr:hover { background: var(--pvx-accent-hue) !important; }
+
+/* — Code — */
+code, pre {
+  background: var(--pvx-code-bg) !important;
+  color: var(--pvx-mark) !important;
+  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace !important;
+  font-size: .9rem;
+  border-radius: 6px;
+}
+pre {
+  padding: 1rem;
+  border: 1px solid var(--pvx-line);
+  line-height: 1.55;
+  overflow-x: auto;
+}
+code { padding: .15em .4em; }
+pre code { background: transparent !important; padding: 0; }
+
+/* — API page specifics — */
+.declaration, .summary, .markdown-body {
+  color: var(--pvx-body) !important;
+}
+.declaration h5, h5.declaration {
+  color: var(--pvx-mark) !important;
+  font-weight: 700;
+}
+.inheritance, .level-0, .level-1 { color: var(--pvx-muted); font-size: .9rem; }
+.article .content p { max-width: 72ch; }
+
+/* — Member rows: separate cards — */
+article > .content > .summary ~ hr,
+.article > hr {
+  border-top: 1px solid var(--pvx-line);
+  margin: 1.75rem 0;
+}
+
+/* — Search box — */
+#search-query, .form-control {
+  border: 1px solid var(--pvx-line) !important;
+  border-radius: 8px !important;
+  background: #fff;
+  color: var(--pvx-body);
+  box-shadow: none !important;
+}
+#search-query:focus {
+  border-color: var(--pvx-accent) !important;
+  outline: 2px solid var(--pvx-accent-hue);
+}
+
+/* — Footer — */
+.footer {
+  border-top: 1px solid var(--pvx-line);
+  color: var(--pvx-muted);
+  font-size: .875rem;
+  background: transparent !important;
+}
+
+/* — Buttons — */
+.btn { border-radius: 8px; font-weight: 600; }
+.btn-default, .btn-primary {
+  background: var(--pvx-accent) !important;
+  border: none !important;
+  color: #fff !important;
+}
+.btn-default:hover, .btn-primary:hover { background: var(--pvx-accent-strong) !important; color: #fff !important; }
+
+/* — Dark theme (v1.18: sky blue — owner-approved variant D, 2026-10-13) — */
+@media (prefers-color-scheme: dark) {
+  :root { --pvx-accent: #5B9CFF; }
+  body, .body-content, html { background: var(--pvx-dark-bg) !important; color: var(--pvx-dark-text) !important; }
+  h1, h2, h3, h4, h5, h6 { color: var(--pvx-dark-text) !important; }
+  h2 { border-bottom-color: var(--pvx-dark-line); }
+  .article, .content.wrap, .footer { background: transparent !important; color: var(--pvx-dark-text) !important; }
+  .summary, .markdown-body, p, td, li { color: var(--pvx-dark-text) !important; }
+  .muted, .text-muted { color: var(--pvx-dark-muted) !important; }
+  code, pre { background: var(--pvx-dark-surface) !important; color: var(--pvx-dark-text) !important; border-color: var(--pvx-dark-line) !important; }
+  th { background: var(--pvx-dark-surface) !important; color: var(--pvx-dark-text) !important; border-color: var(--pvx-dark-line) !important; }
+  td { color: var(--pvx-dark-text) !important; border-color: var(--pvx-dark-line) !important; }
+  tbody tr:nth-child(even) { background: var(--pvx-dark-bg); }
+  tbody tr:hover { background: var(--pvx-dark-surface) !important; }
+  .breadcrumb { color: var(--pvx-dark-muted); }
+  #search-query, .form-control { background: var(--pvx-dark-surface) !important; color: var(--pvx-dark-text) !important; border-color: var(--pvx-dark-line) !important; }
+  .navbar, .navbar-inverse { background: var(--pvx-dark-surface) !important; }
+  .bs-docs-sidebar .nav > li > a, .toc .nav > li > a { color: var(--pvx-dark-muted) !important; }
+  .bs-docs-sidebar .nav > li > a:hover, .toc .nav > .active > a { color: var(--pvx-dark-text) !important; background: var(--pvx-dark-surface) !important; }
+  hr { border-color: var(--pvx-dark-line); }
+}
+/* ── v1.2 size floor fix: nav/TOC/code/table legibility ─────────────── */
+html { font-size: 100%; }
+
+/* Sidebar/TOC navigation: comfortable to scan, not a phone footnote */
+.bs-docs-sidebar,
+.sideaffix,
+.toc {
+  font-size: 1rem !important;
+}
+.bs-docs-sidebar .nav > li > a,
+.toc .nav > li > a,
+.toc .nav-item a,
+.sideaffix .nav > li > a {
+  font-size: 1rem !important;
+  line-height: 1.5 !important;
+  padding: .45rem .9rem !important;
+}
+.bs-docs-sidebar .nav .nav > li > a,
+.toc .nav .nav > li > a {
+  font-size: .9375rem !important;
+  padding: .3rem .9rem .3rem 1.6rem !important;
+}
+
+/* Top navbar */
+.navbar-inverse .navbar-brand { font-size: 1.3rem !important; }
+.navbar-inverse .navbar-nav > li > a { font-size: 1.0625rem !important; }
+
+/* Breadcrumb + in-page nav */
+.breadcrumb { font-size: 1rem !important; }
+.breadcrumb > li + li::before { font-size: 1rem; }
+
+/* Tables: real reading size */
+table { font-size: 1rem !important; }
+th { font-size: .9375rem !important; text-transform: none; }
+td { font-size: 1rem !important; line-height: 1.55; }
+td code, th code { font-size: .9375rem !important; }
+
+/* Code: stop the shrink-wrap */
+code { font-size: .9375rem !important; }
+pre { font-size: .9375rem !important; }
+pre code { font-size: .9375rem !important; }
+
+/* Headings bump for hierarchy against bigger body */
+h1 { font-size: 2.6rem !important; }
+h2 { font-size: 2.1rem !important; }
+h3 { font-size: 1.6rem !important; }
+h4 { font-size: 1.3rem !important; }
+h5, .declaration h5, h5.declaration { font-size: 1.15rem !important; }
+
+/* Member/inheritance/summary rows + muted text */
+.article p, .summary, .markdown-body { font-size: 1rem !important; }
+.inheritance, .level-0, .level-1, .muted { font-size: .9375rem !important; color: var(--pvx-muted) !important; }
+
+/* Search box */
+#search-query { font-size: 1rem !important; height: auto !important; padding: .5rem .8rem !important; }
+
+/* Dark theme muted contrast */
+@media (prefers-color-scheme: dark) {
+  .inheritance, .level-0, .level-1, .muted { color: var(--pvx-dark-muted) !important; }
+}
+
+/* ── v1.3: fixed-header overlap fix ──────────────────────────────────── */
+/* The default template pins header as position:fixed OVER the content and
+   expects the small Bootstrap navbar. With the v1.2 size floor the navbar is
+   taller, so page tops (h1, breadcrumb) slide underneath it at scroll-top.
+   Fix: keep the header fixed but reserve its real height below it. */
+header {
+  position: sticky !important;
+  top: 0;
+  z-index: 1000;
+}
+html { scroll-padding-top: 4.5rem; }
+body { padding-top: 0 !important; }
+.container.body-content { margin-top: 1.5rem; }
+
+/* Anchor jumps (TOC/member links) must also clear the sticky header. */
+[id] { scroll-margin-top: 5rem; }
+
+/* Sidebar top offset matches its own spacing rules. */
+.bs-docs-sidebar, .sideaffix { top: 5rem !important; }
+@media (max-width: 768px) {
+  .bs-docs-sidebar, .sideaffix { top: 4rem !important; }
+}
+
+/* ── v1.4: clean footer ────────────────────────────────────────────────── */
+/* Remove the dated gradient strip above the footer. */
+.grad-bottom { display: none !important; height: 0 !important; background: none !important; }
+
+footer,
+.footer {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-top: 1px solid var(--pvx-line) !important;
+  margin-top: 3rem;
+  padding: 1.25rem 0 1.75rem !important;
+  font-size: .9375rem !important;
+  color: var(--pvx-muted) !important;
+}
+footer .container,
+.footer .container { background: transparent !important; }
+
+/* Kill the float: keep "Back to top" inline on the right, no wrap artifacts. */
+footer .pull-right,
+.footer .pull-right {
+  float: none !important;
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -1.25rem;
+  padding-top: 0;
+}
+.footer .pull-right a {
+  color: var(--pvx-muted) !important;
+  font-size: .9375rem !important;
+  background: var(--pvx-accent-hue);
+  border: 1px solid var(--pvx-line);
+  border-radius: 8px;
+  padding: .3rem .8rem;
+}
+.footer .pull-right a:hover {
+  color: var(--pvx-mark) !important;
+  background: #E2E7F7;
+  text-decoration: none !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  footer, .footer {
+    background: var(--pvx-dark-surface) !important;
+    border-top: 1px solid var(--pvx-dark-line) !important;
+    color: var(--pvx-dark-muted) !important;
+  }
+  .footer .pull-right a {
+    color: var(--pvx-dark-muted) !important;
+    background: var(--pvx-dark-bg);
+    border-color: var(--pvx-dark-line);
+  }
+  .footer .pull-right a:hover { color: #fff !important; }
+}
+
+/* ── v1.5: footer overlap + size ───────────────────────────────────────── */
+/* Root cause: .sidetoc is position:fixed with top:150px/bottom:0 (template),
+   painting a full-height column that the footer then rides over; and the
+   footer band spans full width over text. Contain both. */
+footer,
+.footer {
+  position: static !important;
+  max-width: none;
+  margin: 2rem auto 0 !important;
+  padding:  .75rem 0 1rem !important;
+  font-size: .875rem !important;
+  line-height: 1.4;
+}
+footer .container,
+.footer .container {
+  width: auto;
+  max-width: 1080px;
+  padding: 0 1.5rem;
+}
+footer .pull-right,
+.footer .pull-right {
+  display: inline-flex !important;
+  align-items: center;
+  gap: .25rem;
+  margin: 0 !important;
+  padding: 0 !important;
+  float: right !important;
+}
+.footer .pull-right a {
+  padding: .2rem .7rem !important;
+  font-size: .8125rem !important;
+  border-radius: 999px;
+  border: 1px solid var(--pvx-line);
+}
+
+/* TOC sidebar: stop the full-height fixed column from under-cutting the page. */
+.sidetoc {
+  top: 5.5rem !important;
+  bottom: auto !important;
+  max-height: calc(100vh - 7rem) !important;
+  overflow-y: auto !important;
+}
+@media (max-width: 768px) {
+  .sidetoc { position: static !important; top: auto !important; max-height: none !important; width: 100% !important; }
+}
+
+/* Content column never slides under the sidebar/footer bands. */
+.container.body-content {
+  overflow-x: clip;
+}
+.wrapped-parent, .wrapped {
+  position: static;
+}
+
+/* ── v1.6: slim chrome — thinner navbar/footer, less padding ─────────── */
+.navbar,
+.navbar-inverse,
+#autocollapse,
+header .navbar {
+  min-height: 44px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  margin: 0 !important;
+}
+.navbar-inverse .navbar-brand,
+.navbar-brand {
+  padding-top: .5rem !important;
+  padding-bottom: .5rem !important;
+  font-size: 1.125rem !important;
+  line-height: 1.3 !important;
+}
+.navbar-inverse .navbar-nav > li > a {
+  padding-top: .65rem !important;
+  padding-bottom: .65rem !important;
+  font-size: .98rem !important;
+  line-height: 1.3 !important;
+}
+.navbar-toggle { margin-top: .45rem; margin-bottom: .4rem; }
+
+/* Sticky offsets match the slim header (44px + hairline). */
+html { scroll-padding-top: 3.4rem !important; }
+[id] { scroll-margin-top: 3.9rem !important; }
+.bs-docs-sidebar, .sideaffix { top: 4rem !important; }
+
+/* Slim footer: single hairline row, minimal breathing room. */
+footer,
+.footer {
+  margin: 1.5rem 0 0 !important;
+  padding: .5rem 0 .6rem !important;
+  font-size: .8125rem !important;
+  line-height: 1.3 !important;
+}
+
+/* Content sits closer under the slim header. */
+.container.body-content { margin-top: .9rem !important; padding-top: 0 !important; }
+.article { margin-top: .5rem !important; }
+
+/* ── v1.7: fixed TOC column fixes — gap, footer overlap, clipping ──────── */
+/* 1) Column starts directly under the slim header (no dead space). */
+.sidetoc {
+  top: 3rem !important;
+  bottom: auto !important;
+  max-height: calc(100vh - 4.5rem) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  background: var(--pvx-paper) !important;
+  padding-bottom: 2rem !important;
+  z-index: 900;
+}
+.sidetoc.shiftup { bottom: auto !important; }        /* template's footer-shift interplay removed */
+#sidetoggle { margin-top: 0 !important; }
+.bs-docs-sidebar, .sideaffix { top: 3rem !important; }
+
+/* 2) Footer: solid background both themes so nothing shows through the
+      fixed column's lane; sits below the TOC's z-index. */
+footer, .footer {
+  position: relative !important;
+  z-index: 10;
+  background: var(--pvx-paper) !important;
+}
+@media (prefers-color-scheme: dark) {
+  .sidetoc { background: var(--pvx-dark-bg) !important; }
+  footer, .footer { background: var(--pvx-dark-bg) !important; }
+}
+
+/* 3) TOC entries: wrap cleanly, never clipped mid-item. */
+.sidetoc .nav > li > a,
+.sidetoc .nav .nav > li > a {
+  white-space: normal !important;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.45 !important;
+  padding-bottom: .4rem !important;
+  margin-bottom: 0;
+}
+.sidetoc .nav::-webkit-scrollbar { width: 8px; }
+.sidetoc .nav::-webkit-scrollbar-thumb { background: var(--pvx-line); border-radius: 4px; }
+
+/* ── v1.8: back-to-top as plain link; tighter top; thinner header ──────── */
+/* Back to top: no button chrome — just a quiet text link like the footer text. */
+footer .pull-right a,
+.footer .pull-right a {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  font-size: .8125rem !important;
+  color: var(--pvx-muted) !important;
+}
+footer .pull-right a:hover,
+.footer .pull-right a:hover {
+  color: var(--pvx-accent) !important;
+  text-decoration: underline !important;
+  background: transparent !important;
+}
+@media (prefers-color-scheme: dark) {
+  footer .pull-right a, .footer .pull-right a { color: var(--pvx-dark-muted) !important; }
+  footer .pull-right a:hover, .footer .pull-right a:hover { color: #9CC4FF !important; }
+}
+
+/* Even thinner header: 36px total, everything hugging the bar. */
+.navbar, .navbar-inverse, #autocollapse, header .navbar {
+  min-height: 36px !important;
+}
+.navbar-inverse .navbar-brand, .navbar-brand {
+  font-size: 1rem !important;
+  padding-top: .35rem !important;
+  padding-bottom: .35rem !important;
+}
+.navbar-inverse .navbar-nav > li > a {
+  font-size: .9rem !important;
+  padding-top: .45rem !important;
+  padding-bottom: .45rem !important;
+}
+.navbar-toggle { margin-top: .3rem !important; margin-bottom: .3rem !important; }
+
+/* TOC + content hug the slim header. */
+.sidetoc { top: 2.4rem !important; max-height: calc(100vh - 3.6rem) !important; }
+.bs-docs-sidebar, .sideaffix { top: 2.4rem !important; }
+html { scroll-padding-top: 2.8rem !important; }
+[id] { scroll-margin-top: 3.2rem !important; }
+.container.body-content { margin-top: .5rem !important; }
+.article { margin-top: .25rem !important; }
+h1 { margin-top: .25rem !important; }
+
+/* ── v1.9: header just a hair taller than the logo mark ────────────────── */
+/* Logo monogram renders ~38px; the bar sits at 42px total so it reads as a
+   thin frame around the mark. Brand + links hug it. */
+.navbar, .navbar-inverse, #autocollapse, header .navbar {
+  min-height: 42px !important;
+  height: 42px !important;
+}
+.navbar-inverse .navbar-brand, .navbar-brand {
+  font-size: .9375rem !important;
+  padding-top: .5rem !important;
+  padding-bottom: .5rem !important;
+  line-height: 1.25 !important;
+}
+.navbar-inverse .navbar-nav > li > a {
+  font-size: .875rem !important;
+  padding-top: .5rem !important;
+  padding-bottom: .5rem !important;
+  line-height: 1.25 !important;
+}
+.navbar-toggle { margin-top: .4rem !important; margin-bottom: .4rem !important; }
+.navbar > .container .navbar-brand, .navbar-header { height: 42px; }
+
+/* Everything re-hug: TOC + anchors + content clearance match the 42px bar. */
+html { scroll-padding-top: 3rem !important; }
+[id] { scroll-margin-top: 3.4rem !important; }
+.sidetoc, .bs-docs-sidebar, .sideaffix { top: 2.7rem !important; }
+.sidetoc { max-height: calc(100vh - 4rem) !important; }
+.container.body-content { margin-top: .4rem !important; }
+.article { margin-top: .2rem !important; }
+
+/* ── v1.10: true thin chrome — logo scales WITH the bar ────────────────── */
+.navbar, .navbar-inverse, #autocollapse, header .navbar {
+  min-height: 30px !important;
+  height: 30px !important;
+}
+.navbar-inverse .navbar-brand, .navbar-brand {
+  font-size: .875rem !important;
+  padding-top: .3rem !important;
+  padding-bottom: .3rem !important;
+  line-height: 1.15 !important;
+}
+.navbar-brand img, .navbar-brand svg {
+  height: 22px !important;
+  width: auto !important;
+  vertical-align: middle;
+}
+.navbar-inverse .navbar-nav > li > a {
+  font-size: .8125rem !important;
+  padding-top: .3rem !important;
+  padding-bottom: .3rem !important;
+  line-height: 1.15 !important;
+}
+.navbar-toggle { margin-top: .25rem !important; margin-bottom: .25rem !important; padding: 3px 8px !important; }
+.navbar > .container .navbar-brand, .navbar-header { height: 30px; }
+
+/* Everything hugs the 30px bar. */
+html { scroll-padding-top: 2.4rem !important; }
+[id] { scroll-margin-top: 2.8rem !important; }
+.sidetoc, .bs-docs-sidebar, .sideaffix { top: 2.1rem !important; }
+.sidetoc { max-height: calc(100vh - 3.4rem) !important; }
+.container.body-content { margin-top: .3rem !important; }
+.article { margin-top: .2rem !important; }
+
+/* ── v1.11: logo fills the bar — height matches the 30px strip ─────────── */
+/* Keep the 30px bar; the mark spans its full height minus a hair of padding,
+   width follows the SVG viewBox ratio (never stretched). */
+.navbar-brand img,
+.navbar-brand svg,
+#autocollapse .navbar-brand img,
+#autocollapse .navbar-brand svg {
+  height: calc(100% - 6px) !important;   /* 3px breathing top + bottom */
+  width: auto !important;
+  max-height: none !important;
+  max-width: none !important;
+  aspect-ratio: auto !important;        /* viewBox ratio wins */
+  vertical-align: middle;
+  margin: 0;
+}
+.navbar-brand {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1 !important;
+  padding-left: .5rem;
+}
+
+/* ── v1.12: logo = fixed px span (percent chain collapsed it) ──────────── */
+/* .navbar-brand img { height: calc(100% - 6px) } has NO definite parent
+   height to resolve against → SVG collapsed to near-zero. Pin absolute
+   pixels: 30px bar − 2×3px padding = 24px logo, width auto (ratio-locked). */
+.navbar-brand img#logo,
+#logo {
+  height: 24px !important;
+  width: auto !important;
+  max-height: none !important;
+  max-width: none !important;
+  display: inline-block;
+  vertical-align: middle;
+  margin: 3px 0;              /* the "small padding" */
+}
+.navbar-brand {
+  display: inline-flex;
+  align-items: center;
+  padding-left: .5rem;
+  line-height: 1 !important;
+  height: 30px;
+}
+
+/* ── v1.14 (owner): no logo image in the header region ─────────────────── */
+/* Skin + site stay as approved; only the navbar mark is hidden. Logo.svg
+   still ships (template re-emits it) but never renders in the header. */
+.navbar-brand img#logo,
+.navbar-header img#logo,
+#autocollapse #logo {
+  display: none !important;
+}
+
+
+/* ── v1.16 (owner): VS-style syntax palette — bluish keywords, orangish strings.
+   Same WCAG 2.1 AA verification as v1.15 (all pairs >= 4.5:1 on the real
+   surfaces): dark = VS Code dark tokens; light = same hues darkened for the
+   light surface. Replaces the v1.15 Primer palette. */
+
+/* — Light theme (surface: --pvx-code-bg #EEF1F6) — */
+.hljs { background: transparent !important; color: #24292F !important; }
+.hljs-keyword, .hljs-template-tag, .hljs-template-variable, .hljs-type,
+.hljs-variable.language_ { color: #00539B !important; }
+.hljs-title, .hljs-title.class_, .hljs-title.class_.inherited__,
+.hljs-title.function_ { color: #705770 !important; }
+.hljs-attr, .hljs-attribute, .hljs-literal, .hljs-meta, .hljs-number,
+.hljs-operator, .hljs-selector-attr, .hljs-selector-class, .hljs-selector-id,
+.hljs-variable { color: #00539B !important; }
+.hljs-string, .hljs-regexp { color: #A34E00 !important; }
+.hljs-built_in, .hljs-symbol { color: #0B7A6E !important; }
+.hljs-name, .hljs-selector-pseudo, .hljs-selector-tag { color: #0A5A2E !important; }
+.hljs-subst, .hljs-emphasis, .hljs-strong { color: #24292F !important; }
+.hljs-section { color: #00539B !important; }
+.hljs-bullet { color: #067D62 !important; }
+.hljs-comment, .hljs-doctag, .hljs-quote { color: #456A45 !important; }
+.hljs-addition { color: #0A5A2E !important; background: transparent !important; }
+.hljs-deletion { color: #82071E !important; background: transparent !important; }
+a code { color: #23527C !important; }
+
+/* — Dark theme (surface: --pvx-dark-surface #11123A) — VS Code dark tokens — */
+@media (prefers-color-scheme: dark) {
+  .hljs { background: transparent !important; color: #E6EBF2 !important; }
+  .hljs-keyword, .hljs-template-tag, .hljs-template-variable, .hljs-type,
+  .hljs-variable.language_ { color: #569CD6 !important; }
+  .hljs-title, .hljs-title.class_, .hljs-title.class_.inherited__,
+  .hljs-title.function_ { color: #DCDCAA !important; }
+  .hljs-attr, .hljs-attribute, .hljs-literal, .hljs-meta, .hljs-number,
+  .hljs-operator, .hljs-selector-attr, .hljs-selector-class, .hljs-selector-id,
+  .hljs-variable { color: #9CDCFE !important; }
+  .hljs-string, .hljs-regexp { color: #CE9179 !important; }
+  .hljs-built_in, .hljs-symbol { color: #B5CEA8 !important; }
+  .hljs-name, .hljs-selector-pseudo, .hljs-selector-tag { color: #7EE787 !important; }
+  .hljs-subst, .hljs-emphasis, .hljs-strong { color: #E6EBF2 !important; }
+  .hljs-section { color: #569CD6 !important; }
+  .hljs-bullet { color: #B5CEA8 !important; }
+  .hljs-comment, .hljs-doctag, .hljs-quote { color: #7FA88C !important; }
+  .hljs-addition { color: #56D364 !important; background: transparent !important; }
+  .hljs-deletion { color: #F85149 !important; background: transparent !important; }
+  a code { color: #8AB4F8 !important; background: transparent !important; }
+}
+
+/* ── v1.17: standard copy button on every code block ───────────────────── */
+.pvx-copy-btn {
+  position: absolute;
+  top: .5rem;
+  right: .5rem;
+  padding: 2px 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  font-family: -apple-system, "Segoe UI", Inter, Roboto, sans-serif;
+  color: var(--pvx-muted);
+  background: var(--pvx-paper);
+  border: 1px solid var(--pvx-line);
+  border-radius: 5px;
+  opacity: 0;
+  transition: opacity .15s ease;
+  cursor: pointer;
+  z-index: 5;
+}
+pre:hover > .pvx-copy-btn, .pvx-copy-btn:focus-visible, .pvx-copy-btn.pvx-copied { opacity: 1; }
+.pvx-copy-btn:hover { color: var(--pvx-accent); border-color: var(--pvx-accent); }
+.pvx-copy-btn.pvx-copied { color: var(--pvx-accent); font-weight: 600; }
+@media (prefers-color-scheme: dark) {
+  .pvx-copy-btn {
+    color: var(--pvx-dark-muted);
+    background: var(--pvx-dark-bg);
+    border-color: var(--pvx-dark-line);
+  }
+  .pvx-copy-btn:hover, .pvx-copy-btn.pvx-copied { color: #9CC4FF; border-color: #9CC4FF; }
+}
+
+
+/* ── v1.18 (owner): sky-blue dark theme — variant D from blue-theme-preview.
+   bg #0E1E3E, surface #152B54, line #28406E, accent #5B9CFF, muted #A4B8D8,
+   footer/copy hover #9CC4FF, comment token #7FA88C (AA re-verified on real
+   surfaces). Light theme unchanged. ─────────────────────────────────────── */

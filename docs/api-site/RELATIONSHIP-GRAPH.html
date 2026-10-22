@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+
+  <head>
+    <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>RELATIONSHIP-GRAPH.md — ProvostXInference | ProvostXInference API </title>
+      <meta name="viewport" content="width=device-width">
+      <meta name="title" content="RELATIONSHIP-GRAPH.md — ProvostXInference | ProvostXInference API ">
+    
+    
+      <link rel="shortcut icon" href="favicon.ico">
+      <link rel="stylesheet" href="styles/docfx.vendor.min.css">
+      <link rel="stylesheet" href="styles/docfx.css">
+      <link rel="stylesheet" href="styles/main.css">
+      <meta property="docfx:navrel" content="">
+      <meta property="docfx:tocrel" content="">
+    
+    <meta property="docfx:rel" content="">
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+
+              <a class="navbar-brand" href="index.html">
+                <img id="logo" class="svg" src="logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+
+        <div id="search-results">
+          <div class="search-list">Search Results for <span></span></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination" data-first=First data-prev=Previous data-next=Next data-last=Last></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+        <div class="article row grid">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+<h1 id="relationship-graphmd--provostxinference">RELATIONSHIP-GRAPH.md — ProvostXInference</h1>
+
+<p>Generated: 2026-10-22T09:41:17.417332+00:00
+Edges: 35  |  Packages: 2</p>
+<hr>
+<h2 id="tests">Tests</h2>
+<h2 id="csharp">csharp</h2>
+<ul>
+<li>ChunkedStallSafePrefillRunner ──uses──► IChunkWallClock (csharp)</li>
+<li>ChunkedStallSafePrefillRunner ──uses──► IConversationPool (csharp)</li>
+<li>ChunkedStallSafePrefillRunner ──uses──► IPrefillStallDetector (csharp)</li>
+<li>DecisionEngineOps ──implements──► IDecisionEngineOps (csharp)</li>
+<li>DecisionHeaderReader ──implements──► IDecisionHeaderReader (csharp)</li>
+<li>DecisionSessionFactory ──implements──► IDecisionSessionFactory (csharp)</li>
+<li>EncoderEngineOps ──implements──► IEncoderEngineOps (csharp)</li>
+<li>EncoderEngineOps ──uses──► IInferenceModel (csharp)</li>
+<li>EncoderEngineOps ──uses──► IVisionEncoder (csharp)</li>
+<li>EngineKindMismatchException ──implements──► InferenceException (csharp)</li>
+<li>ExecutorSpeculationSuspender ──implements──► ISpeculationSuspender (csharp)</li>
+<li>ExecutorSpeculationSuspender ──uses──► IStandardExecutor (csharp)</li>
+<li>GgufEngineOps ──implements──► IGgufEngineOps (csharp)</li>
+<li>GgufEngineOps ──uses──► IInferenceBackend (csharp)</li>
+<li>GgufEngineOps ──uses──► IInferenceModel (csharp)</li>
+<li>GgufModelLoader ──implements──► IGgufModelLoader (csharp)</li>
+<li>InferenceEngine ──implements──► IInferenceEngine (csharp)</li>
+<li>InferenceEngineFactory ──implements──► IInferenceEngineFactory (csharp)</li>
+<li>InvalidEngineRequestException ──implements──► InferenceException (csharp)</li>
+<li>NativeConversation ──implements──► IConversation (csharp)</li>
+<li>NativeConversationPool ──implements──► IConversationPool (csharp)</li>
+<li>NativeConversationState ──implements──► IConversationState (csharp)</li>
+<li>NativeGrammar ──implements──► IGrammar (csharp)</li>
+<li>NativeInferenceBackend ──implements──► IInferenceBackend (csharp)</li>
+<li>NativeInferenceContext ──implements──► IInferenceContext (csharp)</li>
+<li>NativeInferenceModel ──implements──► IInferenceModel (csharp)</li>
+<li>NativeInferenceState ──implements──► IInferenceState (csharp)</li>
+<li>NativeStandardExecutor ──implements──► IStandardExecutor (csharp)</li>
+<li>NativeTtsSession ──implements──► ITtsSession (csharp)</li>
+<li>NativeVisionEncoder ──implements──► IVisionEncoder (csharp)</li>
+<li>OsExecutionProviderDefaultSource ──implements──► IExecutionProviderDefaultSource (csharp)</li>
+<li>QuietInferenceLogger ──implements──► IInferenceLogger (csharp)</li>
+<li>RollingPrefillStallDetector ──implements──► IPrefillStallDetector (csharp)</li>
+<li>StallRecoveryLadder ──implements──► IStallRecoveryLadder (csharp)</li>
+<li>SystemChunkWallClock ──implements──► IChunkWallClock (csharp)</li>
+</ul>
+<h2 id="provostxinference-native-c--header-include-edges">ProvostXInference (native C++ — header include edges)</h2>
+<ul>
+<li>add-id.hpp ──include──► common.hpp</li>
+<li>backend.hpp ──include──► binbcast.hpp</li>
+<li>backend.hpp ──include──► col2im-1d.hpp</li>
+<li>backend.hpp ──include──► common.hpp</li>
+<li>backend.hpp ──include──► concat.hpp</li>
+<li>backend.hpp ──include──► conv.hpp</li>
+<li>backend.hpp ──include──► conv3d.hpp</li>
+<li>backend.hpp ──include──► convert.hpp</li>
+<li>backend.hpp ──include──► count-equal.hpp</li>
+<li>backend.hpp ──include──► cpy.hpp</li>
+<li>backend.hpp ──include──► dequantize.hpp</li>
+<li>backend.hpp ──include──► dmmv.hpp</li>
+<li>backend.hpp ──include──► element_wise.hpp</li>
+<li>backend.hpp ──include──► fattn.hpp</li>
+<li>backend.hpp ──include──► fusion.hpp</li>
+<li>backend.hpp ──include──► gated_delta_net.hpp</li>
+<li>backend.hpp ──include──► gla.hpp</li>
+<li>backend.hpp ──include──► im2col.hpp</li>
+<li>backend.hpp ──include──► mmq.hpp</li>
+<li>backend.hpp ──include──► mmvq.hpp</li>
+<li>backend.hpp ──include──► norm.hpp</li>
+<li>backend.hpp ──include──► outprod.hpp</li>
+<li>backend.hpp ──include──► pad.hpp</li>
+<li>backend.hpp ──include──► pad_reflect_1d.hpp</li>
+<li>backend.hpp ──include──► quantize.hpp</li>
+<li>backend.hpp ──include──► quants.hpp</li>
+<li>backend.hpp ──include──► roll.hpp</li>
+<li>backend.hpp ──include──► rope.hpp</li>
+<li>backend.hpp ──include──► set_rows.hpp</li>
+<li>backend.hpp ──include──► softmax.hpp</li>
+<li>backend.hpp ──include──► ssm_conv.hpp</li>
+<li>backend.hpp ──include──► topk-moe.hpp</li>
+<li>backend.hpp ──include──► topk-radix.hpp</li>
+<li>backend.hpp ──include──► tsembd.hpp</li>
+<li>backend.hpp ──include──► upscale.hpp</li>
+<li>backend.hpp ──include──► wkv.hpp</li>
+<li>binbcast.hpp ──include──► common.hpp</li>
+<li>col2im-1d.hpp ──include──► common.hpp</li>
+<li>concat.hpp ──include──► common.hpp</li>
+<li>conv.hpp ──include──► common.hpp</li>
+<li>conv2d-dw.hpp ──include──► common.hpp</li>
+<li>conv2d-transpose.hpp ──include──► common.hpp</li>
+<li>conv2d.hpp ──include──► common.hpp</li>
+<li>conv3d.hpp ──include──► common.hpp</li>
+<li>convert.hpp ──include──► common.hpp</li>
+<li>count-equal.hpp ──include──► common.hpp</li>
+<li>cpy.hpp ──include──► common.hpp</li>
+<li>cross_entropy_loss.hpp ──include──► common.hpp</li>
+<li>cumsum.hpp ──include──► common.hpp</li>
+<li>dequantize.hpp ──include──► common.hpp</li>
+<li>dequantize.hpp ──include──► convert.hpp</li>
+<li>diag.hpp ──include──► common.hpp</li>
+<li>dmmv.hpp ──include──► common.hpp</li>
+<li>dsv4-hc.hpp ──include──► common.hpp</li>
+<li>element_wise.hpp ──include──► common.hpp</li>
+<li>esimd.hpp ──include──► common.hpp</li>
+<li>fattn-common.hpp ──include──► common.hpp</li>
+<li>fattn-common.hpp ──include──► convert.hpp</li>
+<li>fattn-common.hpp ──include──► fattn.hpp</li>
+<li>fattn-common.hpp ──include──► vecdotq.hpp</li>
+<li>fattn-onednn.hpp ──include──► common.hpp</li>
+<li>fattn-sparse.hpp ──include──► common.hpp</li>
+<li>fattn-tile.hpp ──include──► common.hpp</li>
+<li>fattn-tile.hpp ──include──► fattn-common.hpp</li>
+<li>fattn-vec.hpp ──include──► common.hpp</li>
+<li>fattn-vec.hpp ──include──► fattn-common.hpp</li>
+<li>fattn.hpp ──include──► common.hpp</li>
+<li>fill.hpp ──include──► common.hpp</li>
+<li>fused-gemm.hpp ──include──► common.hpp</li>
+<li>fusion.hpp ──include──► common.hpp</li>
+<li>fwht.hpp ──include──► common.hpp</li>
+<li>gated_delta_net.hpp ──include──► common.hpp</li>
+<li>getrows.hpp ──include──► common.hpp</li>
+<li>ggml-webgpu-shader-lib.hpp ──include──► pre_wgsl.hpp</li>
+<li>gla.hpp ──include──► common.hpp</li>
+<li>im2col.hpp ──include──► common.hpp</li>
+<li>lightning-indexer.hpp ──include──► common.hpp</li>
+<li>mmf.hpp ──include──► common.hpp</li>
+<li>mmq.hpp ──include──► common.hpp</li>
+<li>mmvq.hpp ──include──► common.hpp</li>
+<li>norm.hpp ──include──► common.hpp</li>
+<li>opt-step.hpp ──include──► common.hpp</li>
+<li>outprod.hpp ──include──► common.hpp</li>
+<li>pad.hpp ──include──► common.hpp</li>
+<li>pad_reflect_1d.hpp ──include──► common.hpp</li>
+<li>pool.hpp ──include──► common.hpp</li>
+<li>pool.hpp ──include──► presets.hpp</li>
+<li>quantize.hpp ──include──► common.hpp</li>
+<li>repeat_back.hpp ──include──► common.hpp</li>
+<li>roll.hpp ──include──► common.hpp</li>
+<li>rope.hpp ──include──► common.hpp</li>
+<li>set.hpp ──include──► backend.hpp</li>
+<li>set_rows.hpp ──include──► common.hpp</li>
+<li>softmax.hpp ──include──► common.hpp</li>
+<li>solve_tri.hpp ──include──► common.hpp</li>
+<li>ssm_conv.hpp ──include──► common.hpp</li>
+<li>ssm_scan.hpp ──include──► common.hpp</li>
+<li>topk-moe.hpp ──include──► common.hpp</li>
+<li>topk-radix.hpp ──include──► common.hpp</li>
+<li>tsembd.hpp ──include──► common.hpp</li>
+<li>upscale.hpp ──include──► common.hpp</li>
+<li>utils.hpp ──include──► common.hpp</li>
+<li>vecdotq.hpp ──include──► quants.hpp</li>
+<li>vecdotq.hpp ──include──► type.hpp</li>
+<li>wkv.hpp ──include──► common.hpp</li>
+</ul>
+
+</article>
+          </div>
+
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In this article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="index.html">Home</a>&ensp;&middot;&ensp;<a href="#top">Back to top</a>
+            </span>
+      ProvostXInference — MIT
+      
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script type="text/javascript" src="styles/docfx.vendor.min.js"></script>
+    <script type="text/javascript" src="styles/docfx.js"></script>
+    <script type="text/javascript" src="styles/main.js"></script>
+  </body>
+</html>

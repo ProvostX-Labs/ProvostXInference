@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+
+  <head>
+    <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>ProvostXInference — Capability &amp; Integration Guide | ProvostXInference API </title>
+      <meta name="viewport" content="width=device-width">
+      <meta name="title" content="ProvostXInference — Capability &amp; Integration Guide | ProvostXInference API ">
+    
+    
+      <link rel="shortcut icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../styles/docfx.vendor.min.css">
+      <link rel="stylesheet" href="../styles/docfx.css">
+      <link rel="stylesheet" href="../styles/main.css">
+      <meta property="docfx:navrel" content="">
+      <meta property="docfx:tocrel" content="">
+    
+    <meta property="docfx:rel" content="../">
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+
+        <div id="search-results">
+          <div class="search-list">Search Results for <span></span></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination" data-first=First data-prev=Previous data-next=Next data-last=Last></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+        <div class="article row grid">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+<h1 id="provostxinference--capability--integration-guide">ProvostXInference — Capability &amp; Integration Guide</h1>
+
+<h2 id="what-it-is">What It Is</h2>
+<p>A C/C++ inference engine that links llama.cpp directly and exposes a flat C API for P/Invoke from C#. Replaces LLamaSharp entirely. No wrapper, no managed/native split — we own the entire inference path.</p>
+<h2 id="current-state-2026-09-25">Current State (2026-09-25)</h2>
+<ul>
+<li><strong>14/14 tests passing</strong> on macOS Metal (Apple Silicon, desktop-class)</li>
+<li>Library size: 11.3MB (statically links llama.cpp + ggml + mtmd)</li>
+<li>llama.cpp: latest master (e351231c4)</li>
+<li>Build: cmake with Metal/CPU/CUDA/Vulkan backend flags</li>
+</ul>
+<h2 id="capabilities">Capabilities</h2>
+<h3 id="model-management">Model Management</h3>
+<ul>
+<li><code>pvx_load_model</code> — load GGUF model with GPU layers, threads, flash attention, KV cache type</li>
+<li><code>pvx_free_model</code> — free model</li>
+<li><code>pvx_load_mmproj</code> — load vision projector (mmproj GGUF) → mtmd context</li>
+<li><code>pvx_free_mmproj</code> — free vision projector</li>
+</ul>
+<h3 id="context">Context</h3>
+<ul>
+<li><code>pvx_create_context</code> — create llama_context with n_ctx, n_batch, n_seq_max, pooling type</li>
+<li><code>pvx_free_context</code> — free context</li>
+<li><code>pvx_context_size</code> / <code>pvx_context_seq_max</code> — query context params</li>
+</ul>
+<h3 id="tokenization">Tokenization</h3>
+<ul>
+<li><code>pvx_tokenize</code> — text → tokens (with add_bos, parse_special flags)</li>
+<li><code>pvx_detokenize</code> — tokens → text (with remove_special flag)</li>
+<li><code>pvx_token_to_piece</code> — single token → string</li>
+<li><code>pvx_token_is_eos</code> — check if token is end-of-generation</li>
+</ul>
+<h3 id="standard-executor-non-batched-one-session-per-context">Standard Executor (non-batched, one session per context)</h3>
+<ul>
+<li><code>pvx_executor_create</code> / <code>pvx_executor_free</code></li>
+<li><code>pvx_executor_prompt</code> — tokenize + queue text tokens</li>
+<li><code>pvx_executor_prompt_tokens</code> — queue raw tokens</li>
+<li><code>pvx_executor_infer</code> — decode pending tokens (one batch)</li>
+<li><code>pvx_executor_sample</code> — sample one token (full pipeline: temp, top_k, top_p, min_p, repeat_penalty, presence_penalty)</li>
+<li><code>pvx_executor_token_count</code> — current KV token count</li>
+<li><code>pvx_executor_rewind</code> — remove last N tokens from KV</li>
+<li><code>pvx_executor_reset</code> — clear entire KV (in-place, no context recreation)</li>
+</ul>
+<h3 id="conversation-pool-batched-inference">Conversation Pool (batched inference)</h3>
+<ul>
+<li><code>pvx_pool_create</code> — pre-allocate SeqMax conversations (each owns a permanent seq_id)</li>
+<li><code>pvx_pool_lease</code> / <code>pvx_pool_return</code> — lease/return conversations (thread-safe)</li>
+<li><code>pvx_pool_available</code> / <code>pvx_pool_size</code> — query pool state</li>
+<li><strong>Key fix:</strong> No <code>executor.Create()</code> ever called on request threads → no seq-id leak, no thread-safety crash</li>
+</ul>
+<h3 id="batched-inference">Batched Inference</h3>
+<ul>
+<li><code>pvx_conversation_prompt</code> / <code>pvx_conversation_prompt_tokens</code> — queue tokens per conversation</li>
+<li><code>pvx_infer</code> — ONE decode for ALL conversations with pending tokens (true multi-seq batching)</li>
+<li><code>pvx_conversation_sample</code> — sample from a conversation's last token</li>
+<li><code>pvx_conversation_token_count</code> — per-conversation token count</li>
+<li><code>pvx_conversation_rewind</code> / <code>pvx_conversation_reset</code> — per-conversation KV manipulation</li>
+</ul>
+<h3 id="full-sampling-pipeline">Full Sampling Pipeline</h3>
+<ul>
+<li>Temperature scaling</li>
+<li>Top-k filtering</li>
+<li>Top-p (nucleus) sampling</li>
+<li>Min-p filtering</li>
+<li>Repeat penalty (with configurable window)</li>
+<li>Presence penalty</li>
+<li>EOS detection</li>
+<li><strong>Logits are copied before modification</strong> — no corruption of shared internal state</li>
+</ul>
+<h3 id="embeddings">Embeddings</h3>
+<ul>
+<li><code>pvx_get_embeddings</code> — text → normalized embedding vector</li>
+<li>Pooling modes: MEAN, CLS, LAST (configurable per context)</li>
+<li>L2 normalization</li>
+<li><code>pvx_embedding_dim</code> — query embedding dimensions</li>
+</ul>
+<h3 id="vision--mtmd">Vision / MTMD</h3>
+<ul>
+<li><code>pvx_load_mmproj</code> — load mmproj file → mtmd_context</li>
+<li><code>pvx_conversation_prompt_with_images</code> — full pipeline:
+<ol>
+<li>Decode image bytes (PNG/JPEG) via <code>mtmd_helper_bitmap_init_from_buf</code></li>
+<li>Tokenize prompt + images into chunks via <code>mtmd_tokenize</code></li>
+<li>Text chunks → queue as pending tokens</li>
+<li>Image chunks → encode via <code>mtmd_encode_chunk</code> → get float embeddings</li>
+<li>Flush pending text tokens (causal decode)</li>
+<li>Set non-causal attention → decode image embeddings via embd batch</li>
+<li>Restore causal attention</li>
+</ol>
+</li>
+<li><code>pvx_mtmd_marker</code> / <code>pvx_mtmd_marker_static</code> — get the media marker string</li>
+<li><code>pvx_mtmd_needs_non_causal</code> — check if model requires non-causal for images</li>
+<li><code>pvx_set_causal_attn</code> — per-call causal attention control</li>
+</ul>
+<h3 id="granular-kv-cache-manipulation-impossible-via-llamasharp">Granular KV Cache Manipulation (impossible via LLamaSharp)</h3>
+<ul>
+<li><code>pvx_conversation_shift_left</code> / <code>pvx_executor_shift_left</code> — <strong>sliding window context</strong>: remove oldest N tokens, keep recent ones, continue generating without reset. RoPE positions stay correct via separate <code>n_kv_pos</code> tracking.</li>
+<li><code>pvx_kv_copy</code> — copy KV from one seq_id to another (state backup without blob serialization)</li>
+<li><code>pvx_kv_clear_seq</code> — clear one seq_id's KV without affecting other conversations</li>
+<li><code>pvx_set_causal_attn</code> — toggle causal/non-causal attention per-call</li>
+</ul>
+<h3 id="state-saverestore">State Save/Restore</h3>
+<ul>
+<li><code>pvx_state_save</code> — snapshot KV to backup seq_id (via <code>llama_memory_seq_cp</code>)</li>
+<li><code>pvx_state_restore</code> — restore from backup seq_id</li>
+<li><code>pvx_conversation_save</code> / <code>pvx_conversation_restore</code> — per-conversation state</li>
+<li><strong>Key improvement:</strong> No blob serialization, no managed/native split, one atomic operation</li>
+</ul>
+<h3 id="anti-prompt-detection">Anti-Prompt Detection</h3>
+<ul>
+<li><code>pvx_check_anti_prompts</code> — check if generated text contains any anti-prompt string</li>
+</ul>
+<h3 id="thread-safety">Thread Safety</h3>
+<ul>
+<li>Internal <code>std::mutex infer_mtx</code> on every context serializes ALL native llama.cpp calls</li>
+<li>Pool has its own mutex for lease/return</li>
+<li>C# layer handles per-session SemaphoreSlim gates and cycle coordination</li>
+</ul>
+<hr>
+<h2 id="what-needs-careful-handling-at-the-c-layer">What Needs Careful Handling at the C# Layer</h2>
+<h3 id="1-vision-processing-single-non-batchable">1. Vision Processing (Single, Non-Batchable)</h3>
+<p><strong>The constraint:</strong> Image embeddings require non-causal attention (<code>llama_set_causal_attn(ctx, false)</code>). This is a <strong>context-wide flag</strong> — it affects ALL conversations on that context, not just the one with the image.</p>
+<p><strong>What this means for the C# layer:</strong></p>
+<ul>
+<li><code>pvx_conversation_prompt_with_images</code> must be called <strong>inside the cycle gate</strong> (the <code>_cycleGate</code> SemaphoreSlim in <code>BatchInferenceCoordinator</code>)</li>
+<li>No other conversation can be decoding on the same context while image embeddings are being processed</li>
+<li>The C++ layer handles the causal/non-causal toggle internally, but the C# layer must ensure <strong>exclusive access</strong> during the call</li>
+</ul>
+<p><strong>Flow:</strong></p>
+<pre><code>C# acquires _cycleGate
+  → C# calls pvx_conversation_prompt_with_images(conv, mmproj, text, images)
+    → C++ flushes text tokens (causal decode)
+    → C++ sets non-causal
+    → C++ encodes image (CLIP)
+    → C++ decodes image embeddings (non-causal)
+    → C++ restores causal
+  → C# releases _cycleGate
+→ Other conversations can now batch normally
+</code></pre>
+<p><strong>Cannot batch multiple conversations' image decodes in one llama_batch</strong> because:</p>
+<ul>
+<li>Text tokens need causal attention</li>
+<li>Image embeddings need non-causal</li>
+<li>You can't mix them in one <code>llama_decode</code> call</li>
+<li>Multiple images COULD be batched (both non-causal), but the CLIP encoding is the bottleneck and <code>mtmd_batch_encode</code> already handles that</li>
+</ul>
+<h3 id="2-shift-left-sliding-window--position-tracking">2. Shift Left (Sliding Window) — Position Tracking</h3>
+<p><strong>The constraint:</strong> After <code>shift_left(n)</code>, the logical token count (<code>n_tokens</code>) decreases but the absolute KV position (<code>n_kv_pos</code>) stays the same. RoPE positions in the remaining KV entries are absolute and must not be reindexed.</p>
+<p><strong>What the C# layer must track:</strong></p>
+<ul>
+<li><code>n_tokens</code> (logical) — for headroom checks, overflow detection, max_tokens clamping</li>
+<li>The C++ layer handles <code>n_kv_pos</code> internally — C# never needs to know it</li>
+<li>After shift_left, the C# layer must re-evaluate headroom: <code>headroom = context_size - n_tokens - safety_margin</code></li>
+<li>The C# layer should call <code>shift_left</code> BEFORE the context is full, not after — e.g., when <code>n_tokens &gt; context_size * 0.8</code>, shift left by 10-20% of context size</li>
+</ul>
+<p><strong>When to use shift_left vs reset:</strong></p>
+<ul>
+<li><strong>shift_left:</strong> Conversation is long but still relevant. Remove oldest tokens, keep recent context. No re-prompt needed.</li>
+<li><strong>reset:</strong> Conversation is done or corrupted. Clear everything. Must re-prefill.</li>
+</ul>
+<h3 id="3-repeat-penalty-in-batch-mode">3. Repeat Penalty in Batch Mode</h3>
+<p><strong>The constraint:</strong> <code>pvx_conversation_sample</code> does NOT apply repeat penalty in batch mode (passes empty <code>recent_tokens</code>). The C++ layer doesn't track per-conversation token history for batch conversations.</p>
+<p><strong>What the C# layer must do:</strong></p>
+<ul>
+<li>Track recent generated tokens per <code>BatchSession</code> in C# (already done via <code>_exactTokenCount</code> and the session's prompt history)</li>
+<li>If repeat penalty is needed in batch mode, either:
+<ul>
+<li>Option A: Pass recent tokens from C# to a new <code>pvx_conversation_sample_with_history</code> function (TODO if needed)</li>
+<li>Option B: Apply repeat penalty at the C# level by post-processing the sampled token (not ideal — can't modify logits after sampling)</li>
+<li>Option C: Accept no repeat penalty in batch mode (current approach — acceptable for most use cases)</li>
+</ul>
+</li>
+</ul>
+<h3 id="4-pool-exhaustion">4. Pool Exhaustion</h3>
+<p><strong>The constraint:</strong> The pool has exactly <code>SeqMax</code> conversations. If all are leased and a new request comes in, <code>pvx_pool_lease</code> returns <code>PVX_ERR_NO_SLOT</code>.</p>
+<p><strong>What the C# layer must do:</strong></p>
+<ul>
+<li>Set <code>SeqMax = max_sessions</code> in the config (already done)</li>
+<li>When <code>PVX_ERR_NO_SLOT</code> is returned, either:
+<ul>
+<li>Queue the request and retry when a conversation is returned (preferred)</li>
+<li>Return HTTP 503 (service unavailable) to the client</li>
+</ul>
+</li>
+<li>Do NOT create new conversations on the fly — that would exhaust seq_ids (the original bug)</li>
+</ul>
+<h3 id="5-state-saverestore-with-n_seq_max--1">5. State Save/Restore with n_seq_max == 1</h3>
+<p><strong>The constraint:</strong> <code>pvx_state_save</code> copies KV to backup seq_id 1. If <code>n_seq_max == 1</code>, there's no backup seq_id.</p>
+<p><strong>What the C# layer must do:</strong></p>
+<ul>
+<li>For the standard executor (non-batched), set <code>seq_max &gt;= 2</code> so state save/restore works</li>
+<li>For batch mode, <code>seq_max = max_sessions</code> (always &gt;= 2), so this is a non-issue</li>
+<li>If <code>n_seq_max == 1</code> and state restore is called, the C++ layer returns OK with <code>n_tokens = 0</code> — the C# layer must re-prompt the conversation</li>
+</ul>
+<h3 id="6-thread-safety-model">6. Thread Safety Model</h3>
+<p><strong>The C++ layer guarantees:</strong></p>
+<ul>
+<li><code>infer_mtx</code> serializes all native llama.cpp calls within a context</li>
+<li>Pool mutex serializes lease/return</li>
+</ul>
+<p><strong>The C# layer must guarantee:</strong></p>
+<ul>
+<li>Per-session <code>SemaphoreSlim(1,1)</code> request gate — only one request per session at a time</li>
+<li><code>BatchInferenceCoordinator._cycleGate</code> — serializes the drain+infer cycle</li>
+<li>Vision prompt calls are made from the cycle coordinator thread (under the cycle gate)</li>
+<li>No concurrent calls to <code>pvx_conversation_prompt_with_images</code> and <code>pvx_infer</code> on the same context</li>
+</ul>
+<h3 id="7-error-recovery">7. Error Recovery</h3>
+<p><strong>On decode failure (<code>PVX_DECODE_FAILED</code>):</strong></p>
+<ul>
+<li>The C++ layer does NOT modify <code>n_tokens</code> or <code>n_kv_pos</code> on failure</li>
+<li>The C# layer should:
+<ul>
+<li>Log the error</li>
+<li>Call <code>pvx_conversation_reset</code> to clear the KV (safe — just <code>llama_memory_seq_rm</code>)</li>
+<li>Re-prompt the conversation from scratch</li>
+<li>Or call <code>pvx_conversation_rewind</code> to try removing the last prompt</li>
+</ul>
+</li>
+</ul>
+<p><strong>On pool exhaustion (<code>PVX_ERR_NO_SLOT</code>):</strong></p>
+<ul>
+<li>Queue the request, don't crash</li>
+<li>Return 503 to the client with a Retry-After header</li>
+</ul>
+<p><strong>On model load failure (<code>PVX_ERR_LOAD_FAILED</code>):</strong></p>
+<ul>
+<li>Check <code>pvx_last_error</code> for the native error message</li>
+<li>Common causes: wrong path, corrupted GGUF, insufficient VRAM for requested GPU layers</li>
+</ul>
+<hr>
+<h2 id="build-matrix">Build Matrix</h2>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th>Backend</th>
+<th>CMake Flag</th>
+<th>Tested?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>macOS arm64</td>
+<td>Metal</td>
+<td><code>PVX_BACKEND_METAL=ON</code></td>
+<td>✅ 14/14</td>
+</tr>
+<tr>
+<td>macOS arm64</td>
+<td>CPU</td>
+<td>(default)</td>
+<td>✅ (implied)</td>
+</tr>
+<tr>
+<td>Linux x64</td>
+<td>CPU</td>
+<td>(default)</td>
+<td>⏳ CI</td>
+</tr>
+<tr>
+<td>Linux x64</td>
+<td>CUDA</td>
+<td><code>PVX_BACKEND_CUDA=ON</code></td>
+<td>⏳ CI</td>
+</tr>
+<tr>
+<td>Linux x64</td>
+<td>Vulkan</td>
+<td><code>PVX_BACKEND_VULKAN=ON</code></td>
+<td>⏳ CI</td>
+</tr>
+<tr>
+<td>Windows x64</td>
+<td>CPU</td>
+<td>(default)</td>
+<td>⏳ CI</td>
+</tr>
+<tr>
+<td>Windows x64</td>
+<td>CUDA</td>
+<td><code>PVX_BACKEND_CUDA=ON</code></td>
+<td>⏳ CI</td>
+</tr>
+<tr>
+<td>Windows x64</td>
+<td>Vulkan</td>
+<td><code>PVX_BACKEND_VULKAN=ON</code></td>
+<td>⏳ CI</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="backend-safety-layer">Backend Safety Layer</h2>
+<p>Automatic detection, probing, and fallback for all GPU backends. No hardcoded assumptions — everything is verified at runtime.</p>
+<h3 id="backend-probe-pvx_probe_backend">Backend Probe (<code>pvx_probe_backend</code>)</h3>
+<ul>
+<li>After context creation, does a minimal 1-token decode to verify the GPU backend works</li>
+<li>If it fails → caller retries with fewer GPU layers (<code>pvx_create_context_safe</code>)</li>
+<li>Detects: Metal, CUDA, Vulkan, CPU via <code>ggml_backend_dev</code> list</li>
+</ul>
+<h3 id="progressive-gpu-layer-reduction-pvx_create_context_safe">Progressive GPU Layer Reduction (<code>pvx_create_context_safe</code>)</h3>
+<ul>
+<li>Try <code>requested_gpu_layers</code> → if fail, try N/2 → N/4 → ... → 0 (CPU)</li>
+<li>Finds the working threshold automatically — no manual tuning</li>
+</ul>
+<h3 id="per-backend-feature-profiles">Per-Backend Feature Profiles</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Metal</th>
+<th>CUDA</th>
+<th>Vulkan</th>
+<th>CPU</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Flash attention</td>
+<td>✅ Safe</td>
+<td>✅ Safe</td>
+<td>⚠️ Probe</td>
+<td>✅ Safe</td>
+</tr>
+<tr>
+<td>Quantized KV (q8_0)</td>
+<td>✅ Safe (dequant internally)</td>
+<td>✅ Safe</td>
+<td>❌ Default unsafe</td>
+<td>✅ Safe</td>
+</tr>
+<tr>
+<td>Multi-seq decode</td>
+<td>✅ Works</td>
+<td>✅ Works</td>
+<td>✅ Works (risky with FA+GQA)</td>
+<td>✅ Works</td>
+</tr>
+<tr>
+<td>Pool reuse</td>
+<td>✅ Safe</td>
+<td>✅ Safe</td>
+<td>⚠️ Needs flush</td>
+<td>✅ Safe</td>
+</tr>
+<tr>
+<td>Min batch size</td>
+<td>512</td>
+<td>512</td>
+<td>1024</td>
+<td>512</td>
+</tr>
+<tr>
+<td>Stale KV cells after clear</td>
+<td>No</td>
+<td>No</td>
+<td>Yes (#26744)</td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h3 id="vulkan-stale-kv-fix-pvx_kv_flush">Vulkan Stale KV Fix (<code>pvx_kv_flush</code>)</h3>
+<ul>
+<li>After <code>llama_memory_seq_rm</code> (pool return), Vulkan may leave stale K/V data in freed cells (#26744)</li>
+<li><code>pvx_kv_flush</code> does a no-op decode + clear to flush stale state</li>
+<li>Automatically called in <code>pvx_pool_return</code> when <code>pvx_backend_needs_kv_flush()</code> returns true</li>
+<li>On safe backends (Metal/CUDA/CPU), this is skipped (no-op)</li>
+</ul>
+<h3 id="known-issues-addressed">Known Issues Addressed</h3>
+<p><strong>Vulkan:</strong></p>
+<ul>
+<li><code>vk::DeviceLostError</code> on long contexts (#19955) → probe catches this</li>
+<li>FA + quantized V cache = garbled output (#26195) → quantized_kv_safe defaults to false</li>
+<li>Stale K/V in freed cells (#26744) → pvx_kv_flush after pool return</li>
+<li>FA + GQA packing + multi-token crash (#26358) → multi_seq_safe flag</li>
+<li>Batch 512 garbage on some models (#27237) → min_batch_size = 1024</li>
+<li>load-mode auto OOM (#27360) → progressive layer reduction</li>
+</ul>
+<p><strong>Metal:</strong></p>
+<ul>
+<li>Command buffer failures (1a5631b) → handled gracefully since March 2026 (we have this)</li>
+<li>Mixed quantized KV when FA unavailable (#21450) → Metal dequantizes internally (70aff25)</li>
+</ul>
+<p><strong>CUDA:</strong></p>
+<ul>
+<li>OOM without warning → progressive layer reduction + probe</li>
+<li>MoE + FA + partial offload illegal memory access (#26609) → probe detects, can disable FA</li>
+<li>mmproj VRAM not in auto-fit (#19980) → manual VRAM guard</li>
+</ul>
+<h3 id="vram-guard-pvx_vram_available">VRAM Guard (<code>pvx_vram_available</code>)</h3>
+<ul>
+<li>Pre-operation VRAM check (platform-specific implementation TODO)</li>
+<li>Currently relies on probe + progressive reduction as safety net</li>
+<li>TODO: Metal (mach_vm_statistics), CUDA (cudaMemGetInfo), Vulkan (vkGetPhysicalDeviceMemoryProperties)</li>
+</ul>
+<hr>
+<h2 id="llamasharp-workarounds-eliminated">LLamaSharp Workarounds Eliminated</h2>
+<table>
+<thead>
+<tr>
+<th>Workaround in C#</th>
+<th>C++ Replacement</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Double state snapshot (ExecutorBaseState + KV blob)</td>
+<td><code>pvx_state_save</code> (one atomic <code>llama_memory_seq_cp</code>)</td>
+<td>✅ Eliminated</td>
+</tr>
+<tr>
+<td>Reset = destroy + recreate context</td>
+<td><code>pvx_executor_reset</code> (in-place <code>llama_memory_seq_rm</code>)</td>
+<td>✅ Eliminated</td>
+</tr>
+<tr>
+<td>Rewind = full blob restore (O(n_ctx) copy)</td>
+<td><code>pvx_conversation_rewind</code> (O(rewind_count) removal)</td>
+<td>✅ Eliminated</td>
+</tr>
+<tr>
+<td>Overflow = ThrowException + catch + reset</td>
+<td><code>pvx_conversation_shift_left</code> (sliding window)</td>
+<td>✅ Eliminated</td>
+</tr>
+<tr>
+<td>Save/Load creating new conversations (seq-id leak)</td>
+<td><code>pvx_conversation_restore</code> (in-place rewind)</td>
+<td>✅ Eliminated</td>
+</tr>
+<tr>
+<td>Broken ShiftLeft</td>
+<td><code>pvx_conversation_shift_left</code> (clean, with n_kv_pos tracking)</td>
+<td>✅ Eliminated</td>
+</tr>
+<tr>
+<td>Context.Tokenize for exact counts</td>
+<td>Tracked natively in C++</td>
+<td>✅ Eliminated</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="todo">TODO</h2>
+<ul>
+<li>[ ] C# P/Invoke bindings project (<code>ProvostX.Inference.dll</code>)</li>
+<li>[ ] Integrate into ProvostXLLM (replace LLamaSharp calls)</li>
+<li>[ ] GitHub Actions CI matrix (8 build targets)</li>
+<li>[ ] NuGet package layout</li>
+<li>[ ] <code>pvx_conversation_sample_with_history</code> (repeat penalty for batch mode, if needed)</li>
+<li>[ ] CLIP batch encoding (<code>mtmd_batch_encode</code> for multiple images)</li>
+<li>[ ] Remove LLamaSharp dependency from ProvostXLLM csproj</li>
+</ul>
+
+</article>
+          </div>
+
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In this article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="../index.html">Home</a>&ensp;&middot;&ensp;<a href="#top">Back to top</a>
+            </span>
+      ProvostXInference — MIT
+      
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script type="text/javascript" src="../styles/docfx.vendor.min.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>

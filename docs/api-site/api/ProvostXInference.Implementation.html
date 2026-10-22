@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+
+  <head>
+    <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>Namespace ProvostXInference.Implementation | ProvostXInference API </title>
+      <meta name="viewport" content="width=device-width">
+      <meta name="title" content="Namespace ProvostXInference.Implementation | ProvostXInference API ">
+    
+    
+      <link rel="shortcut icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../styles/docfx.vendor.min.css">
+      <link rel="stylesheet" href="../styles/docfx.css">
+      <link rel="stylesheet" href="../styles/main.css">
+      <meta property="docfx:navrel" content="">
+      <meta property="docfx:tocrel" content="toc.html">
+    
+    <meta property="docfx:rel" content="../">
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+
+        <div id="search-results">
+          <div class="search-list">Search Results for <span></span></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination" data-first=First data-prev=Previous data-next=Next data-last=Last></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="ProvostXInference.Implementation">
+
+  <h1 id="ProvostXInference_Implementation" data-uid="ProvostXInference.Implementation" class="text-break">Namespace ProvostXInference.Implementation</h1>
+  <div class="markdown level0 summary"></div>
+  <div class="markdown level0 conceptual"></div>
+  <div class="markdown level0 remarks"></div>
+    <h3 id="classes">
+Classes
+</h3>
+      <h4><a class="xref" href="ProvostXInference.Implementation.ChunkedStallSafePrefillRunner.html">ChunkedStallSafePrefillRunner</a></h4>
+      <section>Engine-level stall-safe chunked prefill layer (INF BL-33).
+     Independent of downstream orchestration AND backend-independent by
+     construction: it leases conversations from the injected pool, commits the
+     prompt in chunks via PromptTokens, and times each chunk commit with pure
+     wall-clock around the synchronous native prompt call — the pvxinference
+     substrate dispatches to whatever backend is compiled in (metal / cuda /
+     vulkan / cpu), and this layer never knows or cares which. No backend
+     timing hook exists or is required; wall-clock is the sole detection
+     mechanism, so detection behaves identically on every backend. On stall it
+     walks the configured recovery ladder (fresh-slot retry → smaller-chunk
+     retry → draft/ngram disabled → fail loud).
+
+     Honesty notes:
+     - A fresh-slot retry re-prefills the committed prefix on the new slot (the
+       new slot starts with an empty KV), so it is correct, not cheap.
+     - The draft/ngram-disabled step suspends the speculative session through a
+       constructor-injected <a class="xref" href="ProvostXInference.Abstractions.ISpeculationSuspender.html">ISpeculationSuspender</a> (real native
+       wiring: pvx_executor_spec_free via ExecutorSpeculationSuspender). When
+       no suspender is wired, that step fails closed with the typed unrecovered
+       error naming the missing seam — never a silent skip.
+     - With <a class="xref" href="ProvostXInference.Models.StallWatchdogConfig.html#ProvostXInference_Models_StallWatchdogConfig_Enabled">Enabled</a> = false the runner performs
+       a single plain prompt commit (watchdog fully inert).</section>
+      <h4><a class="xref" href="ProvostXInference.Implementation.ExecutorSpeculationSuspender.html">ExecutorSpeculationSuspender</a></h4>
+      <section>Runtime draft/ngram suspension backed by the executor's native
+    speculative-session teardown (pvx_executor_spec_free; INF BL-33b).
+    Idempotent by construction — the native teardown is already idempotent and
+    the suspension is recorded so a second Suspend is a managed no-op.</section>
+      <h4><a class="xref" href="ProvostXInference.Implementation.GgufMetadataRepair.html">GgufMetadataRepair</a></h4>
+      <section>GGUF tokenizer-metadata repair (owner 2026-10-06): some HuggingFace GGUFs omit
+the EOS token from tokenizer.ggml.special_eog_ids — the engine's native EOS
+stop then never fires and generation runs past end-of-turn. The native
+pvx_repair_eog_metadata rewrites the METADATA ONLY (weights stream-copied
+byte-for-byte); this is the public managed facade over it. Dispatches on
+the ACTIVE engine's per-handle dispatch tables (BL-02).</section>
+      <h4><a class="xref" href="ProvostXInference.Implementation.NativeControlVector.html">NativeControlVector</a></h4>
+      <section>ABI v8 (wave 3, feature 10): wraps a pvx_cvec_t (control-vector direction
+file). Loaded via NativeInferenceModel.CreateControlVector (n_embd-matched,
+typed refusal naming both dims on mismatch); all dispatch goes through the
+OWNING ENGINE's per-handle tables. Applied to contexts via
+NativeInferenceContext.SetControlVector; weights-surface modifier
+(KV-neutral, live attach/detach).</section>
+      <h4><a class="xref" href="ProvostXInference.Implementation.NativeConversation.html">NativeConversation</a></h4>
+      <section>Wraps a leased pvx_conversation_t. Does NOT own the handle — the pool does.
+Dispose() returns it to the pool if not already returned. All calls dispatch
+on the OWNING ENGINE's per-handle tables (carried from the pool at lease).</section>
+      <h4><a class="xref" href="ProvostXInference.Implementation.NativeConversationPool.html">NativeConversationPool</a></h4>
+      <section>Wraps a native pvx_pool_t. All calls dispatch on the OWNING
+    ENGINE's per-handle tables (flowed from the context's model); a leased
+    conversation carries the same tables for its own calls.</section>
+      <h4><a class="xref" href="ProvostXInference.Implementation.NativeConversationSpecSession.html">NativeConversationSpecSession</a></h4>
+      <section>Speculative session bound to ONE pooled conversation (ABI v7,
+    feature 5): enable/generate/stats over pvx_conversation_spec_*, with the
+    active-config mirror kept honest by routing every mutation through
+    Enable/Disable below (same discipline as the executor lane). The native
+    pool-return/teardown paths free the session natively; <span class="xref">ProvostXInference.Implementation.NativeConversationSpecSession.OnReturned()</span>
+    clears the managed mirror so it can never report a phantom session.</section>
+      <h4><a class="xref" href="ProvostXInference.Implementation.NativeConversationState.html">NativeConversationState</a></h4>
+      <section>Wraps a conversation state (pvx_conversation_save). Token count
+    queries dispatch on the OWNING ENGINE's per-handle tables
+    (constructor-injected, carried from the conversation at save time).</section>
+      <h4><a class="xref" href="ProvostXInference.Implementation.NativeGrammar.html">NativeGrammar</a></h4>
+      <section>Wraps a pvx_grammar_t. Created through — and dispatching on — the
+    OWNING MODEL ENGINE's per-handle tables.</section>
+      <h4><a class="xref" href="ProvostXInference.Implementation.NativeInferenceBackend.html">NativeInferenceBackend</a></h4>
+      <section>Backend safety layer (pvx_probe_backend + queries). The probe is
+    context-anchored and dispatches on the OWNING CONTEXT ENGINE's per-handle
+    tables; the process-wide queries dispatch on the ACTIVE engine — a no-op
+    passthrough until a model load activates it.</section>
+      <h4><a class="xref" href="ProvostXInference.Implementation.NativeInferenceContext.html">NativeInferenceContext</a></h4>
+      <section>Wraps a native pvx_context_t. All calls dispatch on the OWNING
+    MODEL ENGINE's per-handle tables (injected via the model).</section>
+      <h4><a class="xref" href="ProvostXInference.Implementation.NativeInferenceModel.html">NativeInferenceModel</a></h4>
+      <section>Wraps a native pvx_model_t. Factory: Load(). BL-02: EVERY pvx_* call this
+model (and everything created from it) makes is dispatched through the
+OWNING ENGINE's per-handle dispatch tables — resolved once at engine open
+and injected down the whole object graph; no global P/Invoke routing.</section>
+      <h4><a class="xref" href="ProvostXInference.Implementation.NativeInferenceState.html">NativeInferenceState</a></h4>
+      <section>Wraps a pvx_state_t (pvx_state_save). Token count queries dispatch
+    on the OWNING ENGINE's per-handle tables (constructor-injected).</section>
+      <h4><a class="xref" href="ProvostXInference.Implementation.NativeLoraAdapter.html">NativeLoraAdapter</a></h4>
+      <section>ABI v8 (wave 3, feature 9): wraps a pvx_adapter_t (LoRA). Loaded via
+NativeInferenceModel.CreateLoraAdapter (arch-matched, typed on mismatch);
+all dispatch goes through the OWNING ENGINE's per-handle tables. Attached
+to contexts via NativeInferenceContext.SetAdapters; adapters are freed on
+Dispose (and by the model at its teardown — native contract).</section>
+      <h4><a class="xref" href="ProvostXInference.Implementation.NativeStandardExecutor.html">NativeStandardExecutor</a></h4>
+      <section>Wraps a pvx_executor_t (standard, non-batched path). All calls
+    dispatch on the OWNING ENGINE's per-handle tables (flowed from the context).</section>
+      <h4><a class="xref" href="ProvostXInference.Implementation.NativeTtsSession.html">NativeTtsSession</a></h4>
+      <section>ABI v8 (wave 3, feature 7): wraps a pvx_tts_session_t — a SEPARATE decode
+context on the backbone speech model plus a gen-audio mmproj (never a
+conversation context; KV-neutral by construction). All calls dispatch on
+the OWNING ENGINE's per-handle tables.</section>
+      <h4><a class="xref" href="ProvostXInference.Implementation.NativeVisionEncoder.html">NativeVisionEncoder</a></h4>
+      <section>Wraps an mmproj context for vision/image encoding. All calls
+    dispatch on the OWNING ENGINE's per-handle tables (constructor-injected).</section>
+      <h4><a class="xref" href="ProvostXInference.Implementation.PvxDefaultEngineSelector.html">PvxDefaultEngineSelector</a></h4>
+      <section>Platform default engine selection — used when the model config leaves the
+engine field unset: macOS resolves to the metal specialist; Windows/Linux
+prefer cuda when its specialist file ships, else vulkan, else the cpu
+engine (every platform can build a CPU specialist); fail-closed
+(typed error, no silent fallback) when none is installed. The OS identity
+is constructor-injected (same probe family the selector matrix consults —
+no hidden environment dependence). Stateless utility — no mutable state.</section>
+      <h4><a class="xref" href="ProvostXInference.Implementation.RollingPrefillStallDetector.html">RollingPrefillStallDetector</a></h4>
+      <section>Rolling-median stall detector (INF BL-33). A chunk is a stall when
+    its wall exceeds GapMultiplier × the rolling median of the recent baseline
+    window. The detector is silent (never a stall) until the baseline holds at
+    least MinBaselineSamples clean observations — the first chunks of a prefill
+    cannot be judged against an empty baseline.</section>
+      <h4><a class="xref" href="ProvostXInference.Implementation.StallRecoveryLadder.html">StallRecoveryLadder</a></h4>
+      <section>Recovery ladder for the stall-safe prefill layer (INF BL-33).
+    Owns the configured step order and the retry budget; returns the step for
+    a given 0-based retry attempt and fails closed when the budget is
+    exhausted (the caller is expected to throw the typed unrecovered error
+    then — the ladder itself never invents steps).</section>
+      <h4><a class="xref" href="ProvostXInference.Implementation.SystemChunkWallClock.html">SystemChunkWallClock</a></h4>
+      <section>Production wall clock backed by the injected <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.timeprovider">TimeProvider</a>
+    (constructor injection, no statics — INF BL-33).</section>
+
+
+</article>
+          </div>
+
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In this article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="../index.html">Home</a>&ensp;&middot;&ensp;<a href="#top">Back to top</a>
+            </span>
+      ProvostXInference — MIT
+      
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script type="text/javascript" src="../styles/docfx.vendor.min.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>

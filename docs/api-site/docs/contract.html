@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+
+  <head>
+    <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>ProvostXInference — Consumer Contract | ProvostXInference API </title>
+      <meta name="viewport" content="width=device-width">
+      <meta name="title" content="ProvostXInference — Consumer Contract | ProvostXInference API ">
+    
+    
+      <link rel="shortcut icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../styles/docfx.vendor.min.css">
+      <link rel="stylesheet" href="../styles/docfx.css">
+      <link rel="stylesheet" href="../styles/main.css">
+      <meta property="docfx:navrel" content="">
+      <meta property="docfx:tocrel" content="">
+    
+    <meta property="docfx:rel" content="../">
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+
+        <div id="search-results">
+          <div class="search-list">Search Results for <span></span></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination" data-first=First data-prev=Previous data-next=Next data-last=Last></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+        <div class="article row grid">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+<h1 id="provostxinference--consumer-contract">ProvostXInference — Consumer Contract</h1>
+
+<p><strong>Audience:</strong> developers of consumer services (ProvostXLLM, tools, tests). This is the
+stability promise of the caller-facing surface: what you may touch, what is guaranteed,
+and what is closed. Anything not listed here is internal and may change without notice.</p>
+<h2 id="1-the-only-entry-point">1. The only entry point</h2>
+<pre><code class="lang-csharp">using ProvostXInference.Engines;        // builder, factory, ops views, helper facades
+using ProvostXInference.Models;         // config records, EngineStats, EngineTelemetry
+
+var engine = InferenceEngineBuilder.Gguf(modelPath)
+    .WithGpuLayers(99)
+    .Build();                           // validated EngineRequest, fail-closed
+engine.Initialize();
+var ops = engine.Gguf;                  // typed view; wrong kind =&gt; EngineKindMismatchException
+</code></pre>
+<p>You reference exactly two namespaces: <code>ProvostXInference.Engines</code> and
+<code>ProvostXInference.Models</code>. Everything else (<code>Implementation</code>, <code>Interop</code>, <code>SafeHandles</code>,
+<code>Logging</code>, <code>Abstractions</code>) is a closed black box.</p>
+<h2 id="2-engine-object-lifecycle-contract">2. Engine object lifecycle contract</h2>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Guarantee</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Builder.*</code> → <code>Build()</code></td>
+<td>Request validated fail-closed; bad paths/kinds/environments throw typed exceptions before any native work</td>
+</tr>
+<tr>
+<td><code>Initialize()</code></td>
+<td>Engine loads; failure leaves the engine <strong>unloaded and disposable</strong> — no partial state leaks</td>
+</tr>
+<tr>
+<td><code>engine.Gguf</code> / <code>.Decision</code> / <code>.Encoder</code></td>
+<td>Typed views over ONE graph; views wrap, never duplicate</td>
+</tr>
+<tr>
+<td><code>Dispose()</code></td>
+<td>Teardown in fixed order (pool → context → model); safe to call twice; safe after failed load</td>
+</tr>
+</tbody>
+</table>
+<h2 id="3-what-iggufengineops-guarantees">3. What <code>IGgufEngineOps</code> guarantees</h2>
+<ul>
+<li><strong>Model/context graph:</strong> chat template, tokenize/detokenize, sampling knobs, live
+context rebuild (<code>RebuildContext()</code> — old pool is disposed, state is not preserved),
+KV copy/clear, checkpoints (export/import byte-exact), rewind, shift.</li>
+<li><strong>Backend probe:</strong> <code>Backend</code> reports the TRUTH — active specialist, effective/requested
+GPU layers, reduced flag. It never reports CPU for an active accelerator.</li>
+<li><strong>Stats &amp; telemetry (ABI v9):</strong>
+<ul>
+<li><code>GetExecutorStats(executor)</code> / <code>GetConversationStats(conv)</code> — per-lane counters
+(prompt tokens, decode steps, committed tokens, spec drafted/accepted). Snapshot
+copy-out; rejected drafts derive as drafted − accepted.</li>
+<li><code>GetEngineTelemetry()</code> — model-wide snapshot for THIS engine instance:
+<code>EngineTelemetry(PromptTokens, DecodeSteps, CommittedTokens, SpecDrafted, SpecAccepted, Errors, ContextsAlive)</code>. <strong>Pull-based and per-engine</strong> — derive rates
+between two snapshots in the caller; the engine keeps no rate state.</li>
+</ul>
+</li>
+<li><strong>Speculation:</strong> capability self-report (<code>SpeculativeCapabilities</code> — supported-types
+list, not booleans), validate/enable/disable. Unwired capability ⇒ typed
+<code>NOT_SUPPORTED</code> naming the boundary. Never a silent plain-generation fallback.</li>
+<li><strong>Grammar:</strong> <code>CreateGrammar</code> (GBNF) / <code>CreateGrammarFromJsonSchema</code>. Every sampled
+token passed a grammar check (tiered rejection sampling) — output always conforms.</li>
+</ul>
+<h2 id="4-per-engine-audit-trail-abi-v9">4. Per-engine audit trail (ABI v9)</h2>
+<p>Set on the builder via <code>ModelConfig</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>AuditPath</code> (null/empty = off)</td>
+<td>JSON-lines audit file for THIS engine instance only</td>
+</tr>
+<tr>
+<td><code>AuditIncludePrompts</code></td>
+<td>also record prompt token <strong>counts</strong> (never prompt text)</td>
+</tr>
+</tbody>
+</table>
+<p>Guarantees:</p>
+<ul>
+<li><strong>Per-engine isolation:</strong> two engines in one process write two independent files and
+keep two independent telemetry streams. Nothing is shared (test-pinned).</li>
+<li><strong>Events:</strong> <code>model_loaded</code>, <code>model_freed</code>, <code>context_created</code>, <code>context_freed</code>,
+<code>spec_enabled</code>, <code>spec_disabled</code>, <code>kv_cleared</code>, <code>kv_shifted</code> — each <code>{&quot;ts&quot;, &quot;seq&quot;, &quot;event&quot;, &quot;detail&quot;?}</code>, monotonic seq, flushed per line (survives hard kill).</li>
+<li><strong>Content policy:</strong> prompt TEXT is never recorded. Audit logs are not a content sink.</li>
+<li><strong>Zero cost when off:</strong> unconfigured engines execute one branch per commit and
+nothing else — no counters, no I/O.</li>
+<li><strong>Best-effort by design:</strong> audit is observability, never a correctness dependency;
+an unusable path logs a warning and disables the sink (load still succeeds).</li>
+</ul>
+<h2 id="5-process-wide-debug-logging-vs-per-engine-audit">5. Process-wide debug logging vs per-engine audit</h2>
+<ul>
+<li><code>EngineLogging.SetLogFile/Enable/SetLevel</code> routes the native DEBUG stream
+(llama.cpp/ggml/Metal + pvx internal logs). This is process-wide by nature — one
+specialist module owns the log state. Use it for diagnostics.</li>
+<li>Use <code>AuditPath</code> for per-engine operation trails. The two are independent channels.</li>
+</ul>
+<h2 id="6-error-contract">6. Error contract</h2>
+<p>Every failure is a typed exception carrying an error code, message, and a named
+boundary (e.g. <code>spec-engine/mtp-wiring</code>, <code>json-schema/parse</code>, <code>kv/rewind</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Exception</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>InferenceException</code></td>
+<td>any native-side failure (load, decode, capability, marshaled refusals)</td>
+</tr>
+<tr>
+<td><code>InvalidEngineRequestException</code></td>
+<td>builder request failed validation</td>
+</tr>
+<tr>
+<td><code>EngineKindMismatchException</code></td>
+<td>wrong ops view for the engine kind</td>
+</tr>
+<tr>
+<td><code>PrefillStallUnrecoveredException</code></td>
+<td>stall watchdog exhausted its recovery ladder</td>
+</tr>
+</tbody>
+</table>
+<p>Refusals are always typed and named — never empty messages, never silent fallbacks,
+never process aborts on supported paths.</p>
+<h2 id="7-stability-rules">7. Stability rules</h2>
+<ul>
+<li><strong>ABI handshake:</strong> the native library version must match the binding; mismatch refuses
+to load. Struct layouts are size-pinned by tests.</li>
+<li><strong>Append-only ABI:</strong> new fields are appended; a zeroed struct reproduces previous
+behavior bit-for-bit. Consumers compiled against an older surface keep working.</li>
+<li><strong>No silent behavior changes:</strong> every capability boundary refuses typed instead of
+degrading. If a feature reports supported, it is verified by tests.</li>
+<li><strong>Config validation is fail-closed:</strong> invalid configs are rejected at build time,
+never clamped silently.</li>
+</ul>
+<h2 id="8-what-is-not-in-the-contract">8. What is NOT in the contract</h2>
+<ul>
+<li>Anything under <code>Implementation</code>, <code>Interop</code>, <code>SafeHandles</code>, <code>Logging</code>, <code>Abstractions</code></li>
+<li>Internal counters not surfaced through the stats/telemetry records</li>
+<li>Native C API details (the flat <code>pvx_*</code> surface) — consumers go through the facade</li>
+<li>Prompt text handling inside audit trails (explicitly excluded by policy)</li>
+</ul>
+<h2 id="9-version-history">9. Version history</h2>
+<table>
+<thead>
+<tr>
+<th>ABI</th>
+<th>Consumer-visible change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>v8</td>
+<td>wave-5 config verbs, stats export, audio/TTS/rerank/LoRA/cvec</td>
+</tr>
+<tr>
+<td>v9</td>
+<td>per-engine audit (<code>AuditPath</code>, <code>AuditIncludePrompts</code>) + <code>pvx_engine_telemetry</code> / <code>GetEngineTelemetry()</code></td>
+</tr>
+</tbody>
+</table>
+
+</article>
+          </div>
+
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In this article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="../index.html">Home</a>&ensp;&middot;&ensp;<a href="#top">Back to top</a>
+            </span>
+      ProvostXInference — MIT
+      
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script type="text/javascript" src="../styles/docfx.vendor.min.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>

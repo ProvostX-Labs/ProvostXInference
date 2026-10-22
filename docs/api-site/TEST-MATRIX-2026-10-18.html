@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+
+  <head>
+    <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>ProvostXInference — Real-Model Capability Test Matrix (2026-10-18) | ProvostXInference API </title>
+      <meta name="viewport" content="width=device-width">
+      <meta name="title" content="ProvostXInference — Real-Model Capability Test Matrix (2026-10-18) | ProvostXInference API ">
+    
+    
+      <link rel="shortcut icon" href="favicon.ico">
+      <link rel="stylesheet" href="styles/docfx.vendor.min.css">
+      <link rel="stylesheet" href="styles/docfx.css">
+      <link rel="stylesheet" href="styles/main.css">
+      <meta property="docfx:navrel" content="">
+      <meta property="docfx:tocrel" content="">
+    
+    <meta property="docfx:rel" content="">
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+
+              <a class="navbar-brand" href="index.html">
+                <img id="logo" class="svg" src="logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+
+        <div id="search-results">
+          <div class="search-list">Search Results for <span></span></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination" data-first=First data-prev=Previous data-next=Next data-last=Last></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+        <div class="article row grid">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+<h1 id="provostxinference--real-model-capability-test-matrix-2026-10-18">ProvostXInference — Real-Model Capability Test Matrix (2026-10-18)</h1>
+
+<p><strong>Repo:</strong> ProvostXInference (as-is state)
+<strong>Fix round (2026-10-18, am):</strong> the three real failures below were fixed in the repo state carrying this matrix update (native + C#, ABI v5) and RE-VERIFIED live on the large-memory host (fresh Release metal build <code>build-mfix</code>, dylib sha256 <code>7664304ba8ab2ae1…</code>, harness runtimes copy sha-matched; pre-fix repro captured first: probe FAIL backend=CPU, embed-isolate rc=139 ×2, empty <code>NOT_SUPPORTED: </code> message — logs <code>~/matrix-logs/results-repro.txt</code>). Rows 2 and 13 flipped to PASS on the new evidence; native ctest 2/2 and the local dotnet suite 189/189 stayed green on the fixed tree.
+<strong>Host:</strong> Apple Silicon desktop class, Metal backend, RAM ≥60% free at every load (gate enforced)
+<strong>Builds:</strong> native Release (metal specialist, embedded metal lib, BLAS/Accelerate, static ggml) built fresh from the worktree (<code>build-mrel</code>, dylib sha256 <code>e7424e3cada979bc…</code>); C# harness = Debug, facade-driven (<code>InferenceEngineBuilder</code> → <code>InferenceEngineFactory</code> → <code>Initialize</code> → <code>engine.Gguf</code>). The fresh dylib was verified byte-identical to what the harness loaded (runtimes copy next to the assembly = build output; sha match).
+<strong>Native sanity:</strong> <code>ctest</code> 2/2 (basic + stress suite) PASS on the fresh Release build.
+<strong>RAM gate:</strong> <code>memory_pressure -Q</code> before every load; every footprint ≤ 60% of free RAM (largest: 125 GiB Flash-Next vs 135 GiB allowed).
+<strong>Models:</strong> Qwen3.5-4B-Q4_K_M (hybrid; file <code>*-PVXLLM.gguf</code>), Qwen3.6-35B-A3B-UD-Q4_K_M (MoE hybrid, 21 GiB), Qwen3.8-Flash-Next-Q5_K_M-merged (125 GiB, batch16k lane), Llama-3.2-3B-Instruct-Q4_K_M (dense reference), Llama-3.2-1B-Instruct-Q4_K_M (spec draft), all-MiniLM-L6-v2-Q5_K_M (embeddings), mmproj-Qwen3.5-4B-BF16 (vision), tiny-judge ONNX + judge tokenizer/spec (decision lane).</p>
+<h2 id="matrix">Matrix</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Lane</th>
+<th>Qwen3.5-4B</th>
+<th>Qwen3.6-35B-A3B</th>
+<th>Qwen3.8-Flash-Next (Q5_K_M)</th>
+<th>Llama-3.2-3B (dense)</th>
+<th>MiniLM</th>
+<th>tiny-judge ONNX</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Load + Initialize (fail-closed, idempotence, Kind)</td>
+<td><strong>PASS</strong> (323 ms)</td>
+<td><strong>PASS</strong> (879 ms warm)</td>
+<td><strong>PASS</strong> (3.0 s warm / 11.9 s cold, batch16k)</td>
+<td><strong>PASS</strong> (223 ms)</td>
+<td><strong>PASS</strong></td>
+<td><strong>PASS</strong></td>
+</tr>
+<tr>
+<td>2</td>
+<td>Backend probe / ActiveSpecialist (read-only visibility)</td>
+<td><strong>PASS</strong> ² (Metal, eff/req=33/99)</td>
+<td><strong>PASS</strong> ² (Metal, eff/req=41/99)</td>
+<td><strong>PASS</strong> ² (Metal, eff/req=49/99)</td>
+<td><strong>PASS</strong> ² (Metal, eff/req=29/99)</td>
+<td>—</td>
+<td>n/a (ActiveSpecialist=null, contract-correct)</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Sequential generation (prompt → infer → sample loop, per-token stream)</td>
+<td><strong>PASS</strong> 24 tok, 171 t/s</td>
+<td><strong>PASS</strong> 24 tok, 137 t/s</td>
+<td><strong>PASS</strong> 24 tok, 57 t/s</td>
+<td><strong>PASS</strong> 24 tok, 210 t/s</td>
+<td>n/a</td>
+<td>n/a</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Continuous batching (pool leases, <code>InferAll</code> interleave, concurrent convs)</td>
+<td><strong>PASS</strong> 4 convs, 32 tok, 152 t/s</td>
+<td><strong>PASS</strong> 4 convs, 106 t/s</td>
+<td><strong>PASS</strong> 2 convs (seqMax 2), 47 t/s, batch 16384</td>
+<td><strong>PASS</strong> 4 convs, 232 t/s</td>
+<td>n/a</td>
+<td>n/a</td>
+</tr>
+<tr>
+<td>5</td>
+<td>KV: save/restore state, export/import checkpoint, KvCopy, KvClearSeq, Reset, ShiftLeft</td>
+<td><strong>PASS</strong> (ckpt 53 MB, count match)</td>
+<td><strong>PASS</strong> (ckpt 66 MB)</td>
+<td><strong>PASS</strong> (ckpt 118 MB)</td>
+<td><strong>PASS</strong> (ckpt 0.9 MB)</td>
+<td>n/a</td>
+<td>n/a</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Rewind (dense works / hybrid typed refusal)</td>
+<td><strong>PASS</strong> typed <code>REWIND_UNSUPPORTED</code> (code 8)</td>
+<td><strong>PASS</strong> typed refusal</td>
+<td><strong>PASS</strong> typed refusal</td>
+<td><strong>PASS</strong> Rewind(1) OK (dense)</td>
+<td>n/a</td>
+<td>n/a</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Speculative: capability self-report + ValidateSpeculation</td>
+<td><strong>PASS</strong> <code>draft_simple</code> (no mtp bit)</td>
+<td><strong>PASS</strong> <code>draft_simple</code></td>
+<td><strong>PASS</strong> <code>draft_simple</code> (merged file carries no nextn tensors)</td>
+<td><strong>PASS</strong> <code>draft_simple</code></td>
+<td>n/a</td>
+<td>n/a</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Speculative MTP: EnableSpeculation + ActiveSpeculation + GenerateSpeculative typing</td>
+<td><strong>PASS</strong> (typed NOT_SUPPORTED <code>mtp-wiring</code>; ActiveSpeculation stays null; generate w/o session typed code 7)</td>
+<td><strong>PASS</strong> (same)</td>
+<td><strong>PASS</strong> (same)</td>
+<td><strong>PASS</strong> (same)</td>
+<td>n/a</td>
+<td>n/a</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Speculative draft-simple: GenerateSpeculative vs plain loop (token-exact) + onToken stream</td>
+<td>n/a (no same-vocab draft on disk)</td>
+<td>n/a</td>
+<td>n/a</td>
+<td><strong>PASS</strong> 3B target + 1B draft: 12/12 token-exact, stream==returned, 131 t/s spec / 216 t/s plain; teardown typed</td>
+<td>n/a</td>
+<td>n/a</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Grammar (GBNF CreateGrammar + SampleWithGrammar)</td>
+<td><strong>PASS</strong> (pieces strictly constrained)</td>
+<td><strong>PASS</strong></td>
+<td><strong>PASS</strong></td>
+<td><strong>PASS</strong></td>
+<td>n/a</td>
+<td>n/a</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Tool calls: ApplyChatTemplate with system+user+tool roles</td>
+<td><strong>PASS</strong> (245-char templated prompt, content preserved, detok round-trip)</td>
+<td><strong>PASS</strong></td>
+<td><strong>PASS</strong></td>
+<td><strong>PASS</strong></td>
+<td>n/a</td>
+<td>n/a</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Vision: mmproj load + image prompt splice + generation</td>
+<td><strong>PASS</strong> (marker <code>&lt;__media__&gt;</code>, 20 prefill tok, 10 gen tok: &quot;A simple graphic feat…&quot;)</td>
+<td>n/a</td>
+<td>n/a</td>
+<td>n/a</td>
+<td>n/a</td>
+<td>n/a</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Embeddings: GetEmbeddings, MEAN pooling</td>
+<td><strong>PASS</strong> ² dim=2560, L2=1.00, sim=0.723&gt;disim=0.476</td>
+<td><strong>PASS</strong> ² dim=2048, L2=1.00, sim=0.784&gt;disim=0.568</td>
+<td><strong>TYPED</strong> ² (fail-closed code 7: multi-token output head n_embd_out=10240≠n_embd=2560)</td>
+<td><strong>PASS</strong> ² dim=3072, L2=1.00, sim=0.819&gt;disim=0.548</td>
+<td><strong>PASS</strong> dim=384, L2=1.00, sim(related)=0.594 &gt; sim(unrelated)=−0.029</td>
+<td>n/a</td>
+</tr>
+<tr>
+<td>14</td>
+<td>Decision lane (ONNX judge via facade)</td>
+<td>n/a</td>
+<td>n/a</td>
+<td>n/a</td>
+<td>n/a</td>
+<td>n/a</td>
+<td><strong>PASS</strong> activeProvider=cpu (truthful), 2/2 records judged (Deny/0.63/3.16)</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Fail-closed negatives (bad path / bad specialist / out-of-range seq)</td>
+<td><strong>PASS</strong> (typed LOAD_FAILED; resolver typed DllNotFoundException naming known specialists; INVALID_ARG on seq)</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td><strong>PASS</strong></td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>n/a = not applicable for that lane/model; — = not re-run per model (shared negative).
+² = fixed + re-verified in the 2026-10-18 am fix round (evidence in the per-failure sections below).</p>
+<h2 id="notable-failures-exact-evidence--1--2-fixed-2026-10-18-am-re-verified-live">Notable failures (exact evidence) — 1 &amp; 2 FIXED 2026-10-18 am, re-verified live</h2>
+<h3 id="1-fixed--backend-probe-misreported-metal-as-cpu-all-gguf-models-default-and-explicit-metal-specialist">1. FIXED — Backend probe misreported Metal as CPU (all GGUF models, default AND explicit <code>metal</code> specialist)</h3>
+<ul>
+<li><strong>Evidence:</strong> <code>backend=CPU probePassed=True gpuLayers eff/req=0/0 reduced=False activeSpecialist=(platform-default)</code> — identical with <code>WithGpuLayers(99)</code> and with explicit <code>WithEngineId(&quot;metal&quot;)</code>. Metal is demonstrably active (embedded metal lib loads; <code>MTL0</code> compute buffers allocated; <code>splits=2</code> graphs), so this is a misreport, not a CPU-only run.</li>
+<li><strong>Root cause (code-level):</strong> <code>src/pvx_backend.cpp</code> <code>detect_backend()</code> greps device names for <code>&quot;Metal&quot;</code>, but the vendored ggml names the metal device <code>GGML_METAL_NAME=&quot;MTL&quot;</code> → <code>&quot;MTL0&quot;</code> (see <code>llama.cpp/ggml/src/ggml-metal/ggml-metal.cpp:15</code>). <code>strstr(&quot;MTL0&quot;,&quot;Metal&quot;)</code> never matches → every probe fell through to <code>PVX_BACKEND_CPU</code>.</li>
+<li><strong>Second defect in the same slice:</strong> <code>original_gpu_layers</code>/<code>effective_gpu_layers</code>/<code>gpu_layers_reduced</code> were only written by <code>pvx_create_context_safe()</code>, which the C# facade path never uses (it calls per-handle <code>pvx_create_context</code> directly), so <code>BackendInfo</code> gpu-layer visibility was structurally <code>0/0</code> for every facade-created engine.</li>
+<li><strong>Fix:</strong> detection now skips CPU-class devices and matches the stable vendor-tag device ids (<code>MTL</code>/<code>Metal</code>, <code>CUDA</code>, <code>Vulkan</code>); an unrecognized accelerator reports its raw ggml device name (<code>PVX_BACKEND_GPU_OTHER</code>) instead of lying &quot;CPU&quot;. gpu-layer fields are computed by <code>pvx_backend_fill_profile()</code> — called from <strong><code>pvx_create_context</code></strong> (every facade path) and re-run by <code>pvx_probe_backend</code> (requested = model's load-time config; effective = min(requested, n_layer+1), 0 on a CPU verdict).</li>
+<li><strong>Re-verification (large-memory host, <code>results-verify.txt</code> + <code>flash-probe.final.log</code>):</strong> <code>RESULT|…/backend-probe-gpu99|PASS|gpuLayers req=99 → backend=Metal probePassed=True eff/req=29/99 reduced=True</code> (Llama-3B); identical PASS on Qwen3.5-4B (33/99), Qwen3.6-35B (41/99), Flash-Next (49/99). The in-lane <code>backend-probe</code> row flipped too: <code>backend=Metal probePassed=True gpuLayers eff/req=29/-1 reduced=False</code>. C# <code>IGgufEngineOps.Backend</code> reports the truth through the facade.</li>
+</ul>
+<h3 id="2-fixed--pvx_get_embeddings-segfaulted-on-generative-models-with-mean-pooling-dense-and-hybrid">2. FIXED — <code>pvx_get_embeddings</code> SEGFAULTED on generative models with MEAN pooling (dense AND hybrid)</h3>
+<ul>
+<li><strong>Evidence:</strong> <code>IInferenceModel.GetEmbeddings</code> with a MEAN-pooling context on Llama-3.2-3B (dense) and Qwen3.5-4B (hybrid) → process dies with SIGSEGV (rc=139), reproducible both when pooling is set at load and via <code>RebuildContext</code>; lldb: <code>EXC_BAD_ACCESS (code=1, address=0x10)</code>, faulting instruction <code>ldr x8, [x0, #0x10]</code> (null-object deref) immediately after the embeddings forward completes (<code>sched_reserve</code> printed, graph ran). <code>RebuildContext(Mean)</code> + dispose WITHOUT calling GetEmbeddings = PASS (no crash) — the fault is inside the native embeddings read path, not teardown. Encoder-arch embeddings (MiniLM) PASS, so the crash is specific to generative (causal) models + pooling.</li>
+<li><strong>Contract angle:</strong> a pooling request on a causal model should be a typed error (fail-closed), never a segv. All four gguf-all runs ended rc=139 at this row before the row was split into an isolated subprocess test.</li>
+<li><strong>Root cause:</strong> the embeddings path called <code>llama_encode</code> FIRST and fell back to <code>llama_decode</code> on error. <code>llama_encode</code> on a decoder-only model builds an ENCODER graph on a causal arch and dies with the observed <code>EXC_BAD_ACCESS (address=0x10)</code> right after <code>sched_reserve</code> (the graph path the model does not define). MiniLM survived because it takes the encode path for the right reason.</li>
+<li><strong>Fix:</strong> encode-vs-decode is now routed by the model's own architecture (<code>llama_model_has_encoder/has_decoder</code>; typed NOT_SUPPORTED if a model exposes neither). Extraction fails CLOSED (typed error) when no embedding source produces data.</li>
+<li><strong>Re-verification (large-memory host, <code>results-verify.txt</code> / <code>results-verify3.txt</code>):</strong> pre-fix repro: <code>embed-isolate L3B load rc=139</code>, <code>embed-isolate Q35 load rc=139</code>. Post-fix: <code>RESULT|Llama-3.2-3B/embed-isolate-load|PASS|mean-pooling embeddings dim=3072 L2=1.00 sim=0.819 &gt; disim=0.548</code> (load AND rebuild); Qwen3.5-4B <code>dim=2560 … sim=0.723 &gt; disim=0.476</code>; Qwen3.6-35B <code>dim=2048 … sim=0.784 &gt; disim=0.568</code>; MiniLM unchanged (dim=384).</li>
+<li><strong>Flash-Next (honest boundary, NOT a silent pass):</strong> the merged Q5_K_M file reports <code>n_embd_out=10240</code> vs <code>n_embd=2560</code> (4-way multi-token output head). llama.cpp's internal MEAN extraction would read 10240 floats from a 2560-wide pooled tensor and its upstream bounds assert ABORTED the process (observed rc=134 on the first verify round). Now a typed fail-closed refusal BEFORE any decode: <code>InferenceException[code=7]: NOT_SUPPORTED: embeddings: model's output head (n_embd_out=10240) differs from its hidden state (n_embd=2560) - merged multi-token output head cannot be pooled honestly (boundary: embeddings/pooling)</code> — both at-load and after RebuildContext, rc=0, deterministic dispose (first verify round also exposed a HARNESS lifecycle bug: the undisposed engine on the exception path raced finalizers at exit and tripped the known metal teardown assert — scratch harness fixed to dispose + emit a TYPED verdict; native contract unchanged).</li>
+</ul>
+<h3 id="3-fixed-message-plumbing--mtp-wiring-boundary-expected-refusal-now-with-a-named-reason">3. FIXED (message plumbing) — MTP wiring boundary (expected refusal, now with a named reason)</h3>
+<ul>
+<li><strong>Evidence (all models):</strong> <code>EnableSpeculation(Mtp)</code> → <code>InferenceException[code=7]: NOT_SUPPORTED: PVX_SPEC_MTP_AUTO not wired in this build: MTP drafting requires LLAMA_CONTEXT_TYPE_MTP context plumbing + nextn hidden-state extraction this specialist does not construct yet; the mtp capability reports model-level presence honestly (boundary: spec-engine/mtp-wiring)</code>. <code>ActiveSpeculation</code> stays null after the failed enable; <code>GenerateSpeculative</code> without a session → typed <code>NOT_SUPPORTED: no spec session on this executor (boundary: spec-engine/session)</code>. No model on disk reports the <code>mtp</code> capability bit (the Q5_K_M merged Flash-Next GGUF carries no nextn tensors; the Q8 MTP sidecar exists on disk but has no load path through this API).</li>
+<li>Minor (FIXED): <code>ValidateSpeculation(Mtp)</code> on non-mtp models used to throw code 7 with an <strong>empty message string</strong> (<code>NOT_SUPPORTED:  </code>). Root cause was twofold: the native <code>pvx_model_spec_validate</code> set NO reason string, and the C# layer passed a MODEL handle to <code>pvx_last_error</code> (a CONTEXT-handle function — wrong struct layout). Fix (ABI v5): new <code>pvx_model_last_error(model)</code> export + native validate writes model-scoped reasons + C# <code>ThrowIfModelError</code> retrieves them. Re-verified: <code>Validate(Mtp)=typed: InferenceException[code=7]: NOT_SUPPORTED: model has no MTP capability (no nextn tensors in the GGUF; boundary: spec-engine/capability)</code> (the local unit test now also asserts a non-empty reason).</li>
+</ul>
+<h3 id="4-data-observation-not-an-engine-bug">4. Data observation (not an engine bug)</h3>
+<ul>
+<li>The file named <code>Llama-3.2-3B-Instruct-Q4_K_M.gguf</code> on disk has a Qwen-style special vocabulary (generates <code>&lt;/im_start/&gt;</code> / <code>&lt;/im_end/&gt;</code> markers under its own chat template). Handled fine by the engine; flagged because the file name does not match its tokenizer family.</li>
+</ul>
+<h2 id="verified-good-seams-one-liners">Verified-good seams (one-liners)</h2>
+<ul>
+<li>Fail-closed everywhere it was probed: bad model path → <code>InferenceException[code=3] LOAD_FAILED</code>; unknown specialist id → typed resolver refusal listing <code>metal, cuda, vulkan</code>; out-of-range <code>KvClearSeq</code> → <code>INVALID_ARG</code>; hybrid rewind → <code>REWIND_UNSUPPORTED</code> (code 8, seq_rm refused by memory); spec boundaries all typed with named boundaries.</li>
+<li>KV portability is real: export/import checkpoint restored exact token counts on every arch including the 125 GiB Flash-Next (118 MB checkpoint) and both hybrids.</li>
+<li>Speculative draft-simple is token-exact vs the plain loop (12/12), streams via onToken (stream == returned), reports <code>ActiveSpeculation</code> after enable, and tears down typed.</li>
+<li>Continuous batching via pool leases + <code>InferAll</code> kept all concurrent conversations progressing on every model (incl. batch16k prefill on Flash-Next).</li>
+<li>Grammar (GBNF) sampling is character-position correct: single-token pieces like <code>a</code>,<code>p</code>,<code>pl</code>,<code>e</code> are legal mid-word continuations; every emitted sequence was strictly grammar-constrained on all four GGUF models.</li>
+<li>Vision lane works end-to-end end through the facade (mmproj load → <code>&lt;__media__&gt;</code> splice → prefill 20 tok → generation), with a real 64×64 PNG; the repo-root <code>test_image.png</code> (168 bytes) is a stub, not a valid image.</li>
+<li>Decision lane judges via the facade with truthful <code>activeProvider=cpu</code> reporting.</li>
+</ul>
+<h2 id="not-run-with-reasons">NOT-RUN (with reasons)</h2>
+<ul>
+<li><strong>Flash-Next IQ4_XS sharded variant</strong> — the Q5_K_M merged file served the Flash lane; the 93 GiB 3-shard IQ4_XS was not loaded (redundant lane, RAM/time budget; no behavioral difference expected — same arch/family).</li>
+<li><strong>MTP draft model live run</strong> — native MTP is a typed NOT_SUPPORTED boundary in this build (verified); the on-disk MTP sidecar (<code>mtp-Qwen3.8-Flash-Next-Q8_0.gguf</code>) and no other draft sidecar has a load path through the engine facade; no fake pass claimed.</li>
+<li><strong>Spec draft-exactness for the Qwen models</strong> — no same-vocab-family small draft GGUF exists on disk (<code>spec-test/</code> holds only a tokenizer.json); token-exactness was instead proven on the Llama-3.2 3B+1B pair.</li>
+<li><strong>Vision on 35B/Flash</strong> — no matching mmproj projector on disk for those models (the available projector is Qwen3.5-4B-specific).</li>
+</ul>
+<h2 id="repro">Repro</h2>
+<p>Harness (scratch, outside the repo): facade-driven C# console app + bash driver; per-load RAM gate; fresh Release dylib pinned via runtimes-copy sha. Raw logs and RESULT lines preserved under the scratch logs dir (<code>results*.txt</code>, <code>*.log</code>).</p>
+<p>Fix-round drivers (same harness, large-memory host): <code>run-repro.sh</code> → <code>results-repro.txt</code> (pre-fix failures), <code>run-verify.sh</code> → <code>results-verify.txt</code> (probe ×4, embed ×4, gguf-all L3B/Q35/35B), <code>run-verify2.sh</code>/<code>run-verify3.sh</code> (Flash typed-refusal + regression), <code>flash-probe.final.log</code>.</p>
+<h2 id="note-on-row-12-vision--pre-existing-flake-unchanged-by-the-fix-round">Note on row 12 (vision) — pre-existing flake, unchanged by the fix round</h2>
+<p>An intermittent first-sample flake exists on the Qwen3.5-4B vision lane: in some runs the first <code>conv.Sample</code> returns −1/EOS and the row emits <code>genTokens=0</code> (observed in pre-fix pass2 <code>results2.txt</code>, pre-fix pass3 <code>results3.txt</code> FAIL+PASS pair, and once in the fix-round verify run). Identical evidence string in pre- and post-fix code → pre-existing, unrelated to the three fixed failures; not investigated this round. The PASS evidence stands from the runs where generation started.</p>
+
+</article>
+          </div>
+
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In this article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="index.html">Home</a>&ensp;&middot;&ensp;<a href="#top">Back to top</a>
+            </span>
+      ProvostXInference — MIT
+      
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script type="text/javascript" src="styles/docfx.vendor.min.js"></script>
+    <script type="text/javascript" src="styles/docfx.js"></script>
+    <script type="text/javascript" src="styles/main.js"></script>
+  </body>
+</html>

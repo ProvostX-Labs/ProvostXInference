@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+
+  <head>
+    <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>Interface IInferenceContext | ProvostXInference API </title>
+      <meta name="viewport" content="width=device-width">
+      <meta name="title" content="Interface IInferenceContext | ProvostXInference API ">
+    
+    
+      <link rel="shortcut icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../styles/docfx.vendor.min.css">
+      <link rel="stylesheet" href="../styles/docfx.css">
+      <link rel="stylesheet" href="../styles/main.css">
+      <meta property="docfx:navrel" content="">
+      <meta property="docfx:tocrel" content="toc.html">
+    
+    <meta property="docfx:rel" content="../">
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+
+        <div id="search-results">
+          <div class="search-list">Search Results for <span></span></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination" data-first=First data-prev=Previous data-next=Next data-last=Last></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="ProvostXInference.Abstractions.IInferenceContext">
+
+
+
+  <h1 id="ProvostXInference_Abstractions_IInferenceContext" data-uid="ProvostXInference.Abstractions.IInferenceContext" class="text-break">Interface IInferenceContext</h1>
+  <div class="markdown level0 summary"></div>
+  <div class="markdown level0 conceptual"></div>
+  <div class="inheritedMembers">
+    <h5>Inherited Members</h5>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.idisposable.dispose">IDisposable.Dispose()</a>
+    </div>
+  </div>
+  <h6><strong>Namespace</strong>: <span class="xref">ProvostXInference</span>.<a class="xref" href="ProvostXInference.Abstractions.html">Abstractions</a></h6>
+  <h6><strong>Assembly</strong>: ProvostXInference.dll</h6>
+  <h5 id="ProvostXInference_Abstractions_IInferenceContext_syntax">Syntax</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public interface IInferenceContext : IDisposable</code></pre>
+  </div>
+  <h3 id="properties">Properties
+</h3>
+  <a id="ProvostXInference_Abstractions_IInferenceContext_ContextSize_" data-uid="ProvostXInference.Abstractions.IInferenceContext.ContextSize*"></a>
+  <h4 id="ProvostXInference_Abstractions_IInferenceContext_ContextSize" data-uid="ProvostXInference.Abstractions.IInferenceContext.ContextSize">ContextSize</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">uint ContextSize { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.uint32">uint</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Abstractions_IInferenceContext_SeqMax_" data-uid="ProvostXInference.Abstractions.IInferenceContext.SeqMax*"></a>
+  <h4 id="ProvostXInference_Abstractions_IInferenceContext_SeqMax" data-uid="ProvostXInference.Abstractions.IInferenceContext.SeqMax">SeqMax</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">uint SeqMax { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.uint32">uint</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="methods">Methods
+</h3>
+  <a id="ProvostXInference_Abstractions_IInferenceContext_CreateExecutor_" data-uid="ProvostXInference.Abstractions.IInferenceContext.CreateExecutor*"></a>
+  <h4 id="ProvostXInference_Abstractions_IInferenceContext_CreateExecutor" data-uid="ProvostXInference.Abstractions.IInferenceContext.CreateExecutor">CreateExecutor()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">IStandardExecutor CreateExecutor()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IStandardExecutor.html">IStandardExecutor</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Abstractions_IInferenceContext_CreatePool_" data-uid="ProvostXInference.Abstractions.IInferenceContext.CreatePool*"></a>
+  <h4 id="ProvostXInference_Abstractions_IInferenceContext_CreatePool" data-uid="ProvostXInference.Abstractions.IInferenceContext.CreatePool">CreatePool()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">IConversationPool CreatePool()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IConversationPool.html">IConversationPool</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Abstractions_IInferenceContext_Detokenize_" data-uid="ProvostXInference.Abstractions.IInferenceContext.Detokenize*"></a>
+  <h4 id="ProvostXInference_Abstractions_IInferenceContext_Detokenize_System_Int32___System_Boolean_" data-uid="ProvostXInference.Abstractions.IInferenceContext.Detokenize(System.Int32[],System.Boolean)">Detokenize(int[], bool)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">string Detokenize(int[] tokens, bool removeSpecial = false)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a>[]</td>
+        <td><span class="parametername">tokens</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></td>
+        <td><span class="parametername">removeSpecial</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Abstractions_IInferenceContext_InferAll_" data-uid="ProvostXInference.Abstractions.IInferenceContext.InferAll*"></a>
+  <h4 id="ProvostXInference_Abstractions_IInferenceContext_InferAll" data-uid="ProvostXInference.Abstractions.IInferenceContext.InferAll">InferAll()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">InferResult InferAll()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.InferResult.html">InferResult</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Abstractions_IInferenceContext_IsEos_" data-uid="ProvostXInference.Abstractions.IInferenceContext.IsEos*"></a>
+  <h4 id="ProvostXInference_Abstractions_IInferenceContext_IsEos_System_Int32_" data-uid="ProvostXInference.Abstractions.IInferenceContext.IsEos(System.Int32)">IsEos(int)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">bool IsEos(int token)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td><span class="parametername">token</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Abstractions_IInferenceContext_KvClearSeq_" data-uid="ProvostXInference.Abstractions.IInferenceContext.KvClearSeq*"></a>
+  <h4 id="ProvostXInference_Abstractions_IInferenceContext_KvClearSeq_System_Int32_" data-uid="ProvostXInference.Abstractions.IInferenceContext.KvClearSeq(System.Int32)">KvClearSeq(int)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">void KvClearSeq(int seqId)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td><span class="parametername">seqId</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Abstractions_IInferenceContext_KvCopy_" data-uid="ProvostXInference.Abstractions.IInferenceContext.KvCopy*"></a>
+  <h4 id="ProvostXInference_Abstractions_IInferenceContext_KvCopy_System_Int32_System_Int32_" data-uid="ProvostXInference.Abstractions.IInferenceContext.KvCopy(System.Int32,System.Int32)">KvCopy(int, int)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">void KvCopy(int srcSeqId, int dstSeqId)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td><span class="parametername">srcSeqId</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td><span class="parametername">dstSeqId</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Abstractions_IInferenceContext_Rerank_" data-uid="ProvostXInference.Abstractions.IInferenceContext.Rerank*"></a>
+  <h4 id="ProvostXInference_Abstractions_IInferenceContext_Rerank_System_String_System_Collections_Generic_IReadOnlyList_System_String__" data-uid="ProvostXInference.Abstractions.IInferenceContext.Rerank(System.String,System.Collections.Generic.IReadOnlyList{System.String})">Rerank(string, IReadOnlyList&lt;string&gt;)</h4>
+  <div class="markdown level1 summary">ABI v8: single-shot rerank scores for one query against N
+    documents (RANK-pooling context required — typed refusal otherwise).
+    Each pair scores on a fresh seq; KV-neutral.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">float[] Rerank(string query, IReadOnlyList&lt;string&gt; documents)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td><span class="parametername">query</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.ireadonlylist-1">IReadOnlyList</a>&lt;<a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a>&gt;</td>
+        <td><span class="parametername">documents</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.single">float</a>[]</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Abstractions_IInferenceContext_SetAdapters_" data-uid="ProvostXInference.Abstractions.IInferenceContext.SetAdapters*"></a>
+  <h4 id="ProvostXInference_Abstractions_IInferenceContext_SetAdapters_System_Collections_Generic_IReadOnlyList_System_ValueTuple_ProvostXInference_Abstractions_ILoraAdapter_System_Single___" data-uid="ProvostXInference.Abstractions.IInferenceContext.SetAdapters(System.Collections.Generic.IReadOnlyList{System.ValueTuple{ProvostXInference.Abstractions.ILoraAdapter,System.Single}})">SetAdapters(IReadOnlyList&lt;(ILoraAdapter adapter, float scale)&gt;)</h4>
+  <div class="markdown level1 summary">ABI v8: attach (or detach — empty list) LoRA adapters on THIS
+    live context. Weights-surface: KV-neutral, all-or-nothing, scales
+    &gt; 0 (typed otherwise).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">void SetAdapters(IReadOnlyList&lt;(ILoraAdapter adapter, float scale)&gt; adapters)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.ireadonlylist-1">IReadOnlyList</a>&lt;(<a class="xref" href="ProvostXInference.Abstractions.ILoraAdapter.html">ILoraAdapter</a> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.valuetuple-provostxinference.abstractions.iloraadapter,system.single-.adapter">adapter</a>, <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.single">float</a> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.valuetuple-provostxinference.abstractions.iloraadapter,system.single-.scale">scale</a>)&gt;</td>
+        <td><span class="parametername">adapters</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Abstractions_IInferenceContext_SetCausalAttention_" data-uid="ProvostXInference.Abstractions.IInferenceContext.SetCausalAttention*"></a>
+  <h4 id="ProvostXInference_Abstractions_IInferenceContext_SetCausalAttention_System_Boolean_" data-uid="ProvostXInference.Abstractions.IInferenceContext.SetCausalAttention(System.Boolean)">SetCausalAttention(bool)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">void SetCausalAttention(bool causal)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></td>
+        <td><span class="parametername">causal</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Abstractions_IInferenceContext_SetControlVector_" data-uid="ProvostXInference.Abstractions.IInferenceContext.SetControlVector*"></a>
+  <h4 id="ProvostXInference_Abstractions_IInferenceContext_SetControlVector_ProvostXInference_Abstractions_IControlVector_System_Int32_System_Int32_" data-uid="ProvostXInference.Abstractions.IInferenceContext.SetControlVector(ProvostXInference.Abstractions.IControlVector,System.Int32,System.Int32)">SetControlVector(IControlVector?, int, int)</h4>
+  <div class="markdown level1 summary">ABI v8: apply (or clear — null) a control vector on THIS live
+    context. Weights-surface: KV-neutral. Layer range 0/0 = full 1..N;
+    explicit out-of-range ends throw typed.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">void SetControlVector(IControlVector? vector, int layerStart = 0, int layerEnd = 0)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IControlVector.html">IControlVector</a></td>
+        <td><span class="parametername">vector</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td><span class="parametername">layerStart</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td><span class="parametername">layerEnd</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Abstractions_IInferenceContext_TokenToPiece_" data-uid="ProvostXInference.Abstractions.IInferenceContext.TokenToPiece*"></a>
+  <h4 id="ProvostXInference_Abstractions_IInferenceContext_TokenToPiece_System_Int32_" data-uid="ProvostXInference.Abstractions.IInferenceContext.TokenToPiece(System.Int32)">TokenToPiece(int)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">string TokenToPiece(int token)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td><span class="parametername">token</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Abstractions_IInferenceContext_Tokenize_" data-uid="ProvostXInference.Abstractions.IInferenceContext.Tokenize*"></a>
+  <h4 id="ProvostXInference_Abstractions_IInferenceContext_Tokenize_System_String_System_Boolean_System_Boolean_" data-uid="ProvostXInference.Abstractions.IInferenceContext.Tokenize(System.String,System.Boolean,System.Boolean)">Tokenize(string, bool, bool)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">int[] Tokenize(string text, bool addBos = false, bool parseSpecial = true)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td><span class="parametername">text</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></td>
+        <td><span class="parametername">addBos</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></td>
+        <td><span class="parametername">parseSpecial</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a>[]</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+
+</article>
+          </div>
+
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In this article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="../index.html">Home</a>&ensp;&middot;&ensp;<a href="#top">Back to top</a>
+            </span>
+      ProvostXInference — MIT
+      
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script type="text/javascript" src="../styles/docfx.vendor.min.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>

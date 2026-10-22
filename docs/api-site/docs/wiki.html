@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ProvostXMemory — Documentation</title>
+<style>
+:root {
+  --bg: #ffffff; --fg: #334155; --muted: #5A6B80; --border: #E2E8F0;
+  --accent: #6366F1; --accent-soft: #EEF2FF; --sidebar: #F8FAFC; --code-bg: #EEF1F6;
+  --tok-k: #00539B; --tok-s: #A34E00; --tok-n: #067D62; --tok-c: #456A45;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0E1E3E; --fg: #E6EBF2; --muted: #A4B8D8; --border: #28406E;
+    --accent: #5B9CFF; --accent-soft: #152B54; --sidebar: #152B54; --code-bg: #152B54;
+    --tok-k: #569CD6; --tok-s: #CE9179; --tok-n: #B5CEA8; --tok-c: #7FA88C;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  background: var(--bg); color: var(--fg); line-height: 1.6; font-size: 16px; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.layout { display: flex; min-height: 100vh; }
+aside {
+  width: 280px; flex-shrink: 0; background: var(--sidebar); border-right: 1px solid var(--border);
+  position: sticky; top: 0; height: 100vh; overflow-y: auto; padding: 24px 0;
+}
+.brand { font-weight: 700; font-size: 17px; padding: 0 24px 4px; }
+.brand-sub { font-size: 12px; color: var(--muted); padding: 0 24px 16px; }
+.search-wrap { padding: 0 16px 12px; }
+#search { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--bg); color: var(--fg); font-size: 14px; }
+nav { display: flex; flex-direction: column; }
+.nav-link { padding: 7px 24px; color: var(--fg); font-size: 14px; border-left: 3px solid transparent; }
+.nav-link:hover { background: var(--accent-soft); text-decoration: none; }
+.nav-link.active { border-left-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+main { flex: 1; min-width: 0; padding: 40px 56px 80px; max-width: 980px; }
+.pane { display: none; }
+.pane.visible { display: block; }
+h1 { font-size: 30px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+h2 { font-size: 22px; margin-top: 36px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+h3 { font-size: 17px; margin-top: 28px; }
+code { background: var(--code-bg); padding: .15em .35em; border-radius: 5px; font-size: 87%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+pre.code { background: var(--code-bg); color: var(--fg); padding: 14px 16px; border-radius: 8px;
+  overflow-x: auto; font-size: 13.5px; line-height: 1.5; border: 1px solid var(--border);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; }
+pre.code code { background: none; padding: 0; font-size: inherit; }
+pre.code .tok-k { color: var(--tok-k); }
+pre.code .tok-s { color: var(--tok-s); }
+pre.code .tok-n { color: var(--tok-n); }
+pre.code .tok-c { color: var(--tok-c); font-style: italic; }
+table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 14.5px; }
+th, td { border: 1px solid var(--border); padding: 7px 12px; text-align: left; vertical-align: top; }
+th { background: var(--sidebar); font-weight: 600; }
+tbody tr:nth-child(2n) td { background: var(--sidebar); }
+li { margin: 4px 0; }
+.match-hidden { display: none !important; }
+.copy-btn { position: absolute; top: 6px; right: 6px; padding: 2px 10px; font-size: 12px;
+  line-height: 1.4; color: var(--muted); background: var(--bg); border: 1px solid var(--border);
+  border-radius: 5px; opacity: 0; transition: opacity .15s ease; cursor: pointer; z-index: 5; }
+pre.code { position: relative; }
+pre.code:hover > .copy-btn, .copy-btn.copied { opacity: 1; }
+.copy-btn:hover, .copy-btn.copied { color: var(--accent); border-color: var(--accent); font-weight: 600; }
+.copy-btn:focus-visible { opacity: 1; }
+.footnote { color: var(--muted); font-size: 13px; margin-top: 60px; border-top: 1px solid var(--border); padding-top: 16px; }
+@media (max-width: 900px) {
+  .layout { flex-direction: column; }
+  aside { position: static; width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+  main { padding: 24px 20px 60px; }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside>
+  <div class="brand">ProvostXMemory</div>
+  <div class="brand-sub">Documentation &middot; offline wiki</div>
+  <div class="search-wrap"><input id="search" type="search" placeholder="Filter sections and headings&hellip;" autocomplete="off"></div>
+  <nav id="nav">
+<a class="nav-link" href="#pane-contract" data-target="contract">Consumer Contract</a>
+<a class="nav-link" href="#pane-CAPABILITY" data-target="CAPABILITY">Capability Matrix</a>
+<a class="nav-link" href="#pane-CONFIGURATION" data-target="CONFIGURATION">Configuration</a>
+<a class="nav-link" href="#pane-api-glossary" data-target="api-glossary">API Glossary</a>
+<a class="nav-link" href="#pane-faq" data-target="faq">FAQ</a>
+  </nav>
+</aside>
+<main id="main">
+<section class="pane" id="pane-contract" data-title="Consumer Contract"><h1 id="provostxinference-consumer-contract">ProvostXInference — Consumer Contract</h1>
+<p><strong>Audience:</strong> developers of consumer services (ProvostXLLM, tools, tests). This is the stability promise of the caller-facing surface: what you may touch, what is guaranteed, and what is closed. Anything not listed here is internal and may change without notice.</p>
+<h2 id="1-the-only-entry-point">1. The only entry point</h2>
+<pre class="code" data-lang="csharp"><span class="tok-k">using</span> ProvostXInference.Engines;        <span class="tok-c">// builder, factory, ops views, helper facades</span>
+<span class="tok-k">using</span> ProvostXInference.Models;         <span class="tok-c">// config records, EngineStats, EngineTelemetry</span>
+
+<span class="tok-k">var</span> engine = InferenceEngineBuilder.Gguf(modelPath)
+    .WithGpuLayers(<span class="tok-n">99</span>)
+    .Build();                           <span class="tok-c">// validated EngineRequest, fail-closed</span>
+engine.Initialize();
+<span class="tok-k">var</span> ops = engine.Gguf;                  <span class="tok-c">// typed view; wrong kind =&gt; EngineKindMismatchException</span></pre>
+<p>You reference exactly two namespaces: <code>ProvostXInference.Engines</code> and <code>ProvostXInference.Models</code>. Everything else (<code>Implementation</code>, <code>Interop</code>, <code>SafeHandles</code>, <code>Logging</code>, <code>Abstractions</code>) is a closed black box.</p>
+<h2 id="2-engine-object-lifecycle-contract">2. Engine object lifecycle contract</h2>
+<table><thead><tr><th>Step</th><th>Guarantee</th></tr></thead><tbody><tr><td><code>Builder.*</code> → <code>Build()</code></td><td>Request validated fail-closed; bad paths/kinds/environments throw typed exceptions before any native work</td></tr><tr><td><code>Initialize()</code></td><td>Engine loads; failure leaves the engine <strong>unloaded and disposable</strong> — no partial state leaks</td></tr><tr><td><code>engine.Gguf</code> / <code>.Decision</code> / <code>.Encoder</code></td><td>Typed views over ONE graph; views wrap, never duplicate</td></tr><tr><td><code>Dispose()</code></td><td>Teardown in fixed order (pool → context → model); safe to call twice; safe after failed load</td></tr></tbody></table>
+<h2 id="3-what-iggufengineops-guarantees">3. What <code>IGgufEngineOps</code> guarantees</h2>
+<ul><li><strong>Model/context graph:</strong> chat template, tokenize/detokenize, sampling knobs, live</li></ul>
+<p>  context rebuild (<code>RebuildContext()</code> — old pool is disposed, state is not preserved),   KV copy/clear, checkpoints (export/import byte-exact), rewind, shift.</p>
+<ul><li><strong>Backend probe:</strong> <code>Backend</code> reports the TRUTH — active specialist, effective/requested</li></ul>
+<p>  GPU layers, reduced flag. It never reports CPU for an active accelerator.</p>
+<ul><li><strong>Stats &amp; telemetry (ABI v9):</strong></li><li><code>GetExecutorStats(executor)</code> / <code>GetConversationStats(conv)</code> — per-lane counters</li></ul>
+<p>    (prompt tokens, decode steps, committed tokens, spec drafted/accepted). Snapshot     copy-out; rejected drafts derive as drafted − accepted.</p>
+<ul><li><code>GetEngineTelemetry()</code> — model-wide snapshot for THIS engine instance:</li></ul>
+<p>    <code>EngineTelemetry(PromptTokens, DecodeSteps, CommittedTokens, SpecDrafted,     SpecAccepted, Errors, ContextsAlive)</code>. <strong>Pull-based and per-engine</strong> — derive rates     between two snapshots in the caller; the engine keeps no rate state.</p>
+<ul><li><strong>Speculation:</strong> capability self-report (<code>SpeculativeCapabilities</code> — supported-types</li></ul>
+<p>  list, not booleans), validate/enable/disable. Unwired capability ⇒ typed   <code>NOT_SUPPORTED</code> naming the boundary. Never a silent plain-generation fallback.</p>
+<ul><li><strong>Grammar:</strong> <code>CreateGrammar</code> (GBNF) / <code>CreateGrammarFromJsonSchema</code>. Every sampled</li></ul>
+<p>  token passed a grammar check (tiered rejection sampling) — output always conforms.</p>
+<h2 id="4-per-engine-audit-trail-abi-v9">4. Per-engine audit trail (ABI v9)</h2>
+<p>Set on the builder via <code>ModelConfig</code>:</p>
+<table><thead><tr><th>Setting</th><th>Meaning</th></tr></thead><tbody><tr><td><code>AuditPath</code> (null/empty = off)</td><td>JSON-lines audit file for THIS engine instance only</td></tr><tr><td><code>AuditIncludePrompts</code></td><td>also record prompt token <strong>counts</strong> (never prompt text)</td></tr></tbody></table>
+<p>Guarantees:</p>
+<ul><li><strong>Per-engine isolation:</strong> two engines in one process write two independent files and</li></ul>
+<p>  keep two independent telemetry streams. Nothing is shared (test-pinned).</p>
+<ul><li><strong>Events:</strong> <code>model_loaded</code>, <code>model_freed</code>, <code>context_created</code>, <code>context_freed</code>,</li></ul>
+<p>  <code>spec_enabled</code>, <code>spec_disabled</code>, <code>kv_cleared</code>, <code>kv_shifted</code> — each <code>{&quot;ts&quot;, &quot;seq&quot;,   &quot;event&quot;, &quot;detail&quot;?}</code>, monotonic seq, flushed per line (survives hard kill).</p>
+<ul><li><strong>Content policy:</strong> prompt TEXT is never recorded. Audit logs are not a content sink.</li><li><strong>Zero cost when off:</strong> unconfigured engines execute one branch per commit and</li></ul>
+<p>  nothing else — no counters, no I/O.</p>
+<ul><li><strong>Best-effort by design:</strong> audit is observability, never a correctness dependency;</li></ul>
+<p>  an unusable path logs a warning and disables the sink (load still succeeds).</p>
+<h2 id="5-process-wide-debug-logging-vs-per-engine-audit">5. Process-wide debug logging vs per-engine audit</h2>
+<ul><li><code>EngineLogging.SetLogFile/Enable/SetLevel</code> routes the native DEBUG stream</li></ul>
+<p>  (llama.cpp/ggml/Metal + pvx internal logs). This is process-wide by nature — one   specialist module owns the log state. Use it for diagnostics.</p>
+<ul><li>Use <code>AuditPath</code> for per-engine operation trails. The two are independent channels.</li></ul>
+<h2 id="6-error-contract">6. Error contract</h2>
+<p>Every failure is a typed exception carrying an error code, message, and a named boundary (e.g. <code>spec-engine/mtp-wiring</code>, <code>json-schema/parse</code>, <code>kv/rewind</code>):</p>
+<table><thead><tr><th>Exception</th><th>When</th></tr></thead><tbody><tr><td><code>InferenceException</code></td><td>any native-side failure (load, decode, capability, marshaled refusals)</td></tr><tr><td><code>InvalidEngineRequestException</code></td><td>builder request failed validation</td></tr><tr><td><code>EngineKindMismatchException</code></td><td>wrong ops view for the engine kind</td></tr><tr><td><code>PrefillStallUnrecoveredException</code></td><td>stall watchdog exhausted its recovery ladder</td></tr></tbody></table>
+<p>Refusals are always typed and named — never empty messages, never silent fallbacks, never process aborts on supported paths.</p>
+<h2 id="7-stability-rules">7. Stability rules</h2>
+<ul><li><strong>ABI handshake:</strong> the native library version must match the binding; mismatch refuses</li></ul>
+<p>  to load. Struct layouts are size-pinned by tests.</p>
+<ul><li><strong>Append-only ABI:</strong> new fields are appended; a zeroed struct reproduces previous</li></ul>
+<p>  behavior bit-for-bit. Consumers compiled against an older surface keep working.</p>
+<ul><li><strong>No silent behavior changes:</strong> every capability boundary refuses typed instead of</li></ul>
+<p>  degrading. If a feature reports supported, it is verified by tests.</p>
+<ul><li><strong>Config validation is fail-closed:</strong> invalid configs are rejected at build time,</li></ul>
+<p>  never clamped silently.</p>
+<h2 id="8-what-is-not-in-the-contract">8. What is NOT in the contract</h2>
+<ul><li>Anything under <code>Implementation</code>, <code>Interop</code>, <code>SafeHandles</code>, <code>Logging</code>, <code>Abstractions</code></li><li>Internal counters not surfaced through the stats/telemetry records</li><li>Native C API details (the flat <code>pvx_*</code> surface) — consumers go through the facade</li><li>Prompt text handling inside audit trails (explicitly excluded by policy)</li></ul>
+<h2 id="9-version-history">9. Version history</h2>
+<table><thead><tr><th>ABI</th><th>Consumer-visible change</th></tr></thead><tbody><tr><td>v8</td><td>wave-5 config verbs, stats export, audio/TTS/rerank/LoRA/cvec</td></tr><tr><td>v9</td><td>per-engine audit (<code>AuditPath</code>, <code>AuditIncludePrompts</code>) + <code>pvx_engine_telemetry</code> / <code>GetEngineTelemetry()</code></td></tr></tbody></table></section>
+<section class="pane" id="pane-CAPABILITY" data-title="Capability Matrix"><h1 id="provostxinference-capability-integration-guide">ProvostXInference — Capability &amp; Integration Guide</h1>
+<h2 id="what-it-is">What It Is</h2>
+<p>A C/C++ inference engine that links llama.cpp directly and exposes a flat C API for P/Invoke from C#. Replaces LLamaSharp entirely. No wrapper, no managed/native split — we own the entire inference path.</p>
+<h2 id="current-state-2026-09-25">Current State (2026-09-25)</h2>
+<ul><li><strong>14/14 tests passing</strong> on macOS Metal (Apple Silicon, desktop-class)</li><li>Library size: 11.3MB (statically links llama.cpp + ggml + mtmd)</li><li>llama.cpp: latest master (e351231c4)</li><li>Build: cmake with Metal/CPU/CUDA/Vulkan backend flags</li></ul>
+<h2 id="capabilities">Capabilities</h2>
+<h3 id="model-management">Model Management</h3>
+<ul><li><code>pvx_load_model</code> — load GGUF model with GPU layers, threads, flash attention, KV cache type</li><li><code>pvx_free_model</code> — free model</li><li><code>pvx_load_mmproj</code> — load vision projector (mmproj GGUF) → mtmd context</li><li><code>pvx_free_mmproj</code> — free vision projector</li></ul>
+<h3 id="context">Context</h3>
+<ul><li><code>pvx_create_context</code> — create llama_context with n_ctx, n_batch, n_seq_max, pooling type</li><li><code>pvx_free_context</code> — free context</li><li><code>pvx_context_size</code> / <code>pvx_context_seq_max</code> — query context params</li></ul>
+<h3 id="tokenization">Tokenization</h3>
+<ul><li><code>pvx_tokenize</code> — text → tokens (with add_bos, parse_special flags)</li><li><code>pvx_detokenize</code> — tokens → text (with remove_special flag)</li><li><code>pvx_token_to_piece</code> — single token → string</li><li><code>pvx_token_is_eos</code> — check if token is end-of-generation</li></ul>
+<h3 id="standard-executor-non-batched-one-session-per-context">Standard Executor (non-batched, one session per context)</h3>
+<ul><li><code>pvx_executor_create</code> / <code>pvx_executor_free</code></li><li><code>pvx_executor_prompt</code> — tokenize + queue text tokens</li><li><code>pvx_executor_prompt_tokens</code> — queue raw tokens</li><li><code>pvx_executor_infer</code> — decode pending tokens (one batch)</li><li><code>pvx_executor_sample</code> — sample one token (full pipeline: temp, top_k, top_p, min_p, repeat_penalty, presence_penalty)</li><li><code>pvx_executor_token_count</code> — current KV token count</li><li><code>pvx_executor_rewind</code> — remove last N tokens from KV</li><li><code>pvx_executor_reset</code> — clear entire KV (in-place, no context recreation)</li></ul>
+<h3 id="conversation-pool-batched-inference">Conversation Pool (batched inference)</h3>
+<ul><li><code>pvx_pool_create</code> — pre-allocate SeqMax conversations (each owns a permanent seq_id)</li><li><code>pvx_pool_lease</code> / <code>pvx_pool_return</code> — lease/return conversations (thread-safe)</li><li><code>pvx_pool_available</code> / <code>pvx_pool_size</code> — query pool state</li><li><strong>Key fix:</strong> No <code>executor.Create()</code> ever called on request threads → no seq-id leak, no thread-safety crash</li></ul>
+<h3 id="batched-inference">Batched Inference</h3>
+<ul><li><code>pvx_conversation_prompt</code> / <code>pvx_conversation_prompt_tokens</code> — queue tokens per conversation</li><li><code>pvx_infer</code> — ONE decode for ALL conversations with pending tokens (true multi-seq batching)</li><li><code>pvx_conversation_sample</code> — sample from a conversation&#x27;s last token</li><li><code>pvx_conversation_token_count</code> — per-conversation token count</li><li><code>pvx_conversation_rewind</code> / <code>pvx_conversation_reset</code> — per-conversation KV manipulation</li></ul>
+<h3 id="full-sampling-pipeline">Full Sampling Pipeline</h3>
+<ul><li>Temperature scaling</li><li>Top-k filtering</li><li>Top-p (nucleus) sampling</li><li>Min-p filtering</li><li>Repeat penalty (with configurable window)</li><li>Presence penalty</li><li>EOS detection</li><li><strong>Logits are copied before modification</strong> — no corruption of shared internal state</li></ul>
+<h3 id="embeddings">Embeddings</h3>
+<ul><li><code>pvx_get_embeddings</code> — text → normalized embedding vector</li><li>Pooling modes: MEAN, CLS, LAST (configurable per context)</li><li>L2 normalization</li><li><code>pvx_embedding_dim</code> — query embedding dimensions</li></ul>
+<h3 id="vision-mtmd">Vision / MTMD</h3>
+<ul><li><code>pvx_load_mmproj</code> — load mmproj file → mtmd_context</li><li><code>pvx_conversation_prompt_with_images</code> — full pipeline:</li></ul>
+<ol><li>Decode image bytes (PNG/JPEG) via <code>mtmd_helper_bitmap_init_from_buf</code></li><li>Tokenize prompt + images into chunks via <code>mtmd_tokenize</code></li><li>Text chunks → queue as pending tokens</li><li>Image chunks → encode via <code>mtmd_encode_chunk</code> → get float embeddings</li><li>Flush pending text tokens (causal decode)</li><li>Set non-causal attention → decode image embeddings via embd batch</li><li>Restore causal attention</li></ol>
+<ul><li><code>pvx_mtmd_marker</code> / <code>pvx_mtmd_marker_static</code> — get the media marker string</li><li><code>pvx_mtmd_needs_non_causal</code> — check if model requires non-causal for images</li><li><code>pvx_set_causal_attn</code> — per-call causal attention control</li></ul>
+<h3 id="granular-kv-cache-manipulation-impossible-via-llamasharp">Granular KV Cache Manipulation (impossible via LLamaSharp)</h3>
+<ul><li><code>pvx_conversation_shift_left</code> / <code>pvx_executor_shift_left</code> — <strong>sliding window context</strong>: remove oldest N tokens, keep recent ones, continue generating without reset. RoPE positions stay correct via separate <code>n_kv_pos</code> tracking.</li><li><code>pvx_kv_copy</code> — copy KV from one seq_id to another (state backup without blob serialization)</li><li><code>pvx_kv_clear_seq</code> — clear one seq_id&#x27;s KV without affecting other conversations</li><li><code>pvx_set_causal_attn</code> — toggle causal/non-causal attention per-call</li></ul>
+<h3 id="state-save-restore">State Save/Restore</h3>
+<ul><li><code>pvx_state_save</code> — snapshot KV to backup seq_id (via <code>llama_memory_seq_cp</code>)</li><li><code>pvx_state_restore</code> — restore from backup seq_id</li><li><code>pvx_conversation_save</code> / <code>pvx_conversation_restore</code> — per-conversation state</li><li><strong>Key improvement:</strong> No blob serialization, no managed/native split, one atomic operation</li></ul>
+<h3 id="anti-prompt-detection">Anti-Prompt Detection</h3>
+<ul><li><code>pvx_check_anti_prompts</code> — check if generated text contains any anti-prompt string</li></ul>
+<h3 id="thread-safety">Thread Safety</h3>
+<ul><li>Internal <code>std::mutex infer_mtx</code> on every context serializes ALL native llama.cpp calls</li><li>Pool has its own mutex for lease/return</li><li>C# layer handles per-session SemaphoreSlim gates and cycle coordination</li></ul>
+<p>---</p>
+<h2 id="what-needs-careful-handling-at-the-c-layer">What Needs Careful Handling at the C# Layer</h2>
+<h3 id="1-vision-processing-single-non-batchable">1. Vision Processing (Single, Non-Batchable)</h3>
+<p><strong>The constraint:</strong> Image embeddings require non-causal attention (<code>llama_set_causal_attn(ctx, false)</code>). This is a <strong>context-wide flag</strong> — it affects ALL conversations on that context, not just the one with the image.</p>
+<p><strong>What this means for the C# layer:</strong></p>
+<ul><li><code>pvx_conversation_prompt_with_images</code> must be called <strong>inside the cycle gate</strong> (the <code>_cycleGate</code> SemaphoreSlim in <code>BatchInferenceCoordinator</code>)</li><li>No other conversation can be decoding on the same context while image embeddings are being processed</li><li>The C++ layer handles the causal/non-causal toggle internally, but the C# layer must ensure <strong>exclusive access</strong> during the call</li></ul>
+<p><strong>Flow:</strong></p>
+<pre class="code" data-lang="">C# acquires _cycleGate
+  → C# calls pvx_conversation_prompt_with_images(conv, mmproj, text, images)
+    → C++ flushes text tokens (causal decode)
+    → C++ sets non-causal
+    → C++ encodes image (CLIP)
+    → C++ decodes image embeddings (non-causal)
+    → C++ restores causal
+  → C# releases _cycleGate
+→ Other conversations can now batch normally</pre>
+<p><strong>Cannot batch multiple conversations&#x27; image decodes in one llama_batch</strong> because:</p>
+<ul><li>Text tokens need causal attention</li><li>Image embeddings need non-causal</li><li>You can&#x27;t mix them in one <code>llama_decode</code> call</li><li>Multiple images COULD be batched (both non-causal), but the CLIP encoding is the bottleneck and <code>mtmd_batch_encode</code> already handles that</li></ul>
+<h3 id="2-shift-left-sliding-window-position-tracking">2. Shift Left (Sliding Window) — Position Tracking</h3>
+<p><strong>The constraint:</strong> After <code>shift_left(n)</code>, the logical token count (<code>n_tokens</code>) decreases but the absolute KV position (<code>n_kv_pos</code>) stays the same. RoPE positions in the remaining KV entries are absolute and must not be reindexed.</p>
+<p><strong>What the C# layer must track:</strong></p>
+<ul><li><code>n_tokens</code> (logical) — for headroom checks, overflow detection, max_tokens clamping</li><li>The C++ layer handles <code>n_kv_pos</code> internally — C# never needs to know it</li><li>After shift_left, the C# layer must re-evaluate headroom: <code>headroom = context_size - n_tokens - safety_margin</code></li><li>The C# layer should call <code>shift_left</code> BEFORE the context is full, not after — e.g., when <code>n_tokens &gt; context_size * 0.8</code>, shift left by 10-20% of context size</li></ul>
+<p><strong>When to use shift_left vs reset:</strong></p>
+<ul><li><strong>shift_left:</strong> Conversation is long but still relevant. Remove oldest tokens, keep recent context. No re-prompt needed.</li><li><strong>reset:</strong> Conversation is done or corrupted. Clear everything. Must re-prefill.</li></ul>
+<h3 id="3-repeat-penalty-in-batch-mode">3. Repeat Penalty in Batch Mode</h3>
+<p><strong>The constraint:</strong> <code>pvx_conversation_sample</code> does NOT apply repeat penalty in batch mode (passes empty <code>recent_tokens</code>). The C++ layer doesn&#x27;t track per-conversation token history for batch conversations.</p>
+<p><strong>What the C# layer must do:</strong></p>
+<ul><li>Track recent generated tokens per <code>BatchSession</code> in C# (already done via <code>_exactTokenCount</code> and the session&#x27;s prompt history)</li><li>If repeat penalty is needed in batch mode, either:</li><li>Option A: Pass recent tokens from C# to a new <code>pvx_conversation_sample_with_history</code> function (TODO if needed)</li><li>Option B: Apply repeat penalty at the C# level by post-processing the sampled token (not ideal — can&#x27;t modify logits after sampling)</li><li>Option C: Accept no repeat penalty in batch mode (current approach — acceptable for most use cases)</li></ul>
+<h3 id="4-pool-exhaustion">4. Pool Exhaustion</h3>
+<p><strong>The constraint:</strong> The pool has exactly <code>SeqMax</code> conversations. If all are leased and a new request comes in, <code>pvx_pool_lease</code> returns <code>PVX_ERR_NO_SLOT</code>.</p>
+<p><strong>What the C# layer must do:</strong></p>
+<ul><li>Set <code>SeqMax = max_sessions</code> in the config (already done)</li><li>When <code>PVX_ERR_NO_SLOT</code> is returned, either:</li><li>Queue the request and retry when a conversation is returned (preferred)</li><li>Return HTTP 503 (service unavailable) to the client</li><li>Do NOT create new conversations on the fly — that would exhaust seq_ids (the original bug)</li></ul>
+<h3 id="5-state-save-restore-with-n-seq-max-1">5. State Save/Restore with n_seq_max == 1</h3>
+<p><strong>The constraint:</strong> <code>pvx_state_save</code> copies KV to backup seq_id 1. If <code>n_seq_max == 1</code>, there&#x27;s no backup seq_id.</p>
+<p><strong>What the C# layer must do:</strong></p>
+<ul><li>For the standard executor (non-batched), set <code>seq_max &gt;= 2</code> so state save/restore works</li><li>For batch mode, <code>seq_max = max_sessions</code> (always &gt;= 2), so this is a non-issue</li><li>If <code>n_seq_max == 1</code> and state restore is called, the C++ layer returns OK with <code>n_tokens = 0</code> — the C# layer must re-prompt the conversation</li></ul>
+<h3 id="6-thread-safety-model">6. Thread Safety Model</h3>
+<p><strong>The C++ layer guarantees:</strong></p>
+<ul><li><code>infer_mtx</code> serializes all native llama.cpp calls within a context</li><li>Pool mutex serializes lease/return</li></ul>
+<p><strong>The C# layer must guarantee:</strong></p>
+<ul><li>Per-session <code>SemaphoreSlim(1,1)</code> request gate — only one request per session at a time</li><li><code>BatchInferenceCoordinator._cycleGate</code> — serializes the drain+infer cycle</li><li>Vision prompt calls are made from the cycle coordinator thread (under the cycle gate)</li><li>No concurrent calls to <code>pvx_conversation_prompt_with_images</code> and <code>pvx_infer</code> on the same context</li></ul>
+<h3 id="7-error-recovery">7. Error Recovery</h3>
+<p><strong>On decode failure (<code>PVX_DECODE_FAILED</code>):</strong></p>
+<ul><li>The C++ layer does NOT modify <code>n_tokens</code> or <code>n_kv_pos</code> on failure</li><li>The C# layer should:</li><li>Log the error</li><li>Call <code>pvx_conversation_reset</code> to clear the KV (safe — just <code>llama_memory_seq_rm</code>)</li><li>Re-prompt the conversation from scratch</li><li>Or call <code>pvx_conversation_rewind</code> to try removing the last prompt</li></ul>
+<p><strong>On pool exhaustion (<code>PVX_ERR_NO_SLOT</code>):</strong></p>
+<ul><li>Queue the request, don&#x27;t crash</li><li>Return 503 to the client with a Retry-After header</li></ul>
+<p><strong>On model load failure (<code>PVX_ERR_LOAD_FAILED</code>):</strong></p>
+<ul><li>Check <code>pvx_last_error</code> for the native error message</li><li>Common causes: wrong path, corrupted GGUF, insufficient VRAM for requested GPU layers</li></ul>
+<p>---</p>
+<h2 id="build-matrix">Build Matrix</h2>
+<table><thead><tr><th>Platform</th><th>Backend</th><th>CMake Flag</th><th>Tested?</th></tr></thead><tbody><tr><td>macOS arm64</td><td>Metal</td><td><code>PVX_BACKEND_METAL=ON</code></td><td>✅ 14/14</td></tr><tr><td>macOS arm64</td><td>CPU</td><td>(default)</td><td>✅ (implied)</td></tr><tr><td>Linux x64</td><td>CPU</td><td>(default)</td><td>⏳ CI</td></tr><tr><td>Linux x64</td><td>CUDA</td><td><code>PVX_BACKEND_CUDA=ON</code></td><td>⏳ CI</td></tr><tr><td>Linux x64</td><td>Vulkan</td><td><code>PVX_BACKEND_VULKAN=ON</code></td><td>⏳ CI</td></tr><tr><td>Windows x64</td><td>CPU</td><td>(default)</td><td>⏳ CI</td></tr><tr><td>Windows x64</td><td>CUDA</td><td><code>PVX_BACKEND_CUDA=ON</code></td><td>⏳ CI</td></tr><tr><td>Windows x64</td><td>Vulkan</td><td><code>PVX_BACKEND_VULKAN=ON</code></td><td>⏳ CI</td></tr></tbody></table>
+<p>---</p>
+<h2 id="backend-safety-layer">Backend Safety Layer</h2>
+<p>Automatic detection, probing, and fallback for all GPU backends. No hardcoded assumptions — everything is verified at runtime.</p>
+<h3 id="backend-probe-pvx-probe-backend">Backend Probe (<code>pvx_probe_backend</code>)</h3>
+<ul><li>After context creation, does a minimal 1-token decode to verify the GPU backend works</li><li>If it fails → caller retries with fewer GPU layers (<code>pvx_create_context_safe</code>)</li><li>Detects: Metal, CUDA, Vulkan, CPU via <code>ggml_backend_dev</code> list</li></ul>
+<h3 id="progressive-gpu-layer-reduction-pvx-create-context-safe">Progressive GPU Layer Reduction (<code>pvx_create_context_safe</code>)</h3>
+<ul><li>Try <code>requested_gpu_layers</code> → if fail, try N/2 → N/4 → ... → 0 (CPU)</li><li>Finds the working threshold automatically — no manual tuning</li></ul>
+<h3 id="per-backend-feature-profiles">Per-Backend Feature Profiles</h3>
+<table><thead><tr><th>Feature</th><th>Metal</th><th>CUDA</th><th>Vulkan</th><th>CPU</th></tr></thead><tbody><tr><td>Flash attention</td><td>✅ Safe</td><td>✅ Safe</td><td>⚠️ Probe</td><td>✅ Safe</td></tr><tr><td>Quantized KV (q8_0)</td><td>✅ Safe (dequant internally)</td><td>✅ Safe</td><td>❌ Default unsafe</td><td>✅ Safe</td></tr><tr><td>Multi-seq decode</td><td>✅ Works</td><td>✅ Works</td><td>✅ Works (risky with FA+GQA)</td><td>✅ Works</td></tr><tr><td>Pool reuse</td><td>✅ Safe</td><td>✅ Safe</td><td>⚠️ Needs flush</td><td>✅ Safe</td></tr><tr><td>Min batch size</td><td>512</td><td>512</td><td>1024</td><td>512</td></tr><tr><td>Stale KV cells after clear</td><td>No</td><td>No</td><td>Yes (#26744)</td><td>No</td></tr></tbody></table>
+<h3 id="vulkan-stale-kv-fix-pvx-kv-flush">Vulkan Stale KV Fix (<code>pvx_kv_flush</code>)</h3>
+<ul><li>After <code>llama_memory_seq_rm</code> (pool return), Vulkan may leave stale K/V data in freed cells (#26744)</li><li><code>pvx_kv_flush</code> does a no-op decode + clear to flush stale state</li><li>Automatically called in <code>pvx_pool_return</code> when <code>pvx_backend_needs_kv_flush()</code> returns true</li><li>On safe backends (Metal/CUDA/CPU), this is skipped (no-op)</li></ul>
+<h3 id="known-issues-addressed">Known Issues Addressed</h3>
+<p><strong>Vulkan:</strong></p>
+<ul><li><code>vk::DeviceLostError</code> on long contexts (#19955) → probe catches this</li><li>FA + quantized V cache = garbled output (#26195) → quantized_kv_safe defaults to false</li><li>Stale K/V in freed cells (#26744) → pvx_kv_flush after pool return</li><li>FA + GQA packing + multi-token crash (#26358) → multi_seq_safe flag</li><li>Batch 512 garbage on some models (#27237) → min_batch_size = 1024</li><li>load-mode auto OOM (#27360) → progressive layer reduction</li></ul>
+<p><strong>Metal:</strong></p>
+<ul><li>Command buffer failures (1a5631b) → handled gracefully since March 2026 (we have this)</li><li>Mixed quantized KV when FA unavailable (#21450) → Metal dequantizes internally (70aff25)</li></ul>
+<p><strong>CUDA:</strong></p>
+<ul><li>OOM without warning → progressive layer reduction + probe</li><li>MoE + FA + partial offload illegal memory access (#26609) → probe detects, can disable FA</li><li>mmproj VRAM not in auto-fit (#19980) → manual VRAM guard</li></ul>
+<h3 id="vram-guard-pvx-vram-available">VRAM Guard (<code>pvx_vram_available</code>)</h3>
+<ul><li>Pre-operation VRAM check (platform-specific implementation TODO)</li><li>Currently relies on probe + progressive reduction as safety net</li><li>TODO: Metal (mach_vm_statistics), CUDA (cudaMemGetInfo), Vulkan (vkGetPhysicalDeviceMemoryProperties)</li></ul>
+<p>---</p>
+<h2 id="llamasharp-workarounds-eliminated">LLamaSharp Workarounds Eliminated</h2>
+<table><thead><tr><th>Workaround in C#</th><th>C++ Replacement</th><th>Status</th></tr></thead><tbody><tr><td>Double state snapshot (ExecutorBaseState + KV blob)</td><td><code>pvx_state_save</code> (one atomic <code>llama_memory_seq_cp</code>)</td><td>✅ Eliminated</td></tr><tr><td>Reset = destroy + recreate context</td><td><code>pvx_executor_reset</code> (in-place <code>llama_memory_seq_rm</code>)</td><td>✅ Eliminated</td></tr><tr><td>Rewind = full blob restore (O(n_ctx) copy)</td><td><code>pvx_conversation_rewind</code> (O(rewind_count) removal)</td><td>✅ Eliminated</td></tr><tr><td>Overflow = ThrowException + catch + reset</td><td><code>pvx_conversation_shift_left</code> (sliding window)</td><td>✅ Eliminated</td></tr><tr><td>Save/Load creating new conversations (seq-id leak)</td><td><code>pvx_conversation_restore</code> (in-place rewind)</td><td>✅ Eliminated</td></tr><tr><td>Broken ShiftLeft</td><td><code>pvx_conversation_shift_left</code> (clean, with n_kv_pos tracking)</td><td>✅ Eliminated</td></tr><tr><td>Context.Tokenize for exact counts</td><td>Tracked natively in C++</td><td>✅ Eliminated</td></tr></tbody></table>
+<p>---</p>
+<h2 id="todo">TODO</h2>
+<ul><li>[ ] C# P/Invoke bindings project (<code>ProvostX.Inference.dll</code>)</li><li>[ ] Integrate into ProvostXLLM (replace LLamaSharp calls)</li><li>[ ] GitHub Actions CI matrix (8 build targets)</li><li>[ ] NuGet package layout</li><li>[ ] <code>pvx_conversation_sample_with_history</code> (repeat penalty for batch mode, if needed)</li><li>[ ] CLIP batch encoding (<code>mtmd_batch_encode</code> for multiple images)</li><li>[ ] Remove LLamaSharp dependency from ProvostXLLM csproj</li></ul></section>
+<section class="pane" id="pane-CONFIGURATION" data-title="Configuration"><h1 id="provostxinference-configuration-reference">ProvostXInference — Configuration Reference</h1>
+<p><strong>Summary:</strong> ProvostXInference (PVX) is a C/C++ inference library with C# bindings, wrapping llama.cpp. The product code reads <strong>zero environment variables</strong> — all configuration is passed programmatically via C API structs by the embedding application (e.g., the ProvostX LLM server). Test/benchmark code reads three <code>PVX_*</code> env vars for model paths.</p>
+<h2 id="product-code-environment-variables">Product Code: Environment Variables</h2>
+<p><strong>None.</strong> A grep of <code>src/*.cpp</code> and <code>csharp/**/*.cs</code> (excluding tests) for <code>getenv</code> / <code>GetEnvironmentVariable</code> returned zero matches. All PVX behavior is controlled by programmatic parameters set by the caller. This was confirmed by audit on 2026-09-26 and remains true as of 2026-09-27.</p>
+<h2 id="product-code-c-api-programmatic-parameters">Product Code: C API Programmatic Parameters</h2>
+<p>These structs are the &quot;knobs&quot; embedders set when calling the PVX C API. They are not env vars — they are passed directly to <code>pvx_load_model</code>, <code>pvx_create_context</code>, and <code>pvx_executor_sample</code> / <code>pvx_conversation_sample</code>.</p>
+<h3 id="pvx-model-params-t-passed-to-pvx-load-model"><code>pvx_model_params_t</code> (passed to <code>pvx_load_model</code>)</h3>
+<table><thead><tr><th>Field</th><th>C Type</th><th>Default</th><th>What it does</th></tr></thead><tbody><tr><td><code>model_path</code></td><td><code>const char*</code></td><td>— (required)</td><td>Path to GGUF model file</td></tr><tr><td><code>gpu_layers</code></td><td><code>int</code></td><td>—</td><td>GPU layers to offload. <code>-1</code> = all, <code>0</code> = CPU only</td></tr><tr><td><code>threads</code></td><td><code>int</code></td><td>—</td><td>CPU threads. <code>-1</code> = auto-detect</td></tr><tr><td><code>flash_attn</code></td><td><code>bool</code></td><td>—</td><td>Enable Flash Attention</td></tr><tr><td><code>kv_cache_type</code></td><td><code>pvx_kv_type_t</code></td><td>—</td><td>KV cache quantization: <code>F16</code>, <code>Q8_0</code>, <code>Q4_0</code>, <code>Q4_1</code></td></tr><tr><td><code>reasoning_markers</code></td><td><code>const char**</code></td><td><code>NULL</code> → built-in <code>{&quot; think&quot;}</code></td><td>Tag strings probed against vocab to detect thinking-capable models. First single-special-token match drives empty-block prefill when <code>enable_thinking=0</code></td></tr><tr><td><code>n_reasoning_markers</code></td><td><code>int</code></td><td><code>&lt;=0</code> → built-in default</td><td>Count of reasoning marker strings</td></tr></tbody></table>
+<h3 id="pvx-context-params-t-passed-to-pvx-create-context"><code>pvx_context_params_t</code> (passed to <code>pvx_create_context</code>)</h3>
+<table><thead><tr><th>Field</th><th>C Type</th><th>Default</th><th>What it does</th></tr></thead><tbody><tr><td><code>context_size</code></td><td><code>uint32_t</code></td><td>—</td><td>Context window size (<code>n_ctx</code>)</td></tr><tr><td><code>batch_size</code></td><td><code>uint32_t</code></td><td>—</td><td>Batch size for decode (<code>n_batch</code>)</td></tr><tr><td><code>seq_max</code></td><td><code>uint32_t</code></td><td>—</td><td>Max concurrent sequences (batch mode pool size)</td></tr><tr><td><code>pooling_type</code></td><td><code>pvx_pooling_type_t</code></td><td>—</td><td>Embedding pooling: <code>NONE</code>, <code>MEAN</code>, <code>CLS</code>, <code>LAST</code></td></tr></tbody></table>
+<h3 id="pvx-sampling-params-t-passed-to-sample-functions"><code>pvx_sampling_params_t</code> (passed to sample functions)</h3>
+<table><thead><tr><th>Field</th><th>C Type</th><th>Default (C# <code>SamplingConfig</code>)</th><th>What it does</th></tr></thead><tbody><tr><td><code>temperature</code></td><td><code>float</code></td><td><code>0.3</code></td><td>Sampling temperature</td></tr><tr><td><code>top_p</code></td><td><code>float</code></td><td><code>0.95</code></td><td>Nucleus sampling top-p</td></tr><tr><td><code>top_k</code></td><td><code>int</code></td><td><code>40</code></td><td>Top-k sampling. <code>0</code> = disabled</td></tr><tr><td><code>min_p</code></td><td><code>float</code></td><td><code>0.0</code></td><td>Min-p filtering threshold</td></tr><tr><td><code>repeat_penalty</code></td><td><code>float</code></td><td><code>1.1</code></td><td>Penalty for repeated tokens</td></tr><tr><td><code>repeat_last_n</code></td><td><code>int</code></td><td><code>-1</code></td><td>Window size for repeat penalty. <code>-1</code> = full context</td></tr><tr><td><code>penalty_present</code></td><td><code>float</code></td><td><code>0.0</code></td><td>Presence penalty</td></tr><tr><td><code>max_tokens</code></td><td><code>int</code></td><td><code>256</code></td><td>Max tokens to generate</td></tr><tr><td><code>ignore_eos</code></td><td><code>bool</code></td><td><code>false</code></td><td>If true, EOS token is not treated as end-of-generation</td></tr></tbody></table>
+<h3 id="c-managed-defaults-record-defaults">C# Managed Defaults (record defaults)</h3>
+<table><thead><tr><th>Record</th><th>Field</th><th>Default</th></tr></thead><tbody><tr><td><code>ModelConfig</code></td><td><code>GpuLayers</code></td><td><code>-1</code> (all)</td></tr><tr><td><code>ModelConfig</code></td><td><code>Threads</code></td><td><code>0</code> (auto)</td></tr><tr><td><code>ModelConfig</code></td><td><code>FlashAttention</code></td><td><code>true</code></td></tr><tr><td><code>ModelConfig</code></td><td><code>KvCacheType</code></td><td><code>F16</code></td></tr><tr><td><code>ContextConfig</code></td><td><code>ContextSize</code></td><td><code>4096</code></td></tr><tr><td><code>ContextConfig</code></td><td><code>BatchSize</code></td><td><code>512</code></td></tr><tr><td><code>ContextConfig</code></td><td><code>SeqMax</code></td><td><code>4</code></td></tr><tr><td><code>ContextConfig</code></td><td><code>PoolingType</code></td><td><code>None</code></td></tr></tbody></table>
+<h3 id="logging-programmatic-not-env-var">Logging (Programmatic, not env-var)</h3>
+<table><thead><tr><th>Knob</th><th>API</th><th>Default</th><th>What it does</th></tr></thead><tbody><tr><td>Log callback</td><td><code>pvx_set_log_callback(NULL)</code></td><td><code>NULL</code> (zero-overhead)</td><td>Sets a global C callback for structured logs. NULL = no logging at all</td></tr><tr><td>Min log level</td><td><code>pvx_set_log_level(level)</code></td><td><code>PVX_LOG_DEBUG</code></td><td>Messages below this level are not dispatched. Levels: <code>DEBUG &lt; INFO &lt; WARN &lt; ERROR &lt; NONE</code></td></tr></tbody></table>
+<h2 id="test-only-environment-variables">Test-Only Environment Variables</h2>
+<p>These are read <strong>only</strong> by the C# test suite (<code>SmokeTests.cs</code>). They are never read by product code.</p>
+<table><thead><tr><th>Variable</th><th>Type</th><th>Default</th><th>What it does</th></tr></thead><tbody><tr><td><code>PVX_MODEL_PATH</code></td><td>string (env)</td><td><code>./models/Qwen3.5-4B-Q4_K_M.gguf</code></td><td>Path to the main GGUF model used by smoke tests</td></tr><tr><td><code>PVX_EMBED_MODEL_PATH</code></td><td>string (env)</td><td><code>./models/all-MiniLM-L6-v2-Q5_K_M.gguf</code></td><td>Path to the embedding model for embedding tests</td></tr><tr><td><code>PVX_MMPROJ_PATH</code></td><td>string (env)</td><td><code>./models/mmproj-Qwen3.5-4B-BF16.gguf</code></td><td>Path to the multimodal projector for vision tests</td></tr></tbody></table>
+<p><strong>Status:</strong> Current as of 2026-09-27. Product code has zero env-var-driven behavior. All runtime configuration is programmatic via C API structs set by the embedding application.</p></section>
+<section class="pane" id="pane-api-glossary" data-title="API Glossary"><h1 id="provostxinference-api-glossary">ProvostXInference — API Glossary</h1>
+<p>Every public type a consumer can touch, one purpose paragraph each, with the members that matter. Types are listed by layer; the consumer-facing set is deliberately small.</p>
+<h2 id="engines-layer-the-consumer-surface">Engines layer (the consumer surface)</h2>
+<h3 id="inferenceenginebuilder-static"><code>InferenceEngineBuilder</code> (static)</h3>
+<p>Entry point for every consumer. <code>InferenceEngineBuilder.Gguf(path)</code> / <code>.Decision(path)</code> / <code>.Encoder(path)</code> starts a typed request builder; <code>With*</code> methods add parameters; <code>Build()</code> returns a validated <code>EngineRequest</code>. Fail-closed: invalid combinations throw <code>InvalidEngineRequestException</code> before any native work.</p>
+<h3 id="inferenceenginefactory"><code>InferenceEngineFactory</code></h3>
+<p>Constructs <code>IInferenceEngine</code> from a validated request. The default instance needs no configuration (parameterless).</p>
+<h3 id="iinferenceengine-interface"><code>IInferenceEngine</code> (interface)</h3>
+<p>One loaded-or-unloaded engine object. <code>Initialize()</code> loads it (failure leaves it unloaded and disposable); <code>Gguf</code> / <code>Decision</code> / <code>Encoder</code> return typed ops views; <code>Dispose()</code> tears down in the fixed order pool → context → model.</p>
+<h3 id="iggufengineops-interface-via-ggufengineops"><code>IGgufEngineOps</code> (interface, via <code>GgufEngineOps</code>)</h3>
+<p>The GGUF lane view: chat template, tokenize/detokenize, sampling, <code>RebuildContext()</code>, KV copy/clear, checkpoints, rewind/shift, speculation (<code>ValidateSpeculation</code>/<code>EnableSpeculation</code>/<code>DisableSpeculation</code> + <code>ActiveSpeculation</code>), vision encoder load, TTS session create, rerank, LoRA/cvec, <code>Backend</code> probe, <code>GetExecutorStats</code> / <code>GetConversationStats</code> (per-lane <code>EngineStats</code>), <code>GetEngineTelemetry()</code> (model-wide <code>EngineTelemetry</code>), <code>CreateExecutor()</code>, <code>Pool</code> (lazy <code>IConversationPool</code>).</p>
+<h3 id="idecisionengineops-iencoderengineops"><code>IDecisionEngineOps</code> / <code>IEncoderEngineOps</code></h3>
+<p>Decision lane (ONNX judge session) and encoder lane (vision embedding route). Wrong-kind access throws <code>EngineKindMismatchException</code>.</p>
+<h3 id="enginelogging-static-facade"><code>EngineLogging</code> (static facade)</h3>
+<p>Process-wide native DEBUG stream: <code>SetLogFile(path)</code> (native file sink), <code>Enable(handler)</code> (managed <code>(level, tag, message)</code> callback), <code>SetLevel(0..3, 99)</code>. Distinct from the per-engine audit trail (see <code>ModelConfig.AuditPath</code>).</p>
+<h3 id="enginemaintenance-static-facade"><code>EngineMaintenance</code> (static facade)</h3>
+<p>File-level engine-bound maintenance without a loaded engine: GGUF EOG/special-token metadata repair.</p>
+<h3 id="stallwatchdogops-static-facade"><code>StallWatchdogOps</code> (static facade)</h3>
+<p>Sole construction seam for the stall-safe prefill helpers (<code>IPrefillStallDetector</code>, <code>IStallRecoveryLadder</code>, <code>IChunkWallClock</code>).</p>
+<h2 id="abstractions-layer-implemented-by-the-native-wrappers">Abstractions layer (implemented by the native wrappers)</h2>
+<h3 id="istandardexecutor"><code>IStandardExecutor</code></h3>
+<p>Single-session generation: <code>Prompt(text)</code>, <code>PromptTokens(...)</code> (feed-back during generation), <code>Infer()</code> → <code>InferResult</code>, <code>Sample(SamplingConfig)</code> → token, <code>GenerateSpeculative(...)</code>, <code>SaveState()/RestoreState()</code>, <code>GetStats()</code>, <code>EnableSpeculation(SpeculativeConfig)</code>, <code>PromptWithAudio(...)</code>.</p>
+<h3 id="iconversation-iconversationpool"><code>IConversation</code> / <code>IConversationPool</code></h3>
+<p>Pooled batched lane. Pool: <code>Lease()</code> / return-by-dispose, <code>AvailableCount</code>. Conversation: prompt/sample/grammar (<code>SampleWithGrammar</code>), <code>SaveState()/RestoreState</code>, <code>ExportCheckpoint()/ImportCheckpoint()</code> (byte-exact blobs), <code>Rewind</code>, <code>Reset</code>, <code>GetStats()</code>, <code>SpeculationStats()</code>.</p>
+<h3 id="iinferencecontext"><code>IInferenceContext</code></h3>
+<p>Per-model decode context: <code>Tokenize/Detokenize/TokenToPiece/IsEos</code>, <code>CreatePool()</code>, <code>CreateExecutor()</code>, KV ops (<code>KvCopy</code>, <code>KvClearSeq</code>), <code>ContextSize</code>, <code>SeqMax</code>.</p>
+<h3 id="iinferencemodel"><code>IInferenceModel</code></h3>
+<p>Model handle surface: <code>CreateContext(ContextConfig)</code>, <code>GetEmbeddings(ctx, text)</code>, <code>EmbeddingDimension</code>, <code>LoadVisionEncoder(mmprojPath)</code>, <code>ApplyChatTemplate(...)</code>, <code>CreateGrammar(...)</code> / <code>CreateGrammarFromJsonSchema(...)</code>, <code>SpeculativeCapabilities</code>, <code>CreateLoraAdapter(path)</code>, <code>SupportsAudioInput</code>, <code>AudioSampleRate</code>, <code>PartialRewindSupported</code>.</p>
+<h3 id="ivisionencoder"><code>IVisionEncoder</code></h3>
+<p>Vision pipeline handle: <code>Marker</code> (prompt splice token) — used with <code>PromptWithImages(prompt, encoder, imageBytes)</code>.</p>
+<h3 id="ittssession"><code>ITtsSession</code></h3>
+<p>Single-shot speech generation: <code>Generate(text, params)</code> → PCM F32 samples + rate; second generate refuses typed (<code>tts/session-consumed</code>); fresh sessions replay byte-identically per (text, seed).</p>
+<h3 id="igrammar"><code>IGrammar</code></h3>
+<p>Grammar handle (GBNF or schema-derived; <code>Kind</code> reports which). Owned by the sampled lane; dispose after the executor/conversation.</p>
+<h2 id="models-layer-config-records-and-snapshots">Models layer (config records and snapshots)</h2>
+<table><thead><tr><th>Record</th><th>Purpose</th></tr></thead><tbody><tr><td><code>ModelConfig</code></td><td>Model load knobs: <code>Path</code>, <code>GpuLayers</code> (-1 all / 0 CPU), <code>Threads</code>, <code>FlashAttention</code>, <code>KvCacheType</code>, context-pointer fields (wave-5: kv overrides, lazy mode, tri-states, <code>LoadMtp</code>), <strong><code>AuditPath</code>/<code>AuditIncludePrompts</code> (ABI v9 audit)</strong></td></tr><tr><td><code>ContextConfig</code></td><td>Context knobs: <code>ContextSize</code>, <code>BatchSize</code>, <code>SeqMax</code>, <code>PoolingType</code>, recurrent-state ring (<code>NRsSeq</code>), wave-5 extensions</td></tr><tr><td><code>SamplingConfig</code></td><td>Full pipeline: temperature/top-k/top-p/min-p, penalties, dry/xtc/top-n-sigma/mirostat, <code>MaxTokens</code>, grammar pointer</td></tr><tr><td><code>SpeculativeConfig</code></td><td><code>Mode</code> (draft-simple, n-gram family, EAGLE3, draft-MTP), draft/companion paths, n-gram params</td></tr><tr><td><code>StallWatchdogConfig</code></td><td>Watchdog knobs: enabled, chunk size, gap multiplier, ladder budget</td></tr><tr><td><code>EngineStats</code></td><td>Per-lane snapshot: <code>Tokens</code>, <code>KvPositions</code>, <code>PromptTokens</code>, <code>DecodeSteps</code>, <code>SpecDrafted</code>, <code>SpecAccepted</code></td></tr><tr><td><code>EngineTelemetry</code></td><td>Model-wide snapshot (ABI v9): <code>PromptTokens</code>, <code>DecodeSteps</code>, <code>CommittedTokens</code>, <code>SpecDrafted</code>, <code>SpecAccepted</code>, <code>Errors</code>, <code>ContextsAlive</code></td></tr><tr><td><code>BackendInfo</code></td><td>Probe truth: backend type/name, <code>EffectiveGpuLayers</code>/requested, <code>GpuLayersReduced</code>, <code>ProbePassed</code></td></tr></tbody></table>
+<h2 id="exceptions-layer">Exceptions layer</h2>
+<table><thead><tr><th>Type</th><th>Meaning</th></tr></thead><tbody><tr><td><code>InferenceException</code></td><td>every native-side failure; <code>ErrorCode</code> + message + named boundary</td></tr><tr><td><code>InvalidEngineRequestException</code></td><td>builder request validation failure</td></tr><tr><td><code>EngineKindMismatchException</code></td><td>ops-view/kind mismatch</td></tr><tr><td><code>PrefillStallUnrecoveredException</code></td><td>watchdog ladder exhausted (carries chunk index, walls, steps)</td></tr></tbody></table>
+<h2 id="enums-small-types">Enums &amp; small types</h2>
+<p><code>InferResult</code> (Ok/NoWork/DecodeFailed), <code>KvType</code> (F16/Q8_0/Q4_0/Q4_1), <code>PoolingType</code> (None/Mean/Cls/Last/Rank), <code>SpeculativeType</code>/<code>SpeculativeMode</code> (draft/ngram family/mtp/eagle3/dflash), <code>GrammarKind</code> (Gbnf/JsonSchema), <code>AudioChunk</code> (PCM F32 + rate).</p></section>
+<section class="pane" id="pane-faq" data-title="FAQ"><h1 id="provostxinference-faq">ProvostXInference — FAQ</h1>
+<p>Real questions from development and integration. Answers are contracts, not marketing.</p>
+<h2 id="1-why-not-just-use-llamasharp">1. Why not just use LLamaSharp?</h2>
+<p>LLamaSharp wraps llama.cpp but owns the seams we need to control: batching discipline, KV lifecycle, backend safety, and error typing. We link llama.cpp directly behind our own flat C API so every one of those surfaces is explicit, fail-closed, and test-pinned. The C# layer is strict OOP (one type per file, constructor injection, no statics in product code) — that is a deliberate architectural stance, not style.</p>
+<h2 id="2-what-happens-if-the-native-library-version-doesn-t-match-the-c-binding">2. What happens if the native library version doesn&#x27;t match the C# binding?</h2>
+<p>The engine refuses to load. The ABI version is handshake-checked at engine open (<code>PVX_ABI_VERSION</code> vs <code>ExpectedAbiVersion</code>); a mismatch is a fail-closed error, never a best-effort attempt. Struct layouts are size-pinned by tests (<code>PvxAbiSizeTests</code>) so a drift cannot pass silently.</p>
+<h2 id="3-does-one-process-support-multiple-engines-with-different-models">3. Does one process support multiple engines with different models?</h2>
+<p>Yes — that is a first-class scenario. Each engine instance owns its model, contexts, pools, and telemetry. Two engines write two independent audit files (per-engine audit, ABI v9) and expose two independent <code>GetEngineTelemetry()</code> streams. Nothing is shared except the process-wide DEBUG log stream (<code>EngineLogging</code>), which is a single native log sink by design.</p>
+<h2 id="4-does-the-audit-trail-record-prompt-text">4. Does the audit trail record prompt text?</h2>
+<p>No — by policy. The audit trail records lifecycle and operation events (model/context lifecycle, spec enable/disable, destructive KV ops) and optionally prompt token COUNTS (<code>AuditIncludePrompts</code>). Prompt text is never written: audit logs must not become a content sink. If you need content, that belongs in your service layer.</p>
+<h2 id="5-what-does-the-audit-feature-cost-when-i-don-t-configure-it">5. What does the audit feature cost when I don&#x27;t configure it?</h2>
+<p>One branch per commit. Every counter bump and every file write is gated behind <code>audit.enabled</code>; an unconfigured engine executes no counters and no I/O. The feature is dead when not actively set up.</p>
+<h2 id="6-a-capability-reports-supported-but-i-get-a-not-supported-exception-why">6. A capability reports &quot;supported&quot; but I get a NOT_SUPPORTED exception — why?</h2>
+<p>You are likely outside a documented lane boundary. Speculation, for example, self-reports capability per MODEL, but some modes are sequential-executor-lane only (the batched/pool conversation lane refuses typed). Every refusal names its boundary (e.g. <code>spec-engine/mtp-wiring</code>, <code>spec-engine/session</code>). The refusal is the contract: the engine never silently falls back to plain generation.</p>
+<h2 id="7-which-specialist-backend-is-actually-running">7. Which specialist backend is actually running?</h2>
+<p>Ask the engine: <code>ops.Backend</code> reports the active specialist, effective vs requested GPU layers, and whether the load was reduced. The probe never misreports an active accelerator as CPU (a historic bug, fixed and pinned by tests). On macOS the metal specialist is the default; Linux/Windows default to cuda → vulkan → cpu in order of availability.</p>
+<h2 id="8-how-do-i-get-throughput-numbers-tokens-second">8. How do I get throughput numbers (tokens/second)?</h2>
+<p>Telemetry is pull-based and stateless: take two <code>GetEngineTelemetry()</code> snapshots around your workload and derive rates in your code (<code>DecodeSteps</code> or <code>CommittedTokens</code> divided by elapsed time). The native side deliberately keeps no rate state — snapshots stay cheap and allocation-free.</p>
+<h2 id="9-can-i-resume-a-conversation-after-a-process-restart">9. Can I resume a conversation after a process restart?</h2>
+<p>Yes — <code>ExportCheckpoint()</code> produces a byte blob (cells + K/V rows) that <code>ImportCheckpoint()</code> restores on a fresh engine, with token counts matching exactly. Verified across dense and hybrid architectures up to the largest test models.</p>
+<h2 id="10-why-are-model-files-not-in-the-repository-and-why-do-live-tests-skip">10. Why are model files not in the repository, and why do live tests &quot;skip&quot;?</h2>
+<p>Models are gigabyte-scale artifacts; the repo ships none (and no native binaries — CI builds every platform slice). Live test lanes discover models via <code>PVX_SMALL_*_PATH</code> env vars or repo-relative fixture locations; when a fixture is absent the lane skips with a named reason instead of failing. The suite is fully green with zero fixtures present (hermetic mode).</p>
+<h2 id="11-is-windows-linux-really-supported-or-just-macos">11. Is Windows / Linux really supported, or just macOS?</h2>
+<p>All three build and test in CI (specialist matrix: osx-arm64 metal, win-arm64 cpu, win-x64/linux-x64 cuda+vulkan, plus a full Windows MSVC lane). The real-model journey tier has been verified live on ARM64 Linux and Windows lab VMs. CUDA/Vulkan specialists are CI-built but their real-model verification awaits a GPU host with models — that is stated openly in the backlog, not hidden.</p>
+<h2 id="12-what-does-fail-closed-mean-in-practice">12. What does &quot;fail-closed&quot; mean in practice?</h2>
+<p>A failure or an unknown state produces a typed error that names what happened and where — it never produces a guessed result. Examples: unknown engine id → refusal listing known specialists; grammar with an unsupported JSON-schema keyword → <code>NOT_SUPPORTED</code> naming the keyword; rewind on a hybrid architecture → <code>REWIND_UNSUPPORTED</code>. We consider a silent wrong answer worse than a loud refusal.</p></section>
+<div class="footnote">ProvostXMemory documentation &middot; MIT License &middot; single-file offline wiki</div>
+</main>
+</div>
+<script>
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.nav-link'));
+  var panes = Array.prototype.slice.call(document.querySelectorAll('.pane'));
+
+  function show(slug, push) {
+    panes.forEach(function (p) { p.classList.toggle('visible', p.id === 'pane-' + slug); });
+    links.forEach(function (l) { l.classList.toggle('active', l.getAttribute('data-target') === slug); });
+    if (push !== false && history.replaceState) { history.replaceState(null, '', '#' + slug); }
+    window.scrollTo(0, 0);
+  }
+
+  links.forEach(function (l) {
+    l.addEventListener('click', function (e) {
+      e.preventDefault();
+      show(l.getAttribute('data-target'));
+    });
+  });
+
+  // In-page anchors scroll within the active pane.
+  document.getElementById('main').addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a') : null;
+    if (!a || a.classList.contains('nav-link')) return;
+    var href = a.getAttribute('href') || '';
+    var doc = a.getAttribute('data-doc'), anchor = a.getAttribute('data-anchor');
+    if (doc && anchor) {
+      e.preventDefault();
+      show(doc);
+      var t = document.getElementById(anchor);
+      if (t) t.scrollIntoView();
+      return;
+    }
+    if (href.indexOf('#') === 0) {
+      var id = href.slice(1);
+      if (id.indexOf('pane-') === 0) { e.preventDefault(); show(id.slice(5)); return; }
+      var el = document.getElementById(id);
+      if (el) { e.preventDefault(); el.scrollIntoView(); }
+    }
+  });
+
+  var input = document.getElementById('search');
+  input.addEventListener('input', function () {
+    var q = input.value.trim().toLowerCase();
+    panes.forEach(function (p) {
+      var title = (p.getAttribute('data-title') || '').toLowerCase();
+      var heads = Array.prototype.slice.call(p.querySelectorAll('h1, h2, h3, h4'));
+      if (!q) {
+        p.classList.remove('match-hidden');
+        heads.forEach(function (h) { h.classList.remove('match-hidden'); });
+        Array.prototype.slice.call(p.querySelectorAll('[data-search-hidden]')).forEach(function (el) {
+          el.removeAttribute('data-search-hidden'); el.classList.remove('match-hidden');
+        });
+        return;
+      }
+      var titleMatch = title.indexOf(q) !== -1;
+      var anyHeadMatch = false;
+      heads.forEach(function (h) {
+        var m = h.textContent.toLowerCase().indexOf(q) !== -1;
+        h.classList.toggle('match-hidden', !m);
+        if (m) anyHeadMatch = true;
+      });
+      p.classList.toggle('match-hidden', !(titleMatch || anyHeadMatch));
+      if (titleMatch) {
+        heads.forEach(function (h) { h.classList.remove('match-hidden'); });
+      }
+      var blocks = Array.prototype.slice.call(p.children);
+      var currentMatch = titleMatch;
+      blocks.forEach(function (b) {
+        if (/^H[1-4]$/.test(b.tagName)) {
+          currentMatch = !b.classList.contains('match-hidden');
+          if (b.hasAttribute('data-search-hidden')) {
+            b.removeAttribute('data-search-hidden'); b.classList.remove('match-hidden');
+          }
+          return;
+        }
+        if (currentMatch) {
+          if (b.hasAttribute('data-search-hidden')) {
+            b.removeAttribute('data-search-hidden'); b.classList.remove('match-hidden');
+          }
+        } else {
+          b.setAttribute('data-search-hidden', '1'); b.classList.add('match-hidden');
+        }
+      });
+    });
+    var first = null;
+    for (var i = 0; i < panes.length; i++) {
+      if (!panes[i].classList.contains('match-hidden')) { first = panes[i]; break; }
+    }
+    if (first) {
+      var slug = first.id.replace(/^pane-/, '');
+      links.forEach(function (l) { l.classList.toggle('active', l.getAttribute('data-target') === slug); });
+    }
+  });
+
+  // Code copy buttons (corporate design: standard copy on every code block)
+  Array.prototype.slice.call(document.querySelectorAll('pre.code')).forEach(function (pre) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'copy-btn';
+    btn.setAttribute('aria-label', 'Copy code to clipboard');
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      function done(ok) {
+        btn.textContent = ok ? 'Copied ✓' : 'Copy failed';
+        btn.classList.add('copied');
+        setTimeout(function () { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1600);
+      }
+      function fallback() {
+        var ta = document.createElement('textarea');
+        ta.value = pre.textContent;
+        ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        var ok = false;
+        try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+        document.body.removeChild(ta);
+        return ok;
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(pre.textContent).then(function () { done(true); }, function () { done(fallback()); });
+      } else { done(fallback()); }
+    });
+    pre.appendChild(btn);
+  });
+
+  var initial = (location.hash || '').replace(/^#/, '');
+  var valid = false;
+  for (var j = 0; j < panes.length; j++) { if (panes[j].id === 'pane-' + initial) { valid = true; break; } }
+  show(valid ? initial : panes[0].id.replace(/^pane-/, ''), false);
+})();
+</script>
+</body>
+</html>

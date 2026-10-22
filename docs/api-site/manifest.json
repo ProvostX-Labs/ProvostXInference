@@ -1,0 +1,2151 @@
+{
+  "docfx_version": "2.81.0+ba844df625370a6bd7c1ecab0d0ec4d1d9128ac4",
+  "source_base_path": "/Users/drogon/Agent/ProvostX/ProvostXInference",
+  "xrefmap": "xrefmap.yml",
+  "files": [
+    {
+      "type": "Resource",
+      "output": {
+        "resource": {
+          "relative_path": "index.json"
+        }
+      }
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "API-INDEX.md",
+      "output": {
+        ".html": {
+          "relative_path": "API-INDEX.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "ARCHITECTURE.md",
+      "output": {
+        ".html": {
+          "relative_path": "ARCHITECTURE.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "CONTRACT.md",
+      "output": {
+        ".html": {
+          "relative_path": "CONTRACT.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "GETTING-STARTED.md",
+      "output": {
+        ".html": {
+          "relative_path": "GETTING-STARTED.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "LICENSE",
+      "output": {
+        "resource": {
+          "relative_path": "LICENSE"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "PACKAGE-MAP.md",
+      "output": {
+        ".html": {
+          "relative_path": "PACKAGE-MAP.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "README.md",
+      "output": {
+        ".html": {
+          "relative_path": "README.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "RELATIONSHIP-GRAPH.md",
+      "output": {
+        ".html": {
+          "relative_path": "RELATIONSHIP-GRAPH.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "TEST-EVIDENCE-spec.md",
+      "output": {
+        ".html": {
+          "relative_path": "TEST-EVIDENCE-spec.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "TEST-MATRIX-2026-10-18.md",
+      "output": {
+        ".html": {
+          "relative_path": "TEST-MATRIX-2026-10-18.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "THIRD-PARTY-NOTICES.md",
+      "output": {
+        ".html": {
+          "relative_path": "THIRD-PARTY-NOTICES.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/BACKLOG-MASTER.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/BACKLOG-MASTER.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/CAPABILITY.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/CAPABILITY.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/CONFIGURATION.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/CONFIGURATION.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api-glossary.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api-glossary.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/contract.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/contract.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/faq.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/faq.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/spike-BL01-ggml-isolation.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/spike-BL01-ggml-isolation.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "docs/wiki.html",
+      "output": {
+        "resource": {
+          "relative_path": "docs/wiki.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "index.md",
+      "output": {
+        ".html": {
+          "relative_path": "index.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Abstractions.GrammarKind.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Abstractions.GrammarKind.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Abstractions.GrammarKind",
+      "Summary": "Provenance label of an IGrammar (ABI v7)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Abstractions.IChunkWallClock.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Abstractions.IChunkWallClock.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Abstractions.IChunkWallClock",
+      "Summary": "Wall-clock seam for per-chunk prefill timing (INF BL-33).\n    The native prompt commit is synchronous, so the wall measured around it IS\n    the chunk wall on whatever backend is compiled in (metal / cuda / vulkan /\n    cpu — backend-independent by construction); the seam exists so tests can\n    script timings instead of sleeping."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Abstractions.IControlVector.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Abstractions.IControlVector.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Abstractions.IControlVector",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Abstractions.IConversation.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Abstractions.IConversation.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Abstractions.IConversation",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Abstractions.IConversationPool.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Abstractions.IConversationPool.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Abstractions.IConversationPool",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Abstractions.IConversationState.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Abstractions.IConversationState.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Abstractions.IConversationState",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Abstractions.IGrammar.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Abstractions.IGrammar.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Abstractions.IGrammar",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Abstractions.IInferenceBackend.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Abstractions.IInferenceBackend.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Abstractions.IInferenceBackend",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Abstractions.IInferenceContext.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Abstractions.IInferenceContext.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Abstractions.IInferenceContext",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Abstractions.IInferenceModel.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Abstractions.IInferenceModel.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Abstractions.IInferenceModel",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Abstractions.IInferenceState.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Abstractions.IInferenceState.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Abstractions.IInferenceState",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Abstractions.ILoraAdapter.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Abstractions.ILoraAdapter.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Abstractions.ILoraAdapter",
+      "Summary": "ABI v8 (wave 3, feature 9): a loaded LoRA adapter (opaque native handle).\nLoaded against ONE model (arch-matched, typed on mismatch); attached to\ncontexts via IInferenceContext.SetAdapters. Weights-surface modifier:\nKV-neutral, attach/detach mid-conversation without rewind."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Abstractions.IPrefillStallDetector.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Abstractions.IPrefillStallDetector.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Abstractions.IPrefillStallDetector",
+      "Summary": "Typed stall detector over per-chunk prefill wall timings\n    (INF BL-33). Stateful across the chunks of one prefill: it maintains the\n    rolling baseline itself."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Abstractions.ISpeculationSuspender.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Abstractions.ISpeculationSuspender.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Abstractions.ISpeculationSuspender",
+      "Summary": "Runtime suspension of the speculative helper (draft/ngram) on the\n    owning executor stack — the real native wiring for the stall-safe prefill\n    ladder's DraftDisabledRetry rung (INF BL-33b). Implementations must be\n    idempotent (suspending with no active session is a no-op, mirroring the\n    native pvx_executor_spec_free contract) and must not throw when the\n    helper is already disabled."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Abstractions.IStallRecoveryLadder.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Abstractions.IStallRecoveryLadder.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Abstractions.IStallRecoveryLadder",
+      "Summary": "Facade view of the stall-recovery ladder (INF BL-33): owns the\n    configured step order and the retry budget; returns the step for a\n    given 0-based retry attempt and fails closed when the budget is\n    exhausted (the caller is expected to throw the typed unrecovered error\n    then — the ladder itself never invents steps). Surfaced behind the\n    Engines facade (<code>StallWatchdogOps.CreateRecoveryLadder</code>) so callers\n    never touch the Implementation namespace."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Abstractions.IStandardExecutor.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Abstractions.IStandardExecutor.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Abstractions.IStandardExecutor",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Abstractions.ITtsSession.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Abstractions.ITtsSession.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Abstractions.ITtsSession",
+      "Summary": "ABI v8 (wave 3, feature 7): a TTS session — a SEPARATE decode context on\nthe backbone speech model plus a gen-audio mmproj. Never entangled with a\nconversation context (KV-neutral by construction). Capability-truthful:\ncreation against a mmproj without a gen-audio pipeline throws typed.\nDeterminism: identical (text, request.Seed) pairs replay byte-identically."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Abstractions.IVisionEncoder.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Abstractions.IVisionEncoder.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Abstractions.IVisionEncoder",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Abstractions.InferResult.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Abstractions.InferResult.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Abstractions.InferResult",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Abstractions.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Abstractions.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Abstractions",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Decision.Abstractions.IDecisionHeaderReader.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Decision.Abstractions.IDecisionHeaderReader.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Decision.Abstractions.IDecisionHeaderReader",
+      "Summary": "Decision-model file validation seam (load state machine step). A REAL\nprotobuf scan of the ONNX ModelProto wire (ir_version, graph IO signature\nnames, opset_import presence) — long initializers are skipped by seek, so a\n500MB+ model validates in milliseconds. Any structural violation throws —\nthe load state machine maps that to fail-closed model_invalid before any\nsession init is attempted."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Decision.Abstractions.IDecisionSessionFactory.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Decision.Abstractions.IDecisionSessionFactory.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Decision.Abstractions.IDecisionSessionFactory",
+      "Summary": "Creates <xref href=\"ProvostXInference.Decision.Engine.DecisionSession\" data-throw-if-not-resolved=\"false\"></xref>s for a decision (judge) model file:\nbuilds the ORT session options (full graph optimization, matching the\ntraining runtime) and walks the parsed <xref href=\"ProvostXInference.Decision.Engine.ExecutionProviderChain\" data-throw-if-not-resolved=\"false\"></xref>\nin preference order. EP FALLBACK RULE: a provider that fails to initialize\ndegrades to the next entry — CPU is always the terminal fallback and is the\nonly provider REQUIRED to work. The session's ACTUALLY-active provider is\nrecorded so health reporting is truthful. One factory per host; thread-safe."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Decision.Abstractions.IExecutionProviderDefaultSource.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Decision.Abstractions.IExecutionProviderDefaultSource.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Decision.Abstractions.IExecutionProviderDefaultSource",
+      "Summary": "Per-OS DEFAULT execution-provider chain for decision models: applied when a\nmodel configures NO explicit execution_provider. Injected so tests can pin\nthe OS."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Decision.Abstractions.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Decision.Abstractions.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Decision.Abstractions",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Decision.Engine.DecisionAssetCatalog.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Decision.Engine.DecisionAssetCatalog.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Decision.Engine.DecisionAssetCatalog",
+      "Summary": "Resolves the judge ASSET files (tokenizer.json, judge-spec-*.json) for one\nconfigured judge model. Resolution order (first hit wins):\n  1. model config \"file\" SIBLING directory (a bundled model dir ships both),\n  2. the server root's assets/models/judge/ directory,\n  3. next to the server binary (Assets/models/judge copied at build/pack time).\nSpec file per record kind: judge-spec-shell.json / judge-spec-process.json.\nPure resolver — performs no IO beyond existence checks at Resolve time."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Decision.Engine.DecisionHeaderReader.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Decision.Engine.DecisionHeaderReader.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Decision.Engine.DecisionHeaderReader",
+      "Summary": "Wave-2 ONNX header validation: a REAL protobuf scan of the ModelProto wire —\nir_version (field 1, varint), the graph message (field 7) with its input\n(field 11) and output (field 12) ValueInfoProto names, and opset_import\npresence (field 8). Long initializers are SKIPPED by seek (never read into\nmemory), so a 500MB+ model validates in milliseconds. Any structural\nviolation throws — the load state machine maps that to fail-closed\nmodel_invalid before any session init is attempted.\nWire-format reference: developers.onnxruntime.ai/onnx/proto (ModelProto,\nGraphProto, ValueInfoProto field tables). Pure scanner — no state."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Decision.Engine.DecisionRecord.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Decision.Engine.DecisionRecord.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Decision.Engine.DecisionRecord",
+      "Summary": "One judged decision record, validated and normalized (parser → executor boundary).\nSHELL records carry command+cwd; PROCESS records carry the os/exe/chain/cmd/net/writes\ntuple. The untrusted SHELL \"purpose\" field deliberately has NO field here — it is\nechoed in audit logs only and never reaches decision input."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Decision.Engine.DecisionSession.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Decision.Engine.DecisionSession.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Decision.Engine.DecisionSession",
+      "Summary": "ONE loaded ONNX judge model ready for batch inference: the ORT session\n(selected execution provider recorded), the tokenizer, the sequence spec,\nand the row collation + decode that mirrors the training evaluation exactly.\nDisposal releases the session. NOT thread-safe per instance beyond the\nsession's own safety — the executor serializes inference per engine.\n\nDecode (training-eval semantics, per question row k = option count):\n  choice  → argmax over the k class logits → JudgeAction (allow/sandbox/deny);\n  noul    → softmax over 2, P(true) = NeedsSandbox;\n  score   → softmax over 5, expected value = Risk (0..4);\n  confidence → max class probability after temperature scaling (0..1).\nThe Jev raw wire (JudgeQuestionSet) decodes ARBITRARY caller questions instead:\nchoice → argmax option label + per-option probabilities, score → expected level\nvalue + level-index probabilities, noul → P(true) — same softmax/temperature\nmachinery, no escalation."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Decision.Engine.DecisionSessionFactory.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Decision.Engine.DecisionSessionFactory.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Decision.Engine.DecisionSessionFactory",
+      "Summary": "Creates <xref href=\"ProvostXInference.Decision.Engine.DecisionSession\" data-throw-if-not-resolved=\"false\"></xref>s for a judge model file: builds the ORT\nsession options (full graph optimization, matching the training runtime) and\nwalks the parsed <xref href=\"ProvostXInference.Decision.Engine.ExecutionProviderChain\" data-throw-if-not-resolved=\"false\"></xref> in preference order\n(LLM-10 per-OS chains). EP FALLBACK RULE: a provider that fails to initialize\n(not bundled, driver/library problems, unsupported ops) degrades to the next\nentry — CPU is always the terminal fallback and is the only provider REQUIRED\nto work. The session's ACTUALLY-active provider is read back from the runtime\n(a silent ORT fallback to CPU counts as a fallback, not as GPU) and recorded\nso /pvx/health `active_execution_provider` is truthful. One factory per host;\nthread-safe (stateless beyond the injected option applier)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Decision.Engine.DecisionTestSupport.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Decision.Engine.DecisionTestSupport.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Decision.Engine.DecisionTestSupport",
+      "Summary": "Test-support surface for the decision engine slice (Inference-side, consumed\nby both repos' test suites): opens an ORT session with ONE pinned provider.\nKeeping the only direct ORT-construction site inside ProvostXInference is the\nLLM→Inference extraction contract — LLM-side code references no ORT types."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Decision.Engine.EpAttempt.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Decision.Engine.EpAttempt.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Decision.Engine.EpAttempt",
+      "Summary": "One candidate configuration for an EP session init: a label for\n    diagnostics and the options mutation it applies. Ordered — first that\n    successfully creates a session wins."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Decision.Engine.ExecutionProviderChain.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Decision.Engine.ExecutionProviderChain.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Decision.Engine.ExecutionProviderChain",
+      "Summary": "Parsed execution-provider chain for a decision (judge) model (e.g. \"cpu\",\n\"coreml-&gt;cpu\", \"cuda-&gt;cpu\"). First entry is the preferred provider; later\nentries are fallbacks. Unknown names fail config validation loudly (the\nparser throws) — silent CPU fallback for typos is a misconfiguration hazard."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Decision.Engine.ExecutionProviderOptionsApplier.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Decision.Engine.ExecutionProviderOptionsApplier.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Decision.Engine.ExecutionProviderOptionsApplier",
+      "Summary": "Per-EP session-option presets (LLM-10): each configured chain entry may need\nprovider-specific session options (CUDA device id, DirectML device id, ROCm\ndevice id, OpenVINO device type, CoreML flags). Every preset list ends with a\nPLAIN name-append fallback so a quirk mismatch never fails an otherwise\nloadable provider — remaining failures fall down the chain to cpu (never fail\nwhen cpu works). Instance type, no state — cheap to construct, injectable."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Decision.Engine.JudgeAction.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Decision.Engine.JudgeAction.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Decision.Engine.JudgeAction",
+      "Summary": "Judge verdict actions. The FINAL action in the wire response is produced by\n<code>JudgeVerdictMapper</code>, which owns the risk-escalation rule — the executor's\nraw action may be upgraded (allow → require_approval) but never downgraded."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Decision.Engine.JudgeModelNotReadyException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Decision.Engine.JudgeModelNotReadyException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Decision.Engine.JudgeModelNotReadyException",
+      "Summary": "Typed fail-closed judge error: every judge endpoint maps this to HTTP 503 with\na machine-readable code — NEVER to a 200/allow verdict. Codes:\n\"model_unloaded\" (judge engine present but not loaded) and \"model_missing\"\n(no judge model configured/registered for the requested id)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Decision.Engine.JudgeNumericsGate.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Decision.Engine.JudgeNumericsGate.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Decision.Engine.JudgeNumericsGate",
+      "Summary": "Canonical numerics gate (LLM-10): before a NON-CPU execution provider is\naccepted, the judge model must reproduce the canonical wave-4 anchor (the\ndestructive `dd` deny — recorded on the CPU EP: deny EXACT, conf ≈ 0.9231,\nrisk ≈ 3.128) within tolerance. A GPU/CoreML EP that loads but drifts the\nanchors is REJECTED and the chain continues to the next provider (cpu always\nterminates). Fail-closed: gate evaluation errors count as drift."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Decision.Engine.JudgeOption.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Decision.Engine.JudgeOption.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Decision.Engine.JudgeOption",
+      "Summary": "One rendered option of a judge question: its answer label and its\ncriterion description (null = no description — rendered as the bare label).\nOption ORDER is decision-meaningful (argmax index → label). Pure data."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Decision.Engine.JudgeQuestionAnswer.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Decision.Engine.JudgeQuestionAnswer.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Decision.Engine.JudgeQuestionAnswer",
+      "Summary": "ONE raw model answer for one Jev question (session decode → response mapper\nboundary). RAW semantics: the model's argmax choice / expected score / noul\nprobability — NO risk-escalation rule applied (the escalation owner is\nJudgeVerdictMapper on the enriched arms; the raw wire stays raw).\nField populations per type: choice → Choice + Confidence + Probabilities;\nscore → Score + Confidence + Probabilities (level-index keyed) + Legend;\nnoul → Noul. Pure data."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Decision.Engine.JudgeQuestionAnswerSet.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Decision.Engine.JudgeQuestionAnswerSet.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Decision.Engine.JudgeQuestionAnswerSet",
+      "Summary": "The raw answers for ONE Jev request (one state), in question order, plus the\nUSAGE inputs: the tokenized state length (actual tokenizer count of the\nserialized state — the usage.input_tokens definition) and the question count\n(the usage.output_tokens definition: one answer per question). Pure data."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Decision.Engine.JudgeQuestionDef.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Decision.Engine.JudgeQuestionDef.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Decision.Engine.JudgeQuestionDef",
+      "Summary": "One typed judge question as trained (id, type, instructions, ordered options).\nPure data — the judge spec carries these in the exact training order\n(action, needs_sandbox, risk_level)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Decision.Engine.JudgeQuestionRowSet.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Decision.Engine.JudgeQuestionRowSet.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Decision.Engine.JudgeQuestionRowSet",
+      "Summary": "Encoded question rows for ONE Jev state + the pre-truncation token count of\nthe serialized state (usage.input_tokens source). One row per question, in\nquestion order. Pure data."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Decision.Engine.JudgeQuestionType.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Decision.Engine.JudgeQuestionType.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Decision.Engine.JudgeQuestionType",
+      "Summary": "Judge question types, numbered EXACTLY as the judge models were trained\n(laya QTYPES): choice=0, score=1, noul=2. The value feeds the model's\nqtype input — never renumber."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Decision.Engine.JudgeRecordKind.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Decision.Engine.JudgeRecordKind.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Decision.Engine.JudgeRecordKind",
+      "Summary": "Discriminator for judge decision records on the decision-engine wire\n/v1/systemone (two record kinds on the same endpoint — the enriched arms;\nthe raw Jev shape carries a free-form state instead)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Decision.Engine.JudgeRowEncoding.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Decision.Engine.JudgeRowEncoding.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Decision.Engine.JudgeRowEncoding",
+      "Summary": "Encoded ONE question row of a judge record: token ids, marker (MASK) offsets,\nand the question's type. One record → one row per question, in question order.\nPure data."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Decision.Engine.JudgeScore.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Decision.Engine.JudgeScore.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Decision.Engine.JudgeScore",
+      "Summary": "Raw model output for one judged record (executor → response mapper boundary).\nThe mapper owns the risk-escalation rule; the executor reports raw scores only."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Decision.Engine.JudgeSequenceEncoder.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Decision.Engine.JudgeSequenceEncoder.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Decision.Engine.JudgeSequenceEncoder",
+      "Summary": "Builds judge model input rows from validated <xref href=\"ProvostXInference.Decision.Engine.DecisionRecord\" data-throw-if-not-resolved=\"false\"></xref>s:\nserializes the record EXACTLY as the training pipeline did (compact JSON with\nthe mask token stripped), then assembles\n[CLS] {type} question: {instructions} [SEP] [MASK] opt0 [MASK] opt1 ... [SEP] {state} [SEP]\nper question, with the state tail capped to the sequence budget. Mirrors the\ntraining sequence builder (head budget 256, options capped at 48 tokens each)\nagainst the committed fixtures (Tests/Assets/judge/seq-fixtures.json).\nOne encoder per judge model spec; thread-safe (stateless + immutable fields)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Decision.Engine.JudgeSequenceSpec.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Decision.Engine.JudgeSequenceSpec.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Decision.Engine.JudgeSequenceSpec",
+      "Summary": "The FULL serialized inference specification for one judge model: record kind,\nsequence budget (max_len/head_max_len exactly as trained), the confidence\ntemperatures fitted at export time, and the three typed questions in training\norder. Loaded from a spec JSON (Assets/models/judge/judge-spec-*.json) —\nthe questions MUST match the training questions verbatim or the model scores\ntext it was never trained on."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Decision.Engine.JudgeStateQuestions.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Decision.Engine.JudgeStateQuestions.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Decision.Engine.JudgeStateQuestions",
+      "Summary": "One decision-engine question batch on the Jev wire: the SERIALIZED state text\n(rule owned by the server layer's state serializer — the engine plane only sees\ntext) and the typed questions to answer. Questions = null → the judge's\nCANONICAL trained question set (the loaded session's spec — our additive\ndefault for omitted questions; real Jev requires questions). One request → one\nanswer set. Pure data."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Decision.Engine.JudgeTokenizer.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Decision.Engine.JudgeTokenizer.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Decision.Engine.JudgeTokenizer",
+      "Summary": "Deterministic BPE tokenizer for the Laya judge models (mmBERT vocabulary,\nHuggingFace tokenizer.json format: BPE model + Replace(\" \" → \"▁\") normalizer\n+ Metaspace pre-tokenizer, add_special_tokens=False semantics — no BOS/EOS\npost-processing; the judge sequence builder places CLS/SEP itself).\n\nPipeline (replicates the training tokenizer byte-for-byte):\n  1. added-token extraction (longest match, pre-normalization, per segment),\n  2. normalization: \" \" → \"▁\" per non-added segment,\n  3. Metaspace pre-tokenization: prepend \"▁\" when the segment does not start\n     with it, then split BEFORE every \"▁\" (each \"▁\" begins a piece),\n  4. greedy lowest-rank BPE merges per piece (pairs of in-vocab symbols only),\n  5. unknown symbols: byte fallback (\"&lt;0xXX&gt;\" tokens), then &lt;unk&gt;\n     (consecutive unknowns fused).\n\nThread-safe: all mutable state is ConcurrentDictionary caches; encoding is a\npure function of the input text. Deterministic: no RNG, no time, no IO after\nconstruction. Verified against the training pipeline on the committed vector\nfixture (Tests/Assets/judge/tok-vectors.json)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Decision.Engine.OnnxExecutionProvider.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Decision.Engine.OnnxExecutionProvider.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Decision.Engine.OnnxExecutionProvider",
+      "Summary": "Execution providers for decision (judge) models. The chain is parsed and\nvalidated at config time so unknown names fail loudly. Per-OS: CoreML\n(macOS), DirectML (Windows), CUDA/ROCm/OpenVINO (Linux) — cpu is always the\nterminal fallback."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Decision.Engine.OsExecutionProviderDefaultSource.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Decision.Engine.OsExecutionProviderDefaultSource.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Decision.Engine.OsExecutionProviderDefaultSource",
+      "Summary": "Per-OS default EP chains (LLM-10): macOS coreml→cpu, Windows directml→cpu,\nLinux cuda→rocm→openvino→cpu — first available wins at session init; cpu is\nalways the terminal fallback. An injected osOverride keeps the mapping\ntestable without touching the real host OS."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Decision.Engine.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Decision.Engine.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Decision.Engine",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Engines.DecisionEngineOps.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Engines.DecisionEngineOps.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Engines.DecisionEngineOps",
+      "Summary": "Decision lane ops over an existing <xref href=\"ProvostXInference.Decision.Engine.DecisionSession\" data-throw-if-not-resolved=\"false\"></xref> (loaded by\nthe factory through <xref href=\"ProvostXInference.Decision.Abstractions.IDecisionSessionFactory\" data-throw-if-not-resolved=\"false\"></xref>)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Engines.DecisionEngineRequest.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Engines.DecisionEngineRequest.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Engines.DecisionEngineRequest",
+      "Summary": "Contract for an ONNX decision (judge) engine on the managed ORT lane:\nmodel path, tokenizer JSON, judge sequence-spec JSON, execution-provider\nchain (raw string, LLM-10 format; null = OS default), optional numerics gate."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Engines.DecisionEngineRequestBuilder.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Engines.DecisionEngineRequestBuilder.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Engines.DecisionEngineRequestBuilder",
+      "Summary": "Fluent builder for <xref href=\"ProvostXInference.Engines.DecisionEngineRequest\" data-throw-if-not-resolved=\"false\"></xref> (ONNX judge lane).\n<xref href=\"ProvostXInference.Engines.DecisionEngineRequestBuilder.Build\" data-throw-if-not-resolved=\"false\"></xref> yields a VALIDATED request (fail-closed)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Engines.EncoderEngineOps.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Engines.EncoderEngineOps.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Engines.EncoderEngineOps",
+      "Summary": "Encoder lane ops: wraps the vision encoder + backing model (see interface)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Engines.EncoderEngineRequest.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Engines.EncoderEngineRequest.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Engines.EncoderEngineRequest",
+      "Summary": "Contract for a vision ENCODER engine: a GGUF model (for its vocabulary/\ntokenizer context) plus a REQUIRED mmproj projector. The engine's primary\nlane is image embedding; generative GGUF ops are NOT exposed on this kind."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Engines.EncoderEngineRequestBuilder.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Engines.EncoderEngineRequestBuilder.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Engines.EncoderEngineRequestBuilder",
+      "Summary": "Fluent builder for <xref href=\"ProvostXInference.Engines.EncoderEngineRequest\" data-throw-if-not-resolved=\"false\"></xref> (vision encoder lane:\nGGUF model + REQUIRED mmproj). <xref href=\"ProvostXInference.Engines.EncoderEngineRequestBuilder.Build\" data-throw-if-not-resolved=\"false\"></xref> yields a VALIDATED request."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Engines.EngineKind.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Engines.EngineKind.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Engines.EngineKind",
+      "Summary": "Which backend lane an <xref href=\"ProvostXInference.Engines.IInferenceEngine\" data-throw-if-not-resolved=\"false\"></xref> serves. One engine object\nper lane; the facade routes ops views by this kind (fail-closed on mismatch)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Engines.EngineLogging.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Engines.EngineLogging.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Engines.EngineLogging",
+      "Summary": "Facade view of the native logging bridge (owner black-box directive\n2026-10-19): native C-level log setup is a process-wide facade concern\n(the pvx_set_log_* entry points dispatch on the ACTIVE engine's tables),\nso callers configure it here instead of reaching into the Logging\nnamespace. Pure delegation — identical semantics, facade-only surface."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Engines.EngineMaintenance.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Engines.EngineMaintenance.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Engines.EngineMaintenance",
+      "Summary": "Facade view of the offline engine-maintenance utilities (owner black-box\ndirective 2026-10-19): file-level operations that need NO loaded engine\nobject but ARE engine-bound (they dispatch on the ACTIVE engine's\nper-handle tables). Currently: GGUF tokenizer-metadata repair (EOG/special\ntoken fixup — weights stream-copied byte-for-byte, metadata rewritten).\nPure delegation to the Implementation layer — callers never leave the\nfacade surface."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Engines.EngineRequest.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Engines.EngineRequest.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Engines.EngineRequest",
+      "Summary": "The typed engine CONTRACT base: everything a caller must tell Inference to get\nan <xref href=\"ProvostXInference.Engines.IInferenceEngine\" data-throw-if-not-resolved=\"false\"></xref>. Derived records add lane-specific parameters.\n<xref href=\"ProvostXInference.Engines.EngineRequest.Validate\" data-throw-if-not-resolved=\"false\"></xref> is fail-closed — any invalid field throws\n<xref href=\"ProvostXInference.Exceptions.InvalidEngineRequestException\" data-throw-if-not-resolved=\"false\"></xref> before a backend is ever touched."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Engines.GgufEngineOps.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Engines.GgufEngineOps.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Engines.GgufEngineOps",
+      "Summary": "GGUF lane ops implementation over the wrapper-layer graph. Holds the model,\nthe live context (created from the request's context settings), and the pool\n(lazily created on first <xref href=\"ProvostXInference.Engines.GgufEngineOps.LeaseConversation\" data-throw-if-not-resolved=\"false\"></xref>). Disposal flows\noutward-in via the owning <xref href=\"ProvostXInference.Engines.InferenceEngine\" data-throw-if-not-resolved=\"false\"></xref>."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Engines.GgufEngineRequest.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Engines.GgufEngineRequest.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Engines.GgufEngineRequest",
+      "Summary": "Contract for a GGUF generative engine on the native llama.cpp backend:\nmodel path, optional vision projector (mmproj) sidecar, optional speculative\ndraft-model sidecar, and the full native load knob set (BL-02 engine matrix,\nGPU layers, threads, flash attention, KV type, reasoning markers) plus\ncontext sizing. Knobs are load-time; live knobs live on the engine object."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Engines.GgufEngineRequestBuilder.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Engines.GgufEngineRequestBuilder.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Engines.GgufEngineRequestBuilder",
+      "Summary": "Fluent builder for <xref href=\"ProvostXInference.Engines.GgufEngineRequest\" data-throw-if-not-resolved=\"false\"></xref>. <xref href=\"ProvostXInference.Engines.GgufEngineRequestBuilder.Build\" data-throw-if-not-resolved=\"false\"></xref> yields a\nVALIDATED request (fail-closed); <xref href=\"ProvostXInference.Engines.GgufEngineRequestBuilder.Create(ProvostXInference.Engines.IInferenceEngineFactory)\" data-throw-if-not-resolved=\"false\"></xref> builds + factory-creates\nan engine in one step."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Engines.GgufModelLoader.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Engines.GgufModelLoader.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Engines.GgufModelLoader",
+      "Summary": "Production <xref href=\"ProvostXInference.Engines.IGgufModelLoader\" data-throw-if-not-resolved=\"false\"></xref>: thin wrapper over the native\nwrapper-layer factories (<xref href=\"ProvostXInference.Implementation.NativeInferenceModel.Load(ProvostXInference.Models.ModelConfig)\" data-throw-if-not-resolved=\"false\"></xref> +\n<xref href=\"ProvostXInference.Abstractions.IInferenceModel.LoadVisionEncoder(System.String)\" data-throw-if-not-resolved=\"false\"></xref>). No state, no fallback."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Engines.IDecisionEngineOps.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Engines.IDecisionEngineOps.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Engines.IDecisionEngineOps",
+      "Summary": "Decision (ONNX judge) lane ops view: batch judging on the ORT session with\ntruthful active-provider reporting, plus the tokenizer/spec the caller needs\nto build records. Wraps <xref href=\"ProvostXInference.Decision.Engine.DecisionSession\" data-throw-if-not-resolved=\"false\"></xref>; adds nothing native."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Engines.IEncoderEngineOps.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Engines.IEncoderEngineOps.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Engines.IEncoderEngineOps",
+      "Summary": "Encoder lane ops view: image embedding through the mmproj projector mounted\non the GGUF model's context. Text embeddings are reachable via the Gguf-style\nmodel context; this view keeps the vision lane honest and minimal."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Engines.IGgufEngineOps.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Engines.IGgufEngineOps.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Engines.IGgufEngineOps",
+      "Summary": "GGUF lane ops view: the full native llama.cpp surface as properties/methods —\ncontext management, KV-cache operations, sampling knobs, speculative knobs.\nWraps the existing wrapper-layer graph (model → context → pool → conversation);\nthe raw abstractions stay reachable for advanced callers."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Engines.IGgufModelLoader.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Engines.IGgufModelLoader.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Engines.IGgufModelLoader",
+      "Summary": "Testability seam over the native GGUF loader: the engine factory depends on\nTHIS interface, not on <xref href=\"ProvostXInference.Implementation.NativeInferenceModel\" data-throw-if-not-resolved=\"false\"></xref>'s static\nfactory, so the facade is unit-testable without a native image."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Engines.IInferenceEngine.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Engines.IInferenceEngine.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Engines.IInferenceEngine",
+      "Summary": "The SOLE caller-facing object of Inference's world: one loaded backend (GGUF\nllama.cpp, ONNX decision, or vision encoder) behind a typed facade with\nlifecycle, inference ops, context management, KV-cache ops, and every knob\nas a property. Callers (e.g. ProvostXLLM) hold an array of these and route\nrequests by <xref href=\"ProvostXInference.Engines.IInferenceEngine.Kind\" data-throw-if-not-resolved=\"false\"></xref>/<xref href=\"ProvostXInference.Engines.IInferenceEngine.ModelPath\" data-throw-if-not-resolved=\"false\"></xref>."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Engines.IInferenceEngineFactory.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Engines.IInferenceEngineFactory.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Engines.IInferenceEngineFactory",
+      "Summary": "Resolves a validated <xref href=\"ProvostXInference.Engines.EngineRequest\" data-throw-if-not-resolved=\"false\"></xref> into an UNLOADED\n<xref href=\"ProvostXInference.Engines.IInferenceEngine\" data-throw-if-not-resolved=\"false\"></xref>. Constructor-injected backend seams keep this\nunit-testable without native images."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Engines.InferenceEngine.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Engines.InferenceEngine.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Engines.InferenceEngine",
+      "Summary": "Facade implementation: created UNLOADED by <xref href=\"ProvostXInference.Engines.InferenceEngineFactory\" data-throw-if-not-resolved=\"false\"></xref>,\nloaded on <xref href=\"ProvostXInference.Engines.InferenceEngine.Initialize\" data-throw-if-not-resolved=\"false\"></xref> per kind, torn down on Dispose (ops first,\nthen backend). All deps constructor-injected; no static state."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Engines.InferenceEngineBuilder.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Engines.InferenceEngineBuilder.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Engines.InferenceEngineBuilder",
+      "Summary": "Fluent entry point of the engine-object contract:\n<pre><code class=\"lang-csharp\">var engine = InferenceEngineBuilder.Gguf(\"/path/model.gguf\")\n    .WithMmproj(\"/path/mmproj.gguf\").WithGpuLayers(99)\n    .Build();                    // → validated GgufEngineRequest\nengine.Create(factory).Initialize();   // → live IInferenceEngine</code></pre>\nNo static mutable state — the builder is a local, disposable scratch record."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Engines.InferenceEngineFactory.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Engines.InferenceEngineFactory.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Engines.InferenceEngineFactory",
+      "Summary": "Default factory (composition root of the facade): native GGUF loading via\n<xref href=\"ProvostXInference.Engines.GgufModelLoader\" data-throw-if-not-resolved=\"false\"></xref> (thin seam over the wrapper-layer static\nfactory), decision loading via the existing\n<xref href=\"ProvostXInference.Decision.Abstractions.IDecisionSessionFactory\" data-throw-if-not-resolved=\"false\"></xref> lane. No static mutable state."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Engines.StallWatchdogOps.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Engines.StallWatchdogOps.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Engines.StallWatchdogOps",
+      "Summary": "Facade factory for the stall-watchdog helper family (INF BL-33, owner\nblack-box directive 2026-10-19): the rolling-median detector, the\nrecovery ladder and the production wall clock are ENGINE-LEVEL utilities\n(backend-independent, pure managed) — but callers must consume them\nthrough the facade surface, never the Implementation namespace. This\nstatic factory is the sole construction seam; the returned types are the\nAbstractions interfaces. Fail-closed: a null/invalid config throws (the\nunderlying helpers validate in their constructors)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Engines.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Engines.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Engines",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Exceptions.EngineKindMismatchException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Exceptions.EngineKindMismatchException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Exceptions.EngineKindMismatchException",
+      "Summary": "Fail-closed typed error for accessing an ops view of the wrong kind\n(e.g. <code>engine.Decision</code> on a Gguf engine). The facade never hands\nout a null view — it refuses."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Exceptions.InferenceException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Exceptions.InferenceException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Exceptions.InferenceException",
+      "Summary": "Thrown when a native ProvostXInference call returns an error code.\n    Base of the typed-error family (engine contract, LDC audit 2026-10-17)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Exceptions.InvalidEngineRequestException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Exceptions.InvalidEngineRequestException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Exceptions.InvalidEngineRequestException",
+      "Summary": "Fail-closed typed error for an invalid engine contract (bad/missing path,\nout-of-range knob, wrong-kind field). Thrown BEFORE any backend is touched."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Exceptions.PrefillStallUnrecoveredException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Exceptions.PrefillStallUnrecoveredException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Exceptions.PrefillStallUnrecoveredException",
+      "Summary": "Fail-loud terminal outcome of the stall-safe prefill recovery\n    ladder (INF BL-33): a prefill chunk kept stalling past the configured\n    retries. Carries the evidence (chunk index, wall, baseline, steps\n    attempted) so the failure is diagnosable — never a silent hang or a\n    quiet degradation."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Exceptions.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Exceptions.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Exceptions",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Implementation.ChunkedStallSafePrefillRunner.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Implementation.ChunkedStallSafePrefillRunner.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Implementation.ChunkedStallSafePrefillRunner",
+      "Summary": "Engine-level stall-safe chunked prefill layer (INF BL-33).\n     Independent of downstream orchestration AND backend-independent by\n     construction: it leases conversations from the injected pool, commits the\n     prompt in chunks via PromptTokens, and times each chunk commit with pure\n     wall-clock around the synchronous native prompt call — the pvxinference\n     substrate dispatches to whatever backend is compiled in (metal / cuda /\n     vulkan / cpu), and this layer never knows or cares which. No backend\n     timing hook exists or is required; wall-clock is the sole detection\n     mechanism, so detection behaves identically on every backend. On stall it\n     walks the configured recovery ladder (fresh-slot retry → smaller-chunk\n     retry → draft/ngram disabled → fail loud).\n\n     Honesty notes:\n     - A fresh-slot retry re-prefills the committed prefix on the new slot (the\n       new slot starts with an empty KV), so it is correct, not cheap.\n     - The draft/ngram-disabled step suspends the speculative session through a\n       constructor-injected <xref href=\"ProvostXInference.Abstractions.ISpeculationSuspender\" data-throw-if-not-resolved=\"false\"></xref> (real native\n       wiring: pvx_executor_spec_free via ExecutorSpeculationSuspender). When\n       no suspender is wired, that step fails closed with the typed unrecovered\n       error naming the missing seam — never a silent skip.\n     - With <xref href=\"ProvostXInference.Models.StallWatchdogConfig.Enabled\" data-throw-if-not-resolved=\"false\"></xref> = false the runner performs\n       a single plain prompt commit (watchdog fully inert)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Implementation.ExecutorSpeculationSuspender.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Implementation.ExecutorSpeculationSuspender.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Implementation.ExecutorSpeculationSuspender",
+      "Summary": "Runtime draft/ngram suspension backed by the executor's native\n    speculative-session teardown (pvx_executor_spec_free; INF BL-33b).\n    Idempotent by construction — the native teardown is already idempotent and\n    the suspension is recorded so a second Suspend is a managed no-op."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Implementation.GgufMetadataRepair.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Implementation.GgufMetadataRepair.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Implementation.GgufMetadataRepair",
+      "Summary": "GGUF tokenizer-metadata repair (owner 2026-10-06): some HuggingFace GGUFs omit\nthe EOS token from tokenizer.ggml.special_eog_ids — the engine's native EOS\nstop then never fires and generation runs past end-of-turn. The native\npvx_repair_eog_metadata rewrites the METADATA ONLY (weights stream-copied\nbyte-for-byte); this is the public managed facade over it. Dispatches on\nthe ACTIVE engine's per-handle dispatch tables (BL-02)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Implementation.NativeControlVector.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Implementation.NativeControlVector.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Implementation.NativeControlVector",
+      "Summary": "ABI v8 (wave 3, feature 10): wraps a pvx_cvec_t (control-vector direction\nfile). Loaded via NativeInferenceModel.CreateControlVector (n_embd-matched,\ntyped refusal naming both dims on mismatch); all dispatch goes through the\nOWNING ENGINE's per-handle tables. Applied to contexts via\nNativeInferenceContext.SetControlVector; weights-surface modifier\n(KV-neutral, live attach/detach)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Implementation.NativeConversation.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Implementation.NativeConversation.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Implementation.NativeConversation",
+      "Summary": "Wraps a leased pvx_conversation_t. Does NOT own the handle — the pool does.\nDispose() returns it to the pool if not already returned. All calls dispatch\non the OWNING ENGINE's per-handle tables (carried from the pool at lease)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Implementation.NativeConversationPool.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Implementation.NativeConversationPool.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Implementation.NativeConversationPool",
+      "Summary": "Wraps a native pvx_pool_t. All calls dispatch on the OWNING\n    ENGINE's per-handle tables (flowed from the context's model); a leased\n    conversation carries the same tables for its own calls."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Implementation.NativeConversationSpecSession.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Implementation.NativeConversationSpecSession.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Implementation.NativeConversationSpecSession",
+      "Summary": "Speculative session bound to ONE pooled conversation (ABI v7,\n    feature 5): enable/generate/stats over pvx_conversation_spec_*, with the\n    active-config mirror kept honest by routing every mutation through\n    Enable/Disable below (same discipline as the executor lane). The native\n    pool-return/teardown paths free the session natively; <xref href=\"ProvostXInference.Implementation.NativeConversationSpecSession.OnReturned\" data-throw-if-not-resolved=\"false\"></xref>\n    clears the managed mirror so it can never report a phantom session."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Implementation.NativeConversationState.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Implementation.NativeConversationState.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Implementation.NativeConversationState",
+      "Summary": "Wraps a conversation state (pvx_conversation_save). Token count\n    queries dispatch on the OWNING ENGINE's per-handle tables\n    (constructor-injected, carried from the conversation at save time)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Implementation.NativeGrammar.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Implementation.NativeGrammar.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Implementation.NativeGrammar",
+      "Summary": "Wraps a pvx_grammar_t. Created through — and dispatching on — the\n    OWNING MODEL ENGINE's per-handle tables."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Implementation.NativeInferenceBackend.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Implementation.NativeInferenceBackend.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Implementation.NativeInferenceBackend",
+      "Summary": "Backend safety layer (pvx_probe_backend + queries). The probe is\n    context-anchored and dispatches on the OWNING CONTEXT ENGINE's per-handle\n    tables; the process-wide queries dispatch on the ACTIVE engine — a no-op\n    passthrough until a model load activates it."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Implementation.NativeInferenceContext.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Implementation.NativeInferenceContext.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Implementation.NativeInferenceContext",
+      "Summary": "Wraps a native pvx_context_t. All calls dispatch on the OWNING\n    MODEL ENGINE's per-handle tables (injected via the model)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Implementation.NativeInferenceModel.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Implementation.NativeInferenceModel.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Implementation.NativeInferenceModel",
+      "Summary": "Wraps a native pvx_model_t. Factory: Load(). BL-02: EVERY pvx_* call this\nmodel (and everything created from it) makes is dispatched through the\nOWNING ENGINE's per-handle dispatch tables — resolved once at engine open\nand injected down the whole object graph; no global P/Invoke routing."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Implementation.NativeInferenceState.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Implementation.NativeInferenceState.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Implementation.NativeInferenceState",
+      "Summary": "Wraps a pvx_state_t (pvx_state_save). Token count queries dispatch\n    on the OWNING ENGINE's per-handle tables (constructor-injected)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Implementation.NativeLoraAdapter.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Implementation.NativeLoraAdapter.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Implementation.NativeLoraAdapter",
+      "Summary": "ABI v8 (wave 3, feature 9): wraps a pvx_adapter_t (LoRA). Loaded via\nNativeInferenceModel.CreateLoraAdapter (arch-matched, typed on mismatch);\nall dispatch goes through the OWNING ENGINE's per-handle tables. Attached\nto contexts via NativeInferenceContext.SetAdapters; adapters are freed on\nDispose (and by the model at its teardown — native contract)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Implementation.NativeStandardExecutor.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Implementation.NativeStandardExecutor.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Implementation.NativeStandardExecutor",
+      "Summary": "Wraps a pvx_executor_t (standard, non-batched path). All calls\n    dispatch on the OWNING ENGINE's per-handle tables (flowed from the context)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Implementation.NativeTtsSession.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Implementation.NativeTtsSession.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Implementation.NativeTtsSession",
+      "Summary": "ABI v8 (wave 3, feature 7): wraps a pvx_tts_session_t — a SEPARATE decode\ncontext on the backbone speech model plus a gen-audio mmproj (never a\nconversation context; KV-neutral by construction). All calls dispatch on\nthe OWNING ENGINE's per-handle tables."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Implementation.NativeVisionEncoder.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Implementation.NativeVisionEncoder.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Implementation.NativeVisionEncoder",
+      "Summary": "Wraps an mmproj context for vision/image encoding. All calls\n    dispatch on the OWNING ENGINE's per-handle tables (constructor-injected)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Implementation.PvxDefaultEngineSelector.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Implementation.PvxDefaultEngineSelector.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Implementation.PvxDefaultEngineSelector",
+      "Summary": "Platform default engine selection — used when the model config leaves the\nengine field unset: macOS resolves to the metal specialist; Windows/Linux\nprefer cuda when its specialist file ships, else vulkan, else the cpu\nengine (every platform can build a CPU specialist); fail-closed\n(typed error, no silent fallback) when none is installed. The OS identity\nis constructor-injected (same probe family the selector matrix consults —\nno hidden environment dependence). Stateless utility — no mutable state."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Implementation.RollingPrefillStallDetector.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Implementation.RollingPrefillStallDetector.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Implementation.RollingPrefillStallDetector",
+      "Summary": "Rolling-median stall detector (INF BL-33). A chunk is a stall when\n    its wall exceeds GapMultiplier × the rolling median of the recent baseline\n    window. The detector is silent (never a stall) until the baseline holds at\n    least MinBaselineSamples clean observations — the first chunks of a prefill\n    cannot be judged against an empty baseline."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Implementation.StallRecoveryLadder.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Implementation.StallRecoveryLadder.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Implementation.StallRecoveryLadder",
+      "Summary": "Recovery ladder for the stall-safe prefill layer (INF BL-33).\n    Owns the configured step order and the retry budget; returns the step for\n    a given 0-based retry attempt and fails closed when the budget is\n    exhausted (the caller is expected to throw the typed unrecovered error\n    then — the ladder itself never invents steps)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Implementation.SystemChunkWallClock.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Implementation.SystemChunkWallClock.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Implementation.SystemChunkWallClock",
+      "Summary": "Production wall clock backed by the injected <xref href=\"System.TimeProvider\" data-throw-if-not-resolved=\"false\"></xref>\n    (constructor injection, no statics — INF BL-33)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Implementation.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Implementation.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Implementation",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Interop.PvxLogDelegate.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Interop.PvxLogDelegate.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Interop.PvxLogDelegate",
+      "Summary": "Log callback delegate (pvx_set_log_callback). Must be rooted by the caller\nfor the process lifetime — the native side stores the raw function pointer."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Interop.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Interop.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Interop",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Logging.IInferenceLogger.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Logging.IInferenceLogger.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Logging.IInferenceLogger",
+      "Summary": "Minimal logging seam for Inference-side subsystems (decision judge execution,\nbuild-on-first-use helpers). The host application injects an adapter over its\nown logger; the default sink drops everything (non-fatal diagnostics only)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Logging.NativeLogBridge.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Logging.NativeLogBridge.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Logging.NativeLogBridge",
+      "Summary": "Bridges native C-level logging (pvx_set_log_callback) to a managed callback.\nEncapsulated in the Inference layer — no dependency on LLM or Core loggers.\nThe caller provides an Action&lt;int,string,string&gt; that forwards to whatever\nlogger they have (LLM's ServerLogger, Core's Logger, console, etc.).\nPer-handle dispatch (BL-02): the pvx_set_log_* entry points are invoked on\nthe ENGINE'S OWN dispatch tables (resolved via the active per-handle\ndispatch route) — never the global static route — so logging state lives in\nthe specialist module that owns the model. The delegate thunk itself must\nstill be pinned for the process lifetime (the native side stores the raw\nfunction pointer)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Logging.QuietInferenceLogger.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Logging.QuietInferenceLogger.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Logging.QuietInferenceLogger",
+      "Summary": "Silent logger fallback (diagnostics are non-fatal — when no logger is\n    injected they are dropped rather than crashing the caller)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Logging.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Logging.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Logging",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Models.AudioChunk.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Models.AudioChunk.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Models.AudioChunk",
+      "Summary": "ABI v8 (wave 3, feature 6): one raw PCM audio clip for prompt-with-audio.\nMono F32 samples at the projector's NATIVE sample rate (probe via\nIInferenceModel.AudioSampleRate; product code never resamples — a rate\nmismatch is the caller's typed failure). One clip per record."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Models.BackendInfo.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Models.BackendInfo.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Models.BackendInfo",
+      "Summary": "Snapshot of backend probe results."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Models.ContextConfig.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Models.ContextConfig.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Models.ContextConfig",
+      "Summary": "User-facing context configuration."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Models.EngineStats.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Models.EngineStats.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Models.EngineStats",
+      "Summary": "ABI v8 (wave 3, feature 12): copy-out stats snapshot of one lane\n(executor or conversation). Spec counters mirror the spec telemetry\n(0/0 when no session is active); rejected drafts derive as drafted-accepted."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Models.EngineTelemetry.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Models.EngineTelemetry.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Models.EngineTelemetry",
+      "Summary": "ABI v9 (per-engine telemetry, owner order 2026-10-22): MODEL-aggregate\nsnapshot — the roll-up of every executor/conversation lane on ONE engine\ninstance (never process-wide). Rates (tok/s etc.) are derived by the\ncaller between two snapshots; the engine stays stateless. Counters never\nhide failures: rejected spec drafts derive as Drafted - Accepted."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Models.KvOverride.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Models.KvOverride.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Models.KvOverride",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Models.KvOverrideTag.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Models.KvOverrideTag.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Models.KvOverrideTag",
+      "Summary": "Tag for a GGUF metadata override value (BL-21b wave-5)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Models.KvType.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Models.KvType.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Models.KvType",
+      "Summary": "Managed enum mirroring PvxKvType."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Models.ModelConfig.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Models.ModelConfig.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Models.ModelConfig",
+      "Summary": "User-facing model configuration (not blittable — converted to PvxModelParams internally)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Models.NgramConfig.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Models.NgramConfig.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Models.NgramConfig",
+      "Summary": "n-gram speculative-dcoding knobs (ABI v6). Active iff the\n    speculative mode is an n-gram mode; zero values select the per-mode native\n    defaults. Sentinel discipline mirrors the rest of SpeculativeConfig:\n    the config is blitted to pvx_ngram_params_t at the native boundary."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Models.PoolingType.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Models.PoolingType.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Models.PoolingType",
+      "Summary": "Managed enum mirroring PvxPoolingType."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Models.PrefillRecoveryStep.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Models.PrefillRecoveryStep.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Models.PrefillRecoveryStep",
+      "Summary": "Recovery-ladder step executed after a detected prefill stall\n    (stall-safe prefill layer, INF BL-33). Ordered from cheapest to\n    fail-loud; the ladder always terminates in <xref href=\"ProvostXInference.Models.PrefillRecoveryStep.FailLoud\" data-throw-if-not-resolved=\"false\"></xref>\n    so a persistently stalling prefill never spins silently."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Models.PrefillStallVerdict.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Models.PrefillStallVerdict.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Models.PrefillStallVerdict",
+      "Summary": "Typed result of one stall-detector observation (INF BL-33).\n    Immutable; carries the evidence so callers can log or fail with real\n    numbers instead of a bare boolean."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Models.PvxEngineSelectionError.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Models.PvxEngineSelectionError.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Models.PvxEngineSelectionError",
+      "Summary": "Typed failure of engine-selection validation\n    (fail-closed contract — every invalid pair or unknown id resolves to one of\n    these, never to a guessed default)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Models.PvxEngineSelector.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Models.PvxEngineSelector.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Models.PvxEngineSelector",
+      "Summary": "Validates the ModelConfig engine field against the 5-product engine matrix:\nresult object over (engine id, OS probe) — unknown ids and wrong-OS\nselections fail closed with a typed error; no default engine guessing here.\nStateless utility — no mutable state."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Models.PvxEngineSpec.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Models.PvxEngineSpec.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Models.PvxEngineSpec",
+      "Summary": "A selected per-model engine: a validated (engine, OS) specialization from\nthe 5-product matrix — the file-name contract lives exclusively in the\nInterop policy/resolver layer (names in ONE place). The ModelConfig engine\nfield selects WHICH specialist dylib runs for this model; the resolver\nrejects unknown engines and wrong-OS selections fail-closed."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Models.PvxEngineValidation.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Models.PvxEngineValidation.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Models.PvxEngineValidation",
+      "Summary": "Outcome of engine-selection validation: exactly one of a validated\n    spec or a typed fail-closed error (never both, never a guessed default)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Models.SamplingConfig.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Models.SamplingConfig.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Models.SamplingConfig",
+      "Summary": "User-facing sampling configuration."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Models.SpeculationStats.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Models.SpeculationStats.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Models.SpeculationStats",
+      "Summary": "Spec-session acceptance telemetry for ONE speculative session\n    (executor or pooled conversation; ABI v7 adds the conversation lane):\n    cumulative drafted/accepted token counters since session start. Zero/zero\n    when no session is active — counters never hide rejections."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Models.SpeculativeCapabilities.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Models.SpeculativeCapabilities.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Models.SpeculativeCapabilities",
+      "Summary": "The engine's self-reported speculative capabilities for ONE loaded\n    model: a supported-types list (SpeculativeType bitset), not booleans.\n    A report of None means the model supports no native speculative type — the\n    second draft model (SpeculativeMode.Draft with a user-provided draft model)\n    remains the available option whenever DraftSimple is reported."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Models.SpeculativeConfig.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Models.SpeculativeConfig.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Models.SpeculativeConfig",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Models.SpeculativeMode.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Models.SpeculativeMode.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Models.SpeculativeMode",
+      "Summary": "Speculative-decoding mode, values mirror pvx_spec_mode_t exactly.\n    Fail-closed rule: a configured path that cannot be honored (missing/unloadable\n    draft model, missing capability, wrong vocab family) is a typed error naming\n    the boundary — never a silent fallback to non-spec generation."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Models.SpeculativeType.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Models.SpeculativeType.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Models.SpeculativeType",
+      "Summary": "Supported speculative-decoding types, mirrored from the llama.cpp\n    speculative enum via the engine's self-report (PVX_SPEC_TYPE_* bits).\n    The ENGINE decides what the loaded MODEL supports — query\n    IInferenceModel.SpeculativeCapabilities per model load and offer exactly\n    these types for sequential mode; never assume."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Models.StallWatchdogConfig.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Models.StallWatchdogConfig.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Models.StallWatchdogConfig",
+      "Summary": "Configuration for the engine-level stall-safe prefill watchdog\n    (stall_watchdog config section; INF BL-33). Defaults follow the owner\n    decision: multiplier 5 over the rolling median chunk wall, 3 retries, the\n    full four-step recovery ladder."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Models.TtsRequest.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Models.TtsRequest.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Models.TtsRequest",
+      "Summary": "ABI v8 (wave 3, feature 7): TTS knobs. Zero values select the per-model\nupstream defaults (native mtmd_gen_inp_default); Seed == uint.MaxValue\nselects a random draw (fixed seeds replay byte-identically)."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Models.TtsResult.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Models.TtsResult.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Models.TtsResult",
+      "Summary": "TTS generation result: raw PCM F32 mono at the pipeline rate."
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "obj/api/ProvostXInference.Models.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/ProvostXInference.Models.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "ProvostXInference.Models",
+      "Summary": null
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "obj/api/toc.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/toc.html"
+        },
+        ".json": {
+          "relative_path": "api/toc.json"
+        }
+      },
+      "version": ""
+    }
+  ],
+  "groups": [
+    {
+      "xrefmap": "xrefmap.yml"
+    }
+  ]
+}

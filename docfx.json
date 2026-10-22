@@ -1,0 +1,41 @@
+{
+  "metadata": [
+    {
+      "src": [
+        {
+          "files": [
+            "csharp/ProvostXInference.csproj"
+          ]
+        }
+      ],
+      "dest": "obj/api",
+      "memberLayout": "samePage",
+      "shouldSkipMarkup": true
+    }
+  ],
+  "build": {
+    "content": [
+      {
+        "files": [ "**.yml", "index.md" ],
+        "src": "obj/api",
+        "dest": "api"
+      },
+      {
+        "files": [ "*.md", "docs/*.md" ]
+      }
+    ],
+    "resource": [
+      {
+        "files": [ "LICENSE", "docs/wiki.html" ]
+      }
+    ],
+    "dest": "docs/api-site",
+    "globalMetadata": {
+      "_appTitle": "ProvostXInference API",
+      "_appFooter": "ProvostXInference — MIT",
+      "_enableSearch": true,
+      "_disableContribution": true
+    },
+    "template": [ "default", "moderna", ".docfx-template" ]
+  }
+}

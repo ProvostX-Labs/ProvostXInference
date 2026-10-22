@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+
+  <head>
+    <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>Namespace ProvostXInference.Decision.Engine | ProvostXInference API </title>
+      <meta name="viewport" content="width=device-width">
+      <meta name="title" content="Namespace ProvostXInference.Decision.Engine | ProvostXInference API ">
+    
+    
+      <link rel="shortcut icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../styles/docfx.vendor.min.css">
+      <link rel="stylesheet" href="../styles/docfx.css">
+      <link rel="stylesheet" href="../styles/main.css">
+      <meta property="docfx:navrel" content="">
+      <meta property="docfx:tocrel" content="toc.html">
+    
+    <meta property="docfx:rel" content="../">
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+
+        <div id="search-results">
+          <div class="search-list">Search Results for <span></span></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination" data-first=First data-prev=Previous data-next=Next data-last=Last></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="ProvostXInference.Decision.Engine">
+
+  <h1 id="ProvostXInference_Decision_Engine" data-uid="ProvostXInference.Decision.Engine" class="text-break">Namespace ProvostXInference.Decision.Engine</h1>
+  <div class="markdown level0 summary"></div>
+  <div class="markdown level0 conceptual"></div>
+  <div class="markdown level0 remarks"></div>
+    <h3 id="classes">
+Classes
+</h3>
+      <h4><a class="xref" href="ProvostXInference.Decision.Engine.DecisionAssetCatalog.html">DecisionAssetCatalog</a></h4>
+      <section>Resolves the judge ASSET files (tokenizer.json, judge-spec-*.json) for one
+configured judge model. Resolution order (first hit wins):
+  1. model config "file" SIBLING directory (a bundled model dir ships both),
+  2. the server root's assets/models/judge/ directory,
+  3. next to the server binary (Assets/models/judge copied at build/pack time).
+Spec file per record kind: judge-spec-shell.json / judge-spec-process.json.
+Pure resolver — performs no IO beyond existence checks at Resolve time.</section>
+      <h4><a class="xref" href="ProvostXInference.Decision.Engine.DecisionHeaderReader.html">DecisionHeaderReader</a></h4>
+      <section>Wave-2 ONNX header validation: a REAL protobuf scan of the ModelProto wire —
+ir_version (field 1, varint), the graph message (field 7) with its input
+(field 11) and output (field 12) ValueInfoProto names, and opset_import
+presence (field 8). Long initializers are SKIPPED by seek (never read into
+memory), so a 500MB+ model validates in milliseconds. Any structural
+violation throws — the load state machine maps that to fail-closed
+model_invalid before any session init is attempted.
+Wire-format reference: developers.onnxruntime.ai/onnx/proto (ModelProto,
+GraphProto, ValueInfoProto field tables). Pure scanner — no state.</section>
+      <h4><a class="xref" href="ProvostXInference.Decision.Engine.DecisionRecord.html">DecisionRecord</a></h4>
+      <section>One judged decision record, validated and normalized (parser → executor boundary).
+SHELL records carry command+cwd; PROCESS records carry the os/exe/chain/cmd/net/writes
+tuple. The untrusted SHELL "purpose" field deliberately has NO field here — it is
+echoed in audit logs only and never reaches decision input.</section>
+      <h4><a class="xref" href="ProvostXInference.Decision.Engine.DecisionSession.html">DecisionSession</a></h4>
+      <section>ONE loaded ONNX judge model ready for batch inference: the ORT session
+(selected execution provider recorded), the tokenizer, the sequence spec,
+and the row collation + decode that mirrors the training evaluation exactly.
+Disposal releases the session. NOT thread-safe per instance beyond the
+session's own safety — the executor serializes inference per engine.
+
+Decode (training-eval semantics, per question row k = option count):
+  choice  → argmax over the k class logits → JudgeAction (allow/sandbox/deny);
+  noul    → softmax over 2, P(true) = NeedsSandbox;
+  score   → softmax over 5, expected value = Risk (0..4);
+  confidence → max class probability after temperature scaling (0..1).
+The Jev raw wire (JudgeQuestionSet) decodes ARBITRARY caller questions instead:
+choice → argmax option label + per-option probabilities, score → expected level
+value + level-index probabilities, noul → P(true) — same softmax/temperature
+machinery, no escalation.</section>
+      <h4><a class="xref" href="ProvostXInference.Decision.Engine.DecisionSessionFactory.html">DecisionSessionFactory</a></h4>
+      <section>Creates <a class="xref" href="ProvostXInference.Decision.Engine.DecisionSession.html">DecisionSession</a>s for a judge model file: builds the ORT
+session options (full graph optimization, matching the training runtime) and
+walks the parsed <a class="xref" href="ProvostXInference.Decision.Engine.ExecutionProviderChain.html">ExecutionProviderChain</a> in preference order
+(LLM-10 per-OS chains). EP FALLBACK RULE: a provider that fails to initialize
+(not bundled, driver/library problems, unsupported ops) degrades to the next
+entry — CPU is always the terminal fallback and is the only provider REQUIRED
+to work. The session's ACTUALLY-active provider is read back from the runtime
+(a silent ORT fallback to CPU counts as a fallback, not as GPU) and recorded
+so /pvx/health `active_execution_provider` is truthful. One factory per host;
+thread-safe (stateless beyond the injected option applier).</section>
+      <h4><a class="xref" href="ProvostXInference.Decision.Engine.DecisionTestSupport.html">DecisionTestSupport</a></h4>
+      <section>Test-support surface for the decision engine slice (Inference-side, consumed
+by both repos' test suites): opens an ORT session with ONE pinned provider.
+Keeping the only direct ORT-construction site inside ProvostXInference is the
+LLM→Inference extraction contract — LLM-side code references no ORT types.</section>
+      <h4><a class="xref" href="ProvostXInference.Decision.Engine.EpAttempt.html">EpAttempt</a></h4>
+      <section>One candidate configuration for an EP session init: a label for
+    diagnostics and the options mutation it applies. Ordered — first that
+    successfully creates a session wins.</section>
+      <h4><a class="xref" href="ProvostXInference.Decision.Engine.ExecutionProviderChain.html">ExecutionProviderChain</a></h4>
+      <section>Parsed execution-provider chain for a decision (judge) model (e.g. "cpu",
+"coreml-&gt;cpu", "cuda-&gt;cpu"). First entry is the preferred provider; later
+entries are fallbacks. Unknown names fail config validation loudly (the
+parser throws) — silent CPU fallback for typos is a misconfiguration hazard.</section>
+      <h4><a class="xref" href="ProvostXInference.Decision.Engine.ExecutionProviderOptionsApplier.html">ExecutionProviderOptionsApplier</a></h4>
+      <section>Per-EP session-option presets (LLM-10): each configured chain entry may need
+provider-specific session options (CUDA device id, DirectML device id, ROCm
+device id, OpenVINO device type, CoreML flags). Every preset list ends with a
+PLAIN name-append fallback so a quirk mismatch never fails an otherwise
+loadable provider — remaining failures fall down the chain to cpu (never fail
+when cpu works). Instance type, no state — cheap to construct, injectable.</section>
+      <h4><a class="xref" href="ProvostXInference.Decision.Engine.JudgeModelNotReadyException.html">JudgeModelNotReadyException</a></h4>
+      <section>Typed fail-closed judge error: every judge endpoint maps this to HTTP 503 with
+a machine-readable code — NEVER to a 200/allow verdict. Codes:
+"model_unloaded" (judge engine present but not loaded) and "model_missing"
+(no judge model configured/registered for the requested id).</section>
+      <h4><a class="xref" href="ProvostXInference.Decision.Engine.JudgeNumericsGate.html">JudgeNumericsGate</a></h4>
+      <section>Canonical numerics gate (LLM-10): before a NON-CPU execution provider is
+accepted, the judge model must reproduce the canonical wave-4 anchor (the
+destructive `dd` deny — recorded on the CPU EP: deny EXACT, conf ≈ 0.9231,
+risk ≈ 3.128) within tolerance. A GPU/CoreML EP that loads but drifts the
+anchors is REJECTED and the chain continues to the next provider (cpu always
+terminates). Fail-closed: gate evaluation errors count as drift.</section>
+      <h4><a class="xref" href="ProvostXInference.Decision.Engine.JudgeOption.html">JudgeOption</a></h4>
+      <section>One rendered option of a judge question: its answer label and its
+criterion description (null = no description — rendered as the bare label).
+Option ORDER is decision-meaningful (argmax index → label). Pure data.</section>
+      <h4><a class="xref" href="ProvostXInference.Decision.Engine.JudgeQuestionAnswer.html">JudgeQuestionAnswer</a></h4>
+      <section>ONE raw model answer for one Jev question (session decode → response mapper
+boundary). RAW semantics: the model's argmax choice / expected score / noul
+probability — NO risk-escalation rule applied (the escalation owner is
+JudgeVerdictMapper on the enriched arms; the raw wire stays raw).
+Field populations per type: choice → Choice + Confidence + Probabilities;
+score → Score + Confidence + Probabilities (level-index keyed) + Legend;
+noul → Noul. Pure data.</section>
+      <h4><a class="xref" href="ProvostXInference.Decision.Engine.JudgeQuestionAnswerSet.html">JudgeQuestionAnswerSet</a></h4>
+      <section>The raw answers for ONE Jev request (one state), in question order, plus the
+USAGE inputs: the tokenized state length (actual tokenizer count of the
+serialized state — the usage.input_tokens definition) and the question count
+(the usage.output_tokens definition: one answer per question). Pure data.</section>
+      <h4><a class="xref" href="ProvostXInference.Decision.Engine.JudgeQuestionDef.html">JudgeQuestionDef</a></h4>
+      <section>One typed judge question as trained (id, type, instructions, ordered options).
+Pure data — the judge spec carries these in the exact training order
+(action, needs_sandbox, risk_level).</section>
+      <h4><a class="xref" href="ProvostXInference.Decision.Engine.JudgeQuestionRowSet.html">JudgeQuestionRowSet</a></h4>
+      <section>Encoded question rows for ONE Jev state + the pre-truncation token count of
+the serialized state (usage.input_tokens source). One row per question, in
+question order. Pure data.</section>
+      <h4><a class="xref" href="ProvostXInference.Decision.Engine.JudgeRowEncoding.html">JudgeRowEncoding</a></h4>
+      <section>Encoded ONE question row of a judge record: token ids, marker (MASK) offsets,
+and the question's type. One record → one row per question, in question order.
+Pure data.</section>
+      <h4><a class="xref" href="ProvostXInference.Decision.Engine.JudgeScore.html">JudgeScore</a></h4>
+      <section>Raw model output for one judged record (executor → response mapper boundary).
+The mapper owns the risk-escalation rule; the executor reports raw scores only.</section>
+      <h4><a class="xref" href="ProvostXInference.Decision.Engine.JudgeSequenceEncoder.html">JudgeSequenceEncoder</a></h4>
+      <section>Builds judge model input rows from validated <a class="xref" href="ProvostXInference.Decision.Engine.DecisionRecord.html">DecisionRecord</a>s:
+serializes the record EXACTLY as the training pipeline did (compact JSON with
+the mask token stripped), then assembles
+[CLS] {type} question: {instructions} [SEP] [MASK] opt0 [MASK] opt1 ... [SEP] {state} [SEP]
+per question, with the state tail capped to the sequence budget. Mirrors the
+training sequence builder (head budget 256, options capped at 48 tokens each)
+against the committed fixtures (Tests/Assets/judge/seq-fixtures.json).
+One encoder per judge model spec; thread-safe (stateless + immutable fields).</section>
+      <h4><a class="xref" href="ProvostXInference.Decision.Engine.JudgeSequenceSpec.html">JudgeSequenceSpec</a></h4>
+      <section>The FULL serialized inference specification for one judge model: record kind,
+sequence budget (max_len/head_max_len exactly as trained), the confidence
+temperatures fitted at export time, and the three typed questions in training
+order. Loaded from a spec JSON (Assets/models/judge/judge-spec-*.json) —
+the questions MUST match the training questions verbatim or the model scores
+text it was never trained on.</section>
+      <h4><a class="xref" href="ProvostXInference.Decision.Engine.JudgeStateQuestions.html">JudgeStateQuestions</a></h4>
+      <section>One decision-engine question batch on the Jev wire: the SERIALIZED state text
+(rule owned by the server layer's state serializer — the engine plane only sees
+text) and the typed questions to answer. Questions = null → the judge's
+CANONICAL trained question set (the loaded session's spec — our additive
+default for omitted questions; real Jev requires questions). One request → one
+answer set. Pure data.</section>
+      <h4><a class="xref" href="ProvostXInference.Decision.Engine.JudgeTokenizer.html">JudgeTokenizer</a></h4>
+      <section>Deterministic BPE tokenizer for the Laya judge models (mmBERT vocabulary,
+HuggingFace tokenizer.json format: BPE model + Replace(" " → "▁") normalizer
++ Metaspace pre-tokenizer, add_special_tokens=False semantics — no BOS/EOS
+post-processing; the judge sequence builder places CLS/SEP itself).
+
+Pipeline (replicates the training tokenizer byte-for-byte):
+  1. added-token extraction (longest match, pre-normalization, per segment),
+  2. normalization: " " → "▁" per non-added segment,
+  3. Metaspace pre-tokenization: prepend "▁" when the segment does not start
+     with it, then split BEFORE every "▁" (each "▁" begins a piece),
+  4. greedy lowest-rank BPE merges per piece (pairs of in-vocab symbols only),
+  5. unknown symbols: byte fallback ("&lt;0xXX&gt;" tokens), then &lt;unk&gt;
+     (consecutive unknowns fused).
+
+Thread-safe: all mutable state is ConcurrentDictionary caches; encoding is a
+pure function of the input text. Deterministic: no RNG, no time, no IO after
+construction. Verified against the training pipeline on the committed vector
+fixture (Tests/Assets/judge/tok-vectors.json).</section>
+      <h4><a class="xref" href="ProvostXInference.Decision.Engine.OsExecutionProviderDefaultSource.html">OsExecutionProviderDefaultSource</a></h4>
+      <section>Per-OS default EP chains (LLM-10): macOS coreml→cpu, Windows directml→cpu,
+Linux cuda→rocm→openvino→cpu — first available wins at session init; cpu is
+always the terminal fallback. An injected osOverride keeps the mapping
+testable without touching the real host OS.</section>
+    <h3 id="enums">
+Enums
+</h3>
+      <h4><a class="xref" href="ProvostXInference.Decision.Engine.JudgeAction.html">JudgeAction</a></h4>
+      <section>Judge verdict actions. The FINAL action in the wire response is produced by
+<code>JudgeVerdictMapper</code>, which owns the risk-escalation rule — the executor's
+raw action may be upgraded (allow → require_approval) but never downgraded.</section>
+      <h4><a class="xref" href="ProvostXInference.Decision.Engine.JudgeQuestionType.html">JudgeQuestionType</a></h4>
+      <section>Judge question types, numbered EXACTLY as the judge models were trained
+(laya QTYPES): choice=0, score=1, noul=2. The value feeds the model's
+qtype input — never renumber.</section>
+      <h4><a class="xref" href="ProvostXInference.Decision.Engine.JudgeRecordKind.html">JudgeRecordKind</a></h4>
+      <section>Discriminator for judge decision records on the decision-engine wire
+/v1/systemone (two record kinds on the same endpoint — the enriched arms;
+the raw Jev shape carries a free-form state instead).</section>
+      <h4><a class="xref" href="ProvostXInference.Decision.Engine.OnnxExecutionProvider.html">OnnxExecutionProvider</a></h4>
+      <section>Execution providers for decision (judge) models. The chain is parsed and
+validated at config time so unknown names fail loudly. Per-OS: CoreML
+(macOS), DirectML (Windows), CUDA/ROCm/OpenVINO (Linux) — cpu is always the
+terminal fallback.</section>
+
+
+</article>
+          </div>
+
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In this article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="../index.html">Home</a>&ensp;&middot;&ensp;<a href="#top">Back to top</a>
+            </span>
+      ProvostXInference — MIT
+      
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script type="text/javascript" src="../styles/docfx.vendor.min.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>

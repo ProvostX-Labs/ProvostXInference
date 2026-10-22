@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+
+  <head>
+    <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>Namespace ProvostXInference.Models | ProvostXInference API </title>
+      <meta name="viewport" content="width=device-width">
+      <meta name="title" content="Namespace ProvostXInference.Models | ProvostXInference API ">
+    
+    
+      <link rel="shortcut icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../styles/docfx.vendor.min.css">
+      <link rel="stylesheet" href="../styles/docfx.css">
+      <link rel="stylesheet" href="../styles/main.css">
+      <meta property="docfx:navrel" content="">
+      <meta property="docfx:tocrel" content="toc.html">
+    
+    <meta property="docfx:rel" content="../">
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+
+        <div id="search-results">
+          <div class="search-list">Search Results for <span></span></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination" data-first=First data-prev=Previous data-next=Next data-last=Last></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="ProvostXInference.Models">
+
+  <h1 id="ProvostXInference_Models" data-uid="ProvostXInference.Models" class="text-break">Namespace ProvostXInference.Models</h1>
+  <div class="markdown level0 summary"></div>
+  <div class="markdown level0 conceptual"></div>
+  <div class="markdown level0 remarks"></div>
+    <h3 id="classes">
+Classes
+</h3>
+      <h4><a class="xref" href="ProvostXInference.Models.AudioChunk.html">AudioChunk</a></h4>
+      <section>ABI v8 (wave 3, feature 6): one raw PCM audio clip for prompt-with-audio.
+Mono F32 samples at the projector's NATIVE sample rate (probe via
+IInferenceModel.AudioSampleRate; product code never resamples — a rate
+mismatch is the caller's typed failure). One clip per record.</section>
+      <h4><a class="xref" href="ProvostXInference.Models.BackendInfo.html">BackendInfo</a></h4>
+      <section>Snapshot of backend probe results.</section>
+      <h4><a class="xref" href="ProvostXInference.Models.ContextConfig.html">ContextConfig</a></h4>
+      <section>User-facing context configuration.</section>
+      <h4><a class="xref" href="ProvostXInference.Models.EngineStats.html">EngineStats</a></h4>
+      <section>ABI v8 (wave 3, feature 12): copy-out stats snapshot of one lane
+(executor or conversation). Spec counters mirror the spec telemetry
+(0/0 when no session is active); rejected drafts derive as drafted-accepted.</section>
+      <h4><a class="xref" href="ProvostXInference.Models.EngineTelemetry.html">EngineTelemetry</a></h4>
+      <section>ABI v9 (per-engine telemetry, owner order 2026-10-22): MODEL-aggregate
+snapshot — the roll-up of every executor/conversation lane on ONE engine
+instance (never process-wide). Rates (tok/s etc.) are derived by the
+caller between two snapshots; the engine stays stateless. Counters never
+hide failures: rejected spec drafts derive as Drafted - Accepted.</section>
+      <h4><a class="xref" href="ProvostXInference.Models.KvOverride.html">KvOverride</a></h4>
+      <section></section>
+      <h4><a class="xref" href="ProvostXInference.Models.ModelConfig.html">ModelConfig</a></h4>
+      <section>User-facing model configuration (not blittable — converted to PvxModelParams internally).</section>
+      <h4><a class="xref" href="ProvostXInference.Models.NgramConfig.html">NgramConfig</a></h4>
+      <section>n-gram speculative-dcoding knobs (ABI v6). Active iff the
+    speculative mode is an n-gram mode; zero values select the per-mode native
+    defaults. Sentinel discipline mirrors the rest of SpeculativeConfig:
+    the config is blitted to pvx_ngram_params_t at the native boundary.</section>
+      <h4><a class="xref" href="ProvostXInference.Models.PrefillStallVerdict.html">PrefillStallVerdict</a></h4>
+      <section>Typed result of one stall-detector observation (INF BL-33).
+    Immutable; carries the evidence so callers can log or fail with real
+    numbers instead of a bare boolean.</section>
+      <h4><a class="xref" href="ProvostXInference.Models.PvxEngineSelector.html">PvxEngineSelector</a></h4>
+      <section>Validates the ModelConfig engine field against the 5-product engine matrix:
+result object over (engine id, OS probe) — unknown ids and wrong-OS
+selections fail closed with a typed error; no default engine guessing here.
+Stateless utility — no mutable state.</section>
+      <h4><a class="xref" href="ProvostXInference.Models.PvxEngineSpec.html">PvxEngineSpec</a></h4>
+      <section>A selected per-model engine: a validated (engine, OS) specialization from
+the 5-product matrix — the file-name contract lives exclusively in the
+Interop policy/resolver layer (names in ONE place). The ModelConfig engine
+field selects WHICH specialist dylib runs for this model; the resolver
+rejects unknown engines and wrong-OS selections fail-closed.</section>
+      <h4><a class="xref" href="ProvostXInference.Models.PvxEngineValidation.html">PvxEngineValidation</a></h4>
+      <section>Outcome of engine-selection validation: exactly one of a validated
+    spec or a typed fail-closed error (never both, never a guessed default).</section>
+      <h4><a class="xref" href="ProvostXInference.Models.SamplingConfig.html">SamplingConfig</a></h4>
+      <section>User-facing sampling configuration.</section>
+      <h4><a class="xref" href="ProvostXInference.Models.SpeculationStats.html">SpeculationStats</a></h4>
+      <section>Spec-session acceptance telemetry for ONE speculative session
+    (executor or pooled conversation; ABI v7 adds the conversation lane):
+    cumulative drafted/accepted token counters since session start. Zero/zero
+    when no session is active — counters never hide rejections.</section>
+      <h4><a class="xref" href="ProvostXInference.Models.SpeculativeCapabilities.html">SpeculativeCapabilities</a></h4>
+      <section>The engine's self-reported speculative capabilities for ONE loaded
+    model: a supported-types list (SpeculativeType bitset), not booleans.
+    A report of None means the model supports no native speculative type — the
+    second draft model (SpeculativeMode.Draft with a user-provided draft model)
+    remains the available option whenever DraftSimple is reported.</section>
+      <h4><a class="xref" href="ProvostXInference.Models.SpeculativeConfig.html">SpeculativeConfig</a></h4>
+      <section></section>
+      <h4><a class="xref" href="ProvostXInference.Models.StallWatchdogConfig.html">StallWatchdogConfig</a></h4>
+      <section>Configuration for the engine-level stall-safe prefill watchdog
+    (stall_watchdog config section; INF BL-33). Defaults follow the owner
+    decision: multiplier 5 over the rolling median chunk wall, 3 retries, the
+    full four-step recovery ladder.</section>
+      <h4><a class="xref" href="ProvostXInference.Models.TtsRequest.html">TtsRequest</a></h4>
+      <section>ABI v8 (wave 3, feature 7): TTS knobs. Zero values select the per-model
+upstream defaults (native mtmd_gen_inp_default); Seed == uint.MaxValue
+selects a random draw (fixed seeds replay byte-identically).</section>
+      <h4><a class="xref" href="ProvostXInference.Models.TtsResult.html">TtsResult</a></h4>
+      <section>TTS generation result: raw PCM F32 mono at the pipeline rate.</section>
+    <h3 id="enums">
+Enums
+</h3>
+      <h4><a class="xref" href="ProvostXInference.Models.KvOverrideTag.html">KvOverrideTag</a></h4>
+      <section>Tag for a GGUF metadata override value (BL-21b wave-5).</section>
+      <h4><a class="xref" href="ProvostXInference.Models.KvType.html">KvType</a></h4>
+      <section>Managed enum mirroring PvxKvType.</section>
+      <h4><a class="xref" href="ProvostXInference.Models.PoolingType.html">PoolingType</a></h4>
+      <section>Managed enum mirroring PvxPoolingType.</section>
+      <h4><a class="xref" href="ProvostXInference.Models.PrefillRecoveryStep.html">PrefillRecoveryStep</a></h4>
+      <section>Recovery-ladder step executed after a detected prefill stall
+    (stall-safe prefill layer, INF BL-33). Ordered from cheapest to
+    fail-loud; the ladder always terminates in <a class="xref" href="ProvostXInference.Models.PrefillRecoveryStep.html#ProvostXInference_Models_PrefillRecoveryStep_FailLoud">FailLoud</a>
+    so a persistently stalling prefill never spins silently.</section>
+      <h4><a class="xref" href="ProvostXInference.Models.PvxEngineSelectionError.html">PvxEngineSelectionError</a></h4>
+      <section>Typed failure of engine-selection validation
+    (fail-closed contract — every invalid pair or unknown id resolves to one of
+    these, never to a guessed default).</section>
+      <h4><a class="xref" href="ProvostXInference.Models.SpeculativeMode.html">SpeculativeMode</a></h4>
+      <section>Speculative-decoding mode, values mirror pvx_spec_mode_t exactly.
+    Fail-closed rule: a configured path that cannot be honored (missing/unloadable
+    draft model, missing capability, wrong vocab family) is a typed error naming
+    the boundary — never a silent fallback to non-spec generation.</section>
+      <h4><a class="xref" href="ProvostXInference.Models.SpeculativeType.html">SpeculativeType</a></h4>
+      <section>Supported speculative-decoding types, mirrored from the llama.cpp
+    speculative enum via the engine's self-report (PVX_SPEC_TYPE_* bits).
+    The ENGINE decides what the loaded MODEL supports — query
+    IInferenceModel.SpeculativeCapabilities per model load and offer exactly
+    these types for sequential mode; never assume.</section>
+
+
+</article>
+          </div>
+
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In this article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="../index.html">Home</a>&ensp;&middot;&ensp;<a href="#top">Back to top</a>
+            </span>
+      ProvostXInference — MIT
+      
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script type="text/javascript" src="../styles/docfx.vendor.min.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>

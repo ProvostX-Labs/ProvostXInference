@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+
+  <head>
+    <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>Class NativeInferenceContext | ProvostXInference API </title>
+      <meta name="viewport" content="width=device-width">
+      <meta name="title" content="Class NativeInferenceContext | ProvostXInference API ">
+    
+    <meta name="description" content="Wraps a native pvx_context_t. All calls dispatch on the OWNING     MODEL ENGINE&#39;s per-handle tables (injected via the model).">
+      <link rel="shortcut icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../styles/docfx.vendor.min.css">
+      <link rel="stylesheet" href="../styles/docfx.css">
+      <link rel="stylesheet" href="../styles/main.css">
+      <meta property="docfx:navrel" content="">
+      <meta property="docfx:tocrel" content="toc.html">
+    
+    <meta property="docfx:rel" content="../">
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+
+        <div id="search-results">
+          <div class="search-list">Search Results for <span></span></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination" data-first=First data-prev=Previous data-next=Next data-last=Last></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="ProvostXInference.Implementation.NativeInferenceContext">
+
+
+
+  <h1 id="ProvostXInference_Implementation_NativeInferenceContext" data-uid="ProvostXInference.Implementation.NativeInferenceContext" class="text-break">Class NativeInferenceContext</h1>
+  <div class="markdown level0 summary">Wraps a native pvx_context_t. All calls dispatch on the OWNING
+    MODEL ENGINE's per-handle tables (injected via the model).</div>
+  <div class="markdown level0 conceptual"></div>
+  <div class="inheritance">
+    <h5>Inheritance</h5>
+    <div class="level0"><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object">object</a></div>
+    <div class="level1"><span class="xref">NativeInferenceContext</span></div>
+  </div>
+  <div class="implements">
+    <h5>Implements</h5>
+    <div><a class="xref" href="ProvostXInference.Abstractions.IInferenceContext.html">IInferenceContext</a></div>
+    <div><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></div>
+  </div>
+  <div class="inheritedMembers">
+    <h5>Inherited Members</h5>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)">object.Equals(object)</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)">object.Equals(object, object)</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.gethashcode">object.GetHashCode()</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.gettype">object.GetType()</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.referenceequals">object.ReferenceEquals(object, object)</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.tostring">object.ToString()</a>
+    </div>
+  </div>
+  <h6><strong>Namespace</strong>: <span class="xref">ProvostXInference</span>.<a class="xref" href="ProvostXInference.Implementation.html">Implementation</a></h6>
+  <h6><strong>Assembly</strong>: ProvostXInference.dll</h6>
+  <h5 id="ProvostXInference_Implementation_NativeInferenceContext_syntax">Syntax</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public sealed class NativeInferenceContext : IInferenceContext, IDisposable</code></pre>
+  </div>
+  <h3 id="properties">Properties
+</h3>
+  <a id="ProvostXInference_Implementation_NativeInferenceContext_ContextSize_" data-uid="ProvostXInference.Implementation.NativeInferenceContext.ContextSize*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceContext_ContextSize" data-uid="ProvostXInference.Implementation.NativeInferenceContext.ContextSize">ContextSize</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public uint ContextSize { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.uint32">uint</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Implementation_NativeInferenceContext_LastDecodeError_" data-uid="ProvostXInference.Implementation.NativeInferenceContext.LastDecodeError*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceContext_LastDecodeError" data-uid="ProvostXInference.Implementation.NativeInferenceContext.LastDecodeError">LastDecodeError</h4>
+  <div class="markdown level1 summary">F14 (audit 2026-10-04): detail of the most recent failed decode
+    (pvx_last_error for this context), null after a clean cycle. InferAll still
+    returns InferResult.Failed — callers (LLM batch loop) rely on that control
+    flow — but the failure is no longer detail-free.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string? LastDecodeError { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Implementation_NativeInferenceContext_SeqMax_" data-uid="ProvostXInference.Implementation.NativeInferenceContext.SeqMax*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceContext_SeqMax" data-uid="ProvostXInference.Implementation.NativeInferenceContext.SeqMax">SeqMax</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public uint SeqMax { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.uint32">uint</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="methods">Methods
+</h3>
+  <a id="ProvostXInference_Implementation_NativeInferenceContext_CreateExecutor_" data-uid="ProvostXInference.Implementation.NativeInferenceContext.CreateExecutor*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceContext_CreateExecutor" data-uid="ProvostXInference.Implementation.NativeInferenceContext.CreateExecutor">CreateExecutor()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public IStandardExecutor CreateExecutor()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IStandardExecutor.html">IStandardExecutor</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Implementation_NativeInferenceContext_CreatePool_" data-uid="ProvostXInference.Implementation.NativeInferenceContext.CreatePool*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceContext_CreatePool" data-uid="ProvostXInference.Implementation.NativeInferenceContext.CreatePool">CreatePool()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public IConversationPool CreatePool()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IConversationPool.html">IConversationPool</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Implementation_NativeInferenceContext_Detokenize_" data-uid="ProvostXInference.Implementation.NativeInferenceContext.Detokenize*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceContext_Detokenize_System_Int32___System_Boolean_" data-uid="ProvostXInference.Implementation.NativeInferenceContext.Detokenize(System.Int32[],System.Boolean)">Detokenize(int[], bool)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string Detokenize(int[] tokens, bool removeSpecial = false)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a>[]</td>
+        <td><span class="parametername">tokens</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></td>
+        <td><span class="parametername">removeSpecial</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Implementation_NativeInferenceContext_Dispose_" data-uid="ProvostXInference.Implementation.NativeInferenceContext.Dispose*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceContext_Dispose" data-uid="ProvostXInference.Implementation.NativeInferenceContext.Dispose">Dispose()</h4>
+  <div class="markdown level1 summary">Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void Dispose()</code></pre>
+  </div>
+  <a id="ProvostXInference_Implementation_NativeInferenceContext_InferAll_" data-uid="ProvostXInference.Implementation.NativeInferenceContext.InferAll*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceContext_InferAll" data-uid="ProvostXInference.Implementation.NativeInferenceContext.InferAll">InferAll()</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public InferResult InferAll()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.InferResult.html">InferResult</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Implementation_NativeInferenceContext_IsEos_" data-uid="ProvostXInference.Implementation.NativeInferenceContext.IsEos*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceContext_IsEos_System_Int32_" data-uid="ProvostXInference.Implementation.NativeInferenceContext.IsEos(System.Int32)">IsEos(int)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool IsEos(int token)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td><span class="parametername">token</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Implementation_NativeInferenceContext_KvClearSeq_" data-uid="ProvostXInference.Implementation.NativeInferenceContext.KvClearSeq*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceContext_KvClearSeq_System_Int32_" data-uid="ProvostXInference.Implementation.NativeInferenceContext.KvClearSeq(System.Int32)">KvClearSeq(int)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void KvClearSeq(int seqId)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td><span class="parametername">seqId</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Implementation_NativeInferenceContext_KvCopy_" data-uid="ProvostXInference.Implementation.NativeInferenceContext.KvCopy*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceContext_KvCopy_System_Int32_System_Int32_" data-uid="ProvostXInference.Implementation.NativeInferenceContext.KvCopy(System.Int32,System.Int32)">KvCopy(int, int)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void KvCopy(int srcSeqId, int dstSeqId)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td><span class="parametername">srcSeqId</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td><span class="parametername">dstSeqId</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Implementation_NativeInferenceContext_Rerank_" data-uid="ProvostXInference.Implementation.NativeInferenceContext.Rerank*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceContext_Rerank_System_String_System_Collections_Generic_IReadOnlyList_System_String__" data-uid="ProvostXInference.Implementation.NativeInferenceContext.Rerank(System.String,System.Collections.Generic.IReadOnlyList{System.String})">Rerank(string, IReadOnlyList&lt;string&gt;)</h4>
+  <div class="markdown level1 summary">Single-shot rerank (RANK-pooling context required — typed
+    InferenceException otherwise). Fresh seq per pair; KV-neutral.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public float[] Rerank(string query, IReadOnlyList&lt;string&gt; documents)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td><span class="parametername">query</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.ireadonlylist-1">IReadOnlyList</a>&lt;<a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a>&gt;</td>
+        <td><span class="parametername">documents</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.single">float</a>[]</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Implementation_NativeInferenceContext_SetAdapters_" data-uid="ProvostXInference.Implementation.NativeInferenceContext.SetAdapters*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceContext_SetAdapters_System_Collections_Generic_IReadOnlyList_System_ValueTuple_ProvostXInference_Abstractions_ILoraAdapter_System_Single___" data-uid="ProvostXInference.Implementation.NativeInferenceContext.SetAdapters(System.Collections.Generic.IReadOnlyList{System.ValueTuple{ProvostXInference.Abstractions.ILoraAdapter,System.Single}})">SetAdapters(IReadOnlyList&lt;(ILoraAdapter adapter, float scale)&gt;)</h4>
+  <div class="markdown level1 summary">Attach (or detach — empty list) LoRA adapters. Weights-surface
+    modifier: KV-neutral, all-or-nothing, scales &gt; 0.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void SetAdapters(IReadOnlyList&lt;(ILoraAdapter adapter, float scale)&gt; adapters)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.ireadonlylist-1">IReadOnlyList</a>&lt;(<a class="xref" href="ProvostXInference.Abstractions.ILoraAdapter.html">ILoraAdapter</a> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.valuetuple-provostxinference.abstractions.iloraadapter,system.single-.adapter">adapter</a>, <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.single">float</a> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.valuetuple-provostxinference.abstractions.iloraadapter,system.single-.scale">scale</a>)&gt;</td>
+        <td><span class="parametername">adapters</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Implementation_NativeInferenceContext_SetCausalAttention_" data-uid="ProvostXInference.Implementation.NativeInferenceContext.SetCausalAttention*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceContext_SetCausalAttention_System_Boolean_" data-uid="ProvostXInference.Implementation.NativeInferenceContext.SetCausalAttention(System.Boolean)">SetCausalAttention(bool)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void SetCausalAttention(bool causal)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></td>
+        <td><span class="parametername">causal</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Implementation_NativeInferenceContext_SetControlVector_" data-uid="ProvostXInference.Implementation.NativeInferenceContext.SetControlVector*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceContext_SetControlVector_ProvostXInference_Abstractions_IControlVector_System_Int32_System_Int32_" data-uid="ProvostXInference.Implementation.NativeInferenceContext.SetControlVector(ProvostXInference.Abstractions.IControlVector,System.Int32,System.Int32)">SetControlVector(IControlVector?, int, int)</h4>
+  <div class="markdown level1 summary">Apply (or clear — null) a control vector (layer range
+    inclusive; 0/0 = full range). Weights-surface: KV-neutral.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void SetControlVector(IControlVector? vector, int layerStart = 0, int layerEnd = 0)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IControlVector.html">IControlVector</a></td>
+        <td><span class="parametername">vector</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td><span class="parametername">layerStart</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td><span class="parametername">layerEnd</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Implementation_NativeInferenceContext_TokenToPiece_" data-uid="ProvostXInference.Implementation.NativeInferenceContext.TokenToPiece*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceContext_TokenToPiece_System_Int32_" data-uid="ProvostXInference.Implementation.NativeInferenceContext.TokenToPiece(System.Int32)">TokenToPiece(int)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string TokenToPiece(int token)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td><span class="parametername">token</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Implementation_NativeInferenceContext_Tokenize_" data-uid="ProvostXInference.Implementation.NativeInferenceContext.Tokenize*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceContext_Tokenize_System_String_System_Boolean_System_Boolean_" data-uid="ProvostXInference.Implementation.NativeInferenceContext.Tokenize(System.String,System.Boolean,System.Boolean)">Tokenize(string, bool, bool)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public int[] Tokenize(string text, bool addBos = false, bool parseSpecial = true)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td><span class="parametername">text</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></td>
+        <td><span class="parametername">addBos</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></td>
+        <td><span class="parametername">parseSpecial</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a>[]</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="implements">Implements</h3>
+  <div>
+      <a class="xref" href="ProvostXInference.Abstractions.IInferenceContext.html">IInferenceContext</a>
+  </div>
+  <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a>
+  </div>
+
+</article>
+          </div>
+
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In this article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="../index.html">Home</a>&ensp;&middot;&ensp;<a href="#top">Back to top</a>
+            </span>
+      ProvostXInference — MIT
+      
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script type="text/javascript" src="../styles/docfx.vendor.min.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>

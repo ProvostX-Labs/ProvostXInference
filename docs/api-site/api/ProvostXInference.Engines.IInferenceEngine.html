@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+
+  <head>
+    <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>Interface IInferenceEngine | ProvostXInference API </title>
+      <meta name="viewport" content="width=device-width">
+      <meta name="title" content="Interface IInferenceEngine | ProvostXInference API ">
+    
+    <meta name="description" content="The SOLE caller-facing object of Inference&#39;s world: one loaded backend (GGUF llama.cpp, ONNX decision, or vision encoder) behind a typed facade with lifecycle, inference ops, context management, KV-cache ops, and every knob as a property. Callers (e.g. ProvostXLLM) hold an array of these and route requests by /.">
+      <link rel="shortcut icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../styles/docfx.vendor.min.css">
+      <link rel="stylesheet" href="../styles/docfx.css">
+      <link rel="stylesheet" href="../styles/main.css">
+      <meta property="docfx:navrel" content="">
+      <meta property="docfx:tocrel" content="toc.html">
+    
+    <meta property="docfx:rel" content="../">
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+
+        <div id="search-results">
+          <div class="search-list">Search Results for <span></span></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination" data-first=First data-prev=Previous data-next=Next data-last=Last></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="ProvostXInference.Engines.IInferenceEngine">
+
+
+
+  <h1 id="ProvostXInference_Engines_IInferenceEngine" data-uid="ProvostXInference.Engines.IInferenceEngine" class="text-break">Interface IInferenceEngine</h1>
+  <div class="markdown level0 summary">The SOLE caller-facing object of Inference's world: one loaded backend (GGUF
+llama.cpp, ONNX decision, or vision encoder) behind a typed facade with
+lifecycle, inference ops, context management, KV-cache ops, and every knob
+as a property. Callers (e.g. ProvostXLLM) hold an array of these and route
+requests by <a class="xref" href="ProvostXInference.Engines.IInferenceEngine.html#ProvostXInference_Engines_IInferenceEngine_Kind">Kind</a>/<a class="xref" href="ProvostXInference.Engines.IInferenceEngine.html#ProvostXInference_Engines_IInferenceEngine_ModelPath">ModelPath</a>.</div>
+  <div class="markdown level0 conceptual"></div>
+  <div class="inheritedMembers">
+    <h5>Inherited Members</h5>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.idisposable.dispose">IDisposable.Dispose()</a>
+    </div>
+  </div>
+  <h6><strong>Namespace</strong>: <span class="xref">ProvostXInference</span>.<a class="xref" href="ProvostXInference.Engines.html">Engines</a></h6>
+  <h6><strong>Assembly</strong>: ProvostXInference.dll</h6>
+  <h5 id="ProvostXInference_Engines_IInferenceEngine_syntax">Syntax</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public interface IInferenceEngine : IDisposable</code></pre>
+  </div>
+  <h3 id="properties">Properties
+</h3>
+  <a id="ProvostXInference_Engines_IInferenceEngine_ActiveSpecialist_" data-uid="ProvostXInference.Engines.IInferenceEngine.ActiveSpecialist*"></a>
+  <h4 id="ProvostXInference_Engines_IInferenceEngine_ActiveSpecialist" data-uid="ProvostXInference.Engines.IInferenceEngine.ActiveSpecialist">ActiveSpecialist</h4>
+  <div class="markdown level1 summary">Native specialist id actually serving GGUF/Encoder engines (BL-02 matrix);
+null = platform default. Always null on the managed Decision lane.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">string? ActiveSpecialist { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_IInferenceEngine_Decision_" data-uid="ProvostXInference.Engines.IInferenceEngine.Decision*"></a>
+  <h4 id="ProvostXInference_Engines_IInferenceEngine_Decision" data-uid="ProvostXInference.Engines.IInferenceEngine.Decision">Decision</h4>
+  <div class="markdown level1 summary">Decision lane view. Throws <a class="xref" href="ProvostXInference.Exceptions.EngineKindMismatchException.html">EngineKindMismatchException</a> off-lane.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">IDecisionEngineOps Decision { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Engines.IDecisionEngineOps.html">IDecisionEngineOps</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_IInferenceEngine_Encoder_" data-uid="ProvostXInference.Engines.IInferenceEngine.Encoder*"></a>
+  <h4 id="ProvostXInference_Engines_IInferenceEngine_Encoder" data-uid="ProvostXInference.Engines.IInferenceEngine.Encoder">Encoder</h4>
+  <div class="markdown level1 summary">Encoder lane view. Throws <a class="xref" href="ProvostXInference.Exceptions.EngineKindMismatchException.html">EngineKindMismatchException</a> off-lane.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">IEncoderEngineOps Encoder { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Engines.IEncoderEngineOps.html">IEncoderEngineOps</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_IInferenceEngine_Gguf_" data-uid="ProvostXInference.Engines.IInferenceEngine.Gguf*"></a>
+  <h4 id="ProvostXInference_Engines_IInferenceEngine_Gguf" data-uid="ProvostXInference.Engines.IInferenceEngine.Gguf">Gguf</h4>
+  <div class="markdown level1 summary">GGUF lane view. Throws <a class="xref" href="ProvostXInference.Exceptions.EngineKindMismatchException.html">EngineKindMismatchException</a> off-lane.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">IGgufEngineOps Gguf { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Engines.IGgufEngineOps.html">IGgufEngineOps</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_IInferenceEngine_IsLoaded_" data-uid="ProvostXInference.Engines.IInferenceEngine.IsLoaded*"></a>
+  <h4 id="ProvostXInference_Engines_IInferenceEngine_IsLoaded" data-uid="ProvostXInference.Engines.IInferenceEngine.IsLoaded">IsLoaded</h4>
+  <div class="markdown level1 summary">Whether <a class="xref" href="ProvostXInference.Engines.IInferenceEngine.html#ProvostXInference_Engines_IInferenceEngine_Initialize">Initialize()</a> has loaded the backend.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">bool IsLoaded { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_IInferenceEngine_Kind_" data-uid="ProvostXInference.Engines.IInferenceEngine.Kind*"></a>
+  <h4 id="ProvostXInference_Engines_IInferenceEngine_Kind" data-uid="ProvostXInference.Engines.IInferenceEngine.Kind">Kind</h4>
+  <div class="markdown level1 summary">Which backend lane this engine serves.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">EngineKind Kind { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Engines.EngineKind.html">EngineKind</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_IInferenceEngine_ModelPath_" data-uid="ProvostXInference.Engines.IInferenceEngine.ModelPath*"></a>
+  <h4 id="ProvostXInference_Engines_IInferenceEngine_ModelPath" data-uid="ProvostXInference.Engines.IInferenceEngine.ModelPath">ModelPath</h4>
+  <div class="markdown level1 summary">Primary model artifact path (identity for routing).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">string ModelPath { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_IInferenceEngine_Request_" data-uid="ProvostXInference.Engines.IInferenceEngine.Request*"></a>
+  <h4 id="ProvostXInference_Engines_IInferenceEngine_Request" data-uid="ProvostXInference.Engines.IInferenceEngine.Request">Request</h4>
+  <div class="markdown level1 summary">The validated contract this engine was built from.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">EngineRequest Request { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Engines.EngineRequest.html">EngineRequest</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="methods">Methods
+</h3>
+  <a id="ProvostXInference_Engines_IInferenceEngine_Initialize_" data-uid="ProvostXInference.Engines.IInferenceEngine.Initialize*"></a>
+  <h4 id="ProvostXInference_Engines_IInferenceEngine_Initialize" data-uid="ProvostXInference.Engines.IInferenceEngine.Initialize">Initialize()</h4>
+  <div class="markdown level1 summary">Load the backend (fail-closed; throws on any load error). Idempotent.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">void Initialize()</code></pre>
+  </div>
+
+</article>
+          </div>
+
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In this article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="../index.html">Home</a>&ensp;&middot;&ensp;<a href="#top">Back to top</a>
+            </span>
+      ProvostXInference — MIT
+      
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script type="text/javascript" src="../styles/docfx.vendor.min.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>

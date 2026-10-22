@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+
+  <head>
+    <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>Namespace ProvostXInference.Abstractions | ProvostXInference API </title>
+      <meta name="viewport" content="width=device-width">
+      <meta name="title" content="Namespace ProvostXInference.Abstractions | ProvostXInference API ">
+    
+    
+      <link rel="shortcut icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../styles/docfx.vendor.min.css">
+      <link rel="stylesheet" href="../styles/docfx.css">
+      <link rel="stylesheet" href="../styles/main.css">
+      <meta property="docfx:navrel" content="">
+      <meta property="docfx:tocrel" content="toc.html">
+    
+    <meta property="docfx:rel" content="../">
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+
+        <div id="search-results">
+          <div class="search-list">Search Results for <span></span></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination" data-first=First data-prev=Previous data-next=Next data-last=Last></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="ProvostXInference.Abstractions">
+
+  <h1 id="ProvostXInference_Abstractions" data-uid="ProvostXInference.Abstractions" class="text-break">Namespace ProvostXInference.Abstractions</h1>
+  <div class="markdown level0 summary"></div>
+  <div class="markdown level0 conceptual"></div>
+  <div class="markdown level0 remarks"></div>
+    <h3 id="interfaces">
+Interfaces
+</h3>
+      <h4><a class="xref" href="ProvostXInference.Abstractions.IChunkWallClock.html">IChunkWallClock</a></h4>
+      <section>Wall-clock seam for per-chunk prefill timing (INF BL-33).
+    The native prompt commit is synchronous, so the wall measured around it IS
+    the chunk wall on whatever backend is compiled in (metal / cuda / vulkan /
+    cpu — backend-independent by construction); the seam exists so tests can
+    script timings instead of sleeping.</section>
+      <h4><a class="xref" href="ProvostXInference.Abstractions.IControlVector.html">IControlVector</a></h4>
+      <section></section>
+      <h4><a class="xref" href="ProvostXInference.Abstractions.IConversation.html">IConversation</a></h4>
+      <section></section>
+      <h4><a class="xref" href="ProvostXInference.Abstractions.IConversationPool.html">IConversationPool</a></h4>
+      <section></section>
+      <h4><a class="xref" href="ProvostXInference.Abstractions.IConversationState.html">IConversationState</a></h4>
+      <section></section>
+      <h4><a class="xref" href="ProvostXInference.Abstractions.IGrammar.html">IGrammar</a></h4>
+      <section></section>
+      <h4><a class="xref" href="ProvostXInference.Abstractions.IInferenceBackend.html">IInferenceBackend</a></h4>
+      <section></section>
+      <h4><a class="xref" href="ProvostXInference.Abstractions.IInferenceContext.html">IInferenceContext</a></h4>
+      <section></section>
+      <h4><a class="xref" href="ProvostXInference.Abstractions.IInferenceModel.html">IInferenceModel</a></h4>
+      <section></section>
+      <h4><a class="xref" href="ProvostXInference.Abstractions.IInferenceState.html">IInferenceState</a></h4>
+      <section></section>
+      <h4><a class="xref" href="ProvostXInference.Abstractions.ILoraAdapter.html">ILoraAdapter</a></h4>
+      <section>ABI v8 (wave 3, feature 9): a loaded LoRA adapter (opaque native handle).
+Loaded against ONE model (arch-matched, typed on mismatch); attached to
+contexts via IInferenceContext.SetAdapters. Weights-surface modifier:
+KV-neutral, attach/detach mid-conversation without rewind.</section>
+      <h4><a class="xref" href="ProvostXInference.Abstractions.IPrefillStallDetector.html">IPrefillStallDetector</a></h4>
+      <section>Typed stall detector over per-chunk prefill wall timings
+    (INF BL-33). Stateful across the chunks of one prefill: it maintains the
+    rolling baseline itself.</section>
+      <h4><a class="xref" href="ProvostXInference.Abstractions.ISpeculationSuspender.html">ISpeculationSuspender</a></h4>
+      <section>Runtime suspension of the speculative helper (draft/ngram) on the
+    owning executor stack — the real native wiring for the stall-safe prefill
+    ladder's DraftDisabledRetry rung (INF BL-33b). Implementations must be
+    idempotent (suspending with no active session is a no-op, mirroring the
+    native pvx_executor_spec_free contract) and must not throw when the
+    helper is already disabled.</section>
+      <h4><a class="xref" href="ProvostXInference.Abstractions.IStallRecoveryLadder.html">IStallRecoveryLadder</a></h4>
+      <section>Facade view of the stall-recovery ladder (INF BL-33): owns the
+    configured step order and the retry budget; returns the step for a
+    given 0-based retry attempt and fails closed when the budget is
+    exhausted (the caller is expected to throw the typed unrecovered error
+    then — the ladder itself never invents steps). Surfaced behind the
+    Engines facade (<code>StallWatchdogOps.CreateRecoveryLadder</code>) so callers
+    never touch the Implementation namespace.</section>
+      <h4><a class="xref" href="ProvostXInference.Abstractions.IStandardExecutor.html">IStandardExecutor</a></h4>
+      <section></section>
+      <h4><a class="xref" href="ProvostXInference.Abstractions.ITtsSession.html">ITtsSession</a></h4>
+      <section>ABI v8 (wave 3, feature 7): a TTS session — a SEPARATE decode context on
+the backbone speech model plus a gen-audio mmproj. Never entangled with a
+conversation context (KV-neutral by construction). Capability-truthful:
+creation against a mmproj without a gen-audio pipeline throws typed.
+Determinism: identical (text, request.Seed) pairs replay byte-identically.</section>
+      <h4><a class="xref" href="ProvostXInference.Abstractions.IVisionEncoder.html">IVisionEncoder</a></h4>
+      <section></section>
+    <h3 id="enums">
+Enums
+</h3>
+      <h4><a class="xref" href="ProvostXInference.Abstractions.GrammarKind.html">GrammarKind</a></h4>
+      <section>Provenance label of an IGrammar (ABI v7).</section>
+      <h4><a class="xref" href="ProvostXInference.Abstractions.InferResult.html">InferResult</a></h4>
+      <section></section>
+
+
+</article>
+          </div>
+
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In this article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="../index.html">Home</a>&ensp;&middot;&ensp;<a href="#top">Back to top</a>
+            </span>
+      ProvostXInference — MIT
+      
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script type="text/javascript" src="../styles/docfx.vendor.min.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>

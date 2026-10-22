@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+
+  <head>
+    <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>BL-01 &#183; ggml multi-backend isolation spike — Verdict: GREEN (2026-10-09) | ProvostXInference API </title>
+      <meta name="viewport" content="width=device-width">
+      <meta name="title" content="BL-01 &#183; ggml multi-backend isolation spike — Verdict: GREEN (2026-10-09) | ProvostXInference API ">
+    
+    
+      <link rel="shortcut icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../styles/docfx.vendor.min.css">
+      <link rel="stylesheet" href="../styles/docfx.css">
+      <link rel="stylesheet" href="../styles/main.css">
+      <meta property="docfx:navrel" content="">
+      <meta property="docfx:tocrel" content="">
+    
+    <meta property="docfx:rel" content="../">
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+
+        <div id="search-results">
+          <div class="search-list">Search Results for <span></span></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination" data-first=First data-prev=Previous data-next=Next data-last=Last></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+        <div class="article row grid">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+<h1 id="bl-01--ggml-multi-backend-isolation-spike--verdict-green-2026-10-09">BL-01 · ggml multi-backend isolation spike — Verdict: GREEN (2026-10-09)</h1>
+
+<p><strong>Summary:</strong> ggml backend registries are PER-IMAGE statics, not shared globals — two specialist dylib images coexist in one process with zero registry pollution; Phase B per-handle tables unlocked (macOS slice proven).</p>
+<h2 id="evidence-all-pass-see-spikebl01spikespike-runlog">Evidence (all PASS, see <code>spike/BL01Spike/spike-run.log</code>)</h2>
+<ul>
+<li><strong>E1a dlopen dedupe:</strong> <code>NativeLibrary.Load</code> same path twice → identical handle (7a7fd3d0) — de-duped to one image.</li>
+<li><strong>E1b identical content, different path</strong> → DISTINCT handles (7a7fd3d0 vs 7a7e2af0) — dlopen keys on path, NOT content; specialist copies do not collapse.</li>
+<li><strong>E2 two independently built specialist images coexist</strong> as distinct handles (7a7fd3d0 / 7a7e2d70).</li>
+<li><strong>E3 symbol routing:</strong> ONE <code>DllImportResolver</code> on the C# assembly, name→handle dict (<code>pvxinferenceA</code>→A, <code>pvxinferenceB</code>→B); <code>pvx_abi_version</code> returned 2 via both routes — no symbol collision, no interference.</li>
+<li><strong>E4 registry isolation:</strong> image A's registry snapshot <code>regs=[MTL,BLAS,CPU] devs=[MTL0,BLAS,CPU]</code> identical before/after image B's full metal init — NO pollution, NO duplication (A still reports 3 regs, not 6).</li>
+<li><strong>E5 registry pointer identity:</strong> <code>ggml_backend_reg_get(0)</code> A=166d5f898 vs B=16d6db3d0 — SEPARATE registry instances.</li>
+</ul>
+<h2 id="repro">Repro</h2>
+<ul>
+<li><code>spike/BL01Spike/</code> (scratch .NET 10 console; NOT wired into product). Run: <code>spike/BL01Spike/run.sh</code> (env <code>SPIKE_A</code>, <code>SPIKE_B</code> = two built specialist dylib paths).</li>
+<li>Tested with <code>build-metal-rel</code> + <code>build-metal2</code> metal specialists (osx-arm64, Apple Silicon desktop-class); both fully initialized metal (35 embedded metal libs each, ~2.5s + cached).</li>
+</ul>
+<h2 id="what-phase-b-can-assume-macos-proven">What Phase B CAN assume (macOS-proven)</h2>
+<ul>
+<li>Two same-specialist dylib images coexist via dlopen path-keying; registry/symbol state is per-image.</li>
+<li>Per-handle function tables + per-assembly resolvers can route logical names to distinct images safely.</li>
+<li>Registry of image A is untouched by image B's load — fail-closed per-handle dispatch is sound.</li>
+</ul>
+<h2 id="what-remains-unproven">What remains UNPROVEN</h2>
+<ul>
+<li><strong>macOS metal + cuda/vulkan cross-specialist pair:</strong> no vulkan/cuda specialist built locally — cross-backend registry semantics per-OS (Windows/Linux) need the BL-02 CI matrix builds. dlopen path-keying and registry-per-image statics are ggml structural properties and are expected to hold, but only the metal+metal pair was executed.</li>
+<li><strong>Windows:</strong> .NET on Windows uses <code>LoadLibrary</code>, not dlopen — same-path dedupe and copy-path distinctness should map, but is untested on Windows.</li>
+<li>No token-exactness check in this spike (that is BL-02 acceptance).</li>
+</ul>
+<h2 id="rules">Rules</h2>
+<ul>
+<li>Spike only; no product source touched; no merge to main. No identifying data anywhere.</li>
+</ul>
+
+</article>
+          </div>
+
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In this article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="../index.html">Home</a>&ensp;&middot;&ensp;<a href="#top">Back to top</a>
+            </span>
+      ProvostXInference — MIT
+      
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script type="text/javascript" src="../styles/docfx.vendor.min.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>

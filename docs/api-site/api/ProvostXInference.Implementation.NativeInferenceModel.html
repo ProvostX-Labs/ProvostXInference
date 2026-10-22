@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+
+  <head>
+    <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>Class NativeInferenceModel | ProvostXInference API </title>
+      <meta name="viewport" content="width=device-width">
+      <meta name="title" content="Class NativeInferenceModel | ProvostXInference API ">
+    
+    <meta name="description" content="Wraps a native pvx_model_t. Factory: Load(). BL-02: EVERY pvx_* call this model (and everything created from it) makes is dispatched through the OWNING ENGINE&#39;s per-handle dispatch tables — resolved once at engine open and injected down the whole object graph; no global P/Invoke routing.">
+      <link rel="shortcut icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../styles/docfx.vendor.min.css">
+      <link rel="stylesheet" href="../styles/docfx.css">
+      <link rel="stylesheet" href="../styles/main.css">
+      <meta property="docfx:navrel" content="">
+      <meta property="docfx:tocrel" content="toc.html">
+    
+    <meta property="docfx:rel" content="../">
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+
+        <div id="search-results">
+          <div class="search-list">Search Results for <span></span></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination" data-first=First data-prev=Previous data-next=Next data-last=Last></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="ProvostXInference.Implementation.NativeInferenceModel">
+
+
+
+  <h1 id="ProvostXInference_Implementation_NativeInferenceModel" data-uid="ProvostXInference.Implementation.NativeInferenceModel" class="text-break">Class NativeInferenceModel</h1>
+  <div class="markdown level0 summary">Wraps a native pvx_model_t. Factory: Load(). BL-02: EVERY pvx_* call this
+model (and everything created from it) makes is dispatched through the
+OWNING ENGINE's per-handle dispatch tables — resolved once at engine open
+and injected down the whole object graph; no global P/Invoke routing.</div>
+  <div class="markdown level0 conceptual"></div>
+  <div class="inheritance">
+    <h5>Inheritance</h5>
+    <div class="level0"><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object">object</a></div>
+    <div class="level1"><span class="xref">NativeInferenceModel</span></div>
+  </div>
+  <div class="implements">
+    <h5>Implements</h5>
+    <div><a class="xref" href="ProvostXInference.Abstractions.IInferenceModel.html">IInferenceModel</a></div>
+    <div><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></div>
+  </div>
+  <div class="inheritedMembers">
+    <h5>Inherited Members</h5>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)">object.Equals(object)</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)">object.Equals(object, object)</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.gethashcode">object.GetHashCode()</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.gettype">object.GetType()</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.referenceequals">object.ReferenceEquals(object, object)</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.tostring">object.ToString()</a>
+    </div>
+  </div>
+  <h6><strong>Namespace</strong>: <span class="xref">ProvostXInference</span>.<a class="xref" href="ProvostXInference.Implementation.html">Implementation</a></h6>
+  <h6><strong>Assembly</strong>: ProvostXInference.dll</h6>
+  <h5 id="ProvostXInference_Implementation_NativeInferenceModel_syntax">Syntax</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public sealed class NativeInferenceModel : IInferenceModel, IDisposable</code></pre>
+  </div>
+  <h3 id="properties">Properties
+</h3>
+  <a id="ProvostXInference_Implementation_NativeInferenceModel_AudioSampleRate_" data-uid="ProvostXInference.Implementation.NativeInferenceModel.AudioSampleRate*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceModel_AudioSampleRate" data-uid="ProvostXInference.Implementation.NativeInferenceModel.AudioSampleRate">AudioSampleRate</h4>
+  <div class="markdown level1 summary">Native PCM rate the audio projector expects (-1 when
+    unsupported). Product code never resamples.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public int AudioSampleRate { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Implementation_NativeInferenceModel_EmbeddingDimension_" data-uid="ProvostXInference.Implementation.NativeInferenceModel.EmbeddingDimension*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceModel_EmbeddingDimension" data-uid="ProvostXInference.Implementation.NativeInferenceModel.EmbeddingDimension">EmbeddingDimension</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public int EmbeddingDimension { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Implementation_NativeInferenceModel_PartialRewindSupported_" data-uid="ProvostXInference.Implementation.NativeInferenceModel.PartialRewindSupported*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceModel_PartialRewindSupported" data-uid="ProvostXInference.Implementation.NativeInferenceModel.PartialRewindSupported">PartialRewindSupported</h4>
+  <div class="markdown level1 summary">Native capability probe (arch-based): hybrid/recurrent models
+    cannot partially rewind their memory — see interface doc.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool PartialRewindSupported { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Implementation_NativeInferenceModel_SpeculativeCapabilities_" data-uid="ProvostXInference.Implementation.NativeInferenceModel.SpeculativeCapabilities*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceModel_SpeculativeCapabilities" data-uid="ProvostXInference.Implementation.NativeInferenceModel.SpeculativeCapabilities">SpeculativeCapabilities</h4>
+  <div class="markdown level1 summary">Speculative-decoding self-report (INF BL-05): the engine's
+    supported-types list for THIS loaded model (GGUF metadata-derived:
+    arch + nextn/MTP tensor presence). Offer exactly these types for
+    sequential mode — never assume.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public SpeculativeCapabilities SpeculativeCapabilities { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.SpeculativeCapabilities.html">SpeculativeCapabilities</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Implementation_NativeInferenceModel_SupportsAudioInput_" data-uid="ProvostXInference.Implementation.NativeInferenceModel.SupportsAudioInput*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceModel_SupportsAudioInput" data-uid="ProvostXInference.Implementation.NativeInferenceModel.SupportsAudioInput">SupportsAudioInput</h4>
+  <div class="markdown level1 summary">Capability probe: the loaded (shared) mmproj's audio adapter
+    (false until a mmproj is loaded; vision-only projectors report
+    false).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool SupportsAudioInput { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="methods">Methods
+</h3>
+  <a id="ProvostXInference_Implementation_NativeInferenceModel_ApplyChatTemplate_" data-uid="ProvostXInference.Implementation.NativeInferenceModel.ApplyChatTemplate*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceModel_ApplyChatTemplate_System_String_System_Collections_Generic_IReadOnlyList_System_ValueTuple_System_String_System_String___System_Boolean_System_Int32_" data-uid="ProvostXInference.Implementation.NativeInferenceModel.ApplyChatTemplate(System.String,System.Collections.Generic.IReadOnlyList{System.ValueTuple{System.String,System.String}},System.Boolean,System.Int32)">ApplyChatTemplate(string?, IReadOnlyList&lt;(string role, string content)&gt;, bool, int)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string ApplyChatTemplate(string? template, IReadOnlyList&lt;(string role, string content)&gt; messages, bool addAssistant = true, int enableThinking = -1)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td><span class="parametername">template</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.ireadonlylist-1">IReadOnlyList</a>&lt;(<a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.valuetuple-system.string,system.string-.role">role</a>, <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.valuetuple-system.string,system.string-.content">content</a>)&gt;</td>
+        <td><span class="parametername">messages</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></td>
+        <td><span class="parametername">addAssistant</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td><span class="parametername">enableThinking</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Implementation_NativeInferenceModel_CreateContext_" data-uid="ProvostXInference.Implementation.NativeInferenceModel.CreateContext*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceModel_CreateContext_ProvostXInference_Models_ContextConfig_" data-uid="ProvostXInference.Implementation.NativeInferenceModel.CreateContext(ProvostXInference.Models.ContextConfig)">CreateContext(ContextConfig)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public IInferenceContext CreateContext(ContextConfig config)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.ContextConfig.html">ContextConfig</a></td>
+        <td><span class="parametername">config</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IInferenceContext.html">IInferenceContext</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Implementation_NativeInferenceModel_CreateControlVector_" data-uid="ProvostXInference.Implementation.NativeInferenceModel.CreateControlVector*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceModel_CreateControlVector_System_String_" data-uid="ProvostXInference.Implementation.NativeInferenceModel.CreateControlVector(System.String)">CreateControlVector(string)</h4>
+  <div class="markdown level1 summary">Load a control-vector direction file (typed refusal naming
+    both dims on n_embd mismatch).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public IControlVector CreateControlVector(string path)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td><span class="parametername">path</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IControlVector.html">IControlVector</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Implementation_NativeInferenceModel_CreateGrammar_" data-uid="ProvostXInference.Implementation.NativeInferenceModel.CreateGrammar*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceModel_CreateGrammar_System_String_System_String_" data-uid="ProvostXInference.Implementation.NativeInferenceModel.CreateGrammar(System.String,System.String)">CreateGrammar(string, string)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public IGrammar CreateGrammar(string grammarStr, string grammarRoot)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td><span class="parametername">grammarStr</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td><span class="parametername">grammarRoot</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IGrammar.html">IGrammar</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Implementation_NativeInferenceModel_CreateGrammarFromJsonSchema_" data-uid="ProvostXInference.Implementation.NativeInferenceModel.CreateGrammarFromJsonSchema*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceModel_CreateGrammarFromJsonSchema_System_String_System_String_" data-uid="ProvostXInference.Implementation.NativeInferenceModel.CreateGrammarFromJsonSchema(System.String,System.String)">CreateGrammarFromJsonSchema(string, string?)</h4>
+  <div class="markdown level1 summary">ABI v7: JSON Schema → GBNF via the native pattern-port of the
+    vendored converter (product code never links the vendored tree). The
+    produced GBNF is compiled by the existing grammar chain; the provenance
+    label marks the grammar as schema-derived. Fail-closed: native typed
+    refusals (parse position / unsupported keyword) map to
+    InferenceException through the standard channel — never a loose
+    grammar. The out_error buffer is freed on every path (it is only set on
+    failure; freeing it in the finally keeps the throw path leak-free).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public IGrammar CreateGrammarFromJsonSchema(string jsonSchema, string? rootName = null)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td><span class="parametername">jsonSchema</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td><span class="parametername">rootName</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IGrammar.html">IGrammar</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Implementation_NativeInferenceModel_CreateLoraAdapter_" data-uid="ProvostXInference.Implementation.NativeInferenceModel.CreateLoraAdapter*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceModel_CreateLoraAdapter_System_String_" data-uid="ProvostXInference.Implementation.NativeInferenceModel.CreateLoraAdapter(System.String)">CreateLoraAdapter(string)</h4>
+  <div class="markdown level1 summary">Load a LoRA adapter for this model (typed InferenceException
+    naming the boundary on file/arch/rank mismatch).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public ILoraAdapter CreateLoraAdapter(string path)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td><span class="parametername">path</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.ILoraAdapter.html">ILoraAdapter</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Implementation_NativeInferenceModel_CreateTtsSession_" data-uid="ProvostXInference.Implementation.NativeInferenceModel.CreateTtsSession*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceModel_CreateTtsSession_System_String_System_UInt32_" data-uid="ProvostXInference.Implementation.NativeInferenceModel.CreateTtsSession(System.String,System.UInt32)">CreateTtsSession(string, uint)</h4>
+  <div class="markdown level1 summary">Create a TTS session (separate decode context on this
+    backbone model + gen-audio mmproj). Typed InferenceException
+    (tts/gen-audio-capability) when the mmproj has no gen-audio pipeline.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public ITtsSession CreateTtsSession(string ttsMmprojPath, uint contextSize = 0)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td><span class="parametername">ttsMmprojPath</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.uint32">uint</a></td>
+        <td><span class="parametername">contextSize</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.ITtsSession.html">ITtsSession</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Implementation_NativeInferenceModel_Dispose_" data-uid="ProvostXInference.Implementation.NativeInferenceModel.Dispose*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceModel_Dispose" data-uid="ProvostXInference.Implementation.NativeInferenceModel.Dispose">Dispose()</h4>
+  <div class="markdown level1 summary">Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void Dispose()</code></pre>
+  </div>
+  <a id="ProvostXInference_Implementation_NativeInferenceModel_GetEmbeddings_" data-uid="ProvostXInference.Implementation.NativeInferenceModel.GetEmbeddings*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceModel_GetEmbeddings_ProvostXInference_Abstractions_IInferenceContext_System_String_" data-uid="ProvostXInference.Implementation.NativeInferenceModel.GetEmbeddings(ProvostXInference.Abstractions.IInferenceContext,System.String)">GetEmbeddings(IInferenceContext, string)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public float[] GetEmbeddings(IInferenceContext context, string text)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IInferenceContext.html">IInferenceContext</a></td>
+        <td><span class="parametername">context</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td><span class="parametername">text</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.single">float</a>[]</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Implementation_NativeInferenceModel_Load_" data-uid="ProvostXInference.Implementation.NativeInferenceModel.Load*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceModel_Load_ProvostXInference_Models_ModelConfig_" data-uid="ProvostXInference.Implementation.NativeInferenceModel.Load(ProvostXInference.Models.ModelConfig)">Load(ModelConfig)</h4>
+  <div class="markdown level1 summary">Factory: loads a model from disk on the config-selected
+    specialist engine (fail-closed selection, per-handle dispatch).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public static NativeInferenceModel Load(ModelConfig config)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.ModelConfig.html">ModelConfig</a></td>
+        <td><span class="parametername">config</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Implementation.NativeInferenceModel.html">NativeInferenceModel</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Implementation_NativeInferenceModel_LoadVisionEncoder_" data-uid="ProvostXInference.Implementation.NativeInferenceModel.LoadVisionEncoder*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceModel_LoadVisionEncoder_System_String_" data-uid="ProvostXInference.Implementation.NativeInferenceModel.LoadVisionEncoder(System.String)">LoadVisionEncoder(string)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public IVisionEncoder LoadVisionEncoder(string mmprojPath)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td><span class="parametername">mmprojPath</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IVisionEncoder.html">IVisionEncoder</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Implementation_NativeInferenceModel_ValidateSpeculation_" data-uid="ProvostXInference.Implementation.NativeInferenceModel.ValidateSpeculation*"></a>
+  <h4 id="ProvostXInference_Implementation_NativeInferenceModel_ValidateSpeculation_ProvostXInference_Models_SpeculativeConfig_" data-uid="ProvostXInference.Implementation.NativeInferenceModel.ValidateSpeculation(ProvostXInference.Models.SpeculativeConfig)">ValidateSpeculation(SpeculativeConfig)</h4>
+  <div class="markdown level1 summary">Typed pre-validation of a speculative config against this model
+    (mode/path/capability/vocab shape) without enabling anything — enabling
+    re-validates fail-closed anyway.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void ValidateSpeculation(SpeculativeConfig config)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.SpeculativeConfig.html">SpeculativeConfig</a></td>
+        <td><span class="parametername">config</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="implements">Implements</h3>
+  <div>
+      <a class="xref" href="ProvostXInference.Abstractions.IInferenceModel.html">IInferenceModel</a>
+  </div>
+  <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a>
+  </div>
+
+</article>
+          </div>
+
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In this article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="../index.html">Home</a>&ensp;&middot;&ensp;<a href="#top">Back to top</a>
+            </span>
+      ProvostXInference — MIT
+      
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script type="text/javascript" src="../styles/docfx.vendor.min.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>

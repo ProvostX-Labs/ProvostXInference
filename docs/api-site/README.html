@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+
+  <head>
+    <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>ProvostXInference | ProvostXInference API </title>
+      <meta name="viewport" content="width=device-width">
+      <meta name="title" content="ProvostXInference | ProvostXInference API ">
+    
+    
+      <link rel="shortcut icon" href="favicon.ico">
+      <link rel="stylesheet" href="styles/docfx.vendor.min.css">
+      <link rel="stylesheet" href="styles/docfx.css">
+      <link rel="stylesheet" href="styles/main.css">
+      <meta property="docfx:navrel" content="">
+      <meta property="docfx:tocrel" content="">
+    
+    <meta property="docfx:rel" content="">
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+
+              <a class="navbar-brand" href="index.html">
+                <img id="logo" class="svg" src="logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+
+        <div id="search-results">
+          <div class="search-list">Search Results for <span></span></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination" data-first=First data-prev=Previous data-next=Next data-last=Last></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+        <div class="article row grid">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+<h1 id="provostxinference">ProvostXInference</h1>
+
+<p>C/C++ inference engine + C# bindings for ProvostX — a llama.cpp-only, GGUF-only execution
+substrate behind a strict-OOP C# facade. Replaces LLamaSharp entirely.</p>
+<p><img src="https://img.shields.io/badge/license-MIT-blue" alt="License"> <img src="https://img.shields.io/badge/.NET-8.0-purple" alt=".NET"> <img src="https://img.shields.io/badge/tests-252%20C%23%20%2B%203%20native-green" alt="Tests"></p>
+<h2 id="why-this-repo">Why this repo</h2>
+<ul>
+<li><strong>Full control of the native seam</strong> — llama.cpp linked directly behind a flat C API; batching, KV cache, vision, speculative decoding and backend safety are ours, not a wrapper's.</li>
+<li><strong>Fail-closed everywhere</strong> — typed errors with named boundaries; unknown capabilities refuse, they never silently degrade. ABI version handshake at load; struct layouts test-pinned.</li>
+<li><strong>Per-engine observability</strong> — each engine instance can carry its own JSON-lines audit trail and model-wide telemetry snapshot; zero cost when unconfigured.</li>
+</ul>
+<h2 id="features">Features</h2>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>What you get</th>
+<th>Key types</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Model loading</td>
+<td>GGUF, GPU layers, flash attention, KV quant (F16/Q8_0/Q4_0)</td>
+<td><code>ModelConfig</code>, <code>NativeInferenceModel</code></td>
+</tr>
+<tr>
+<td>Generation</td>
+<td>Prompt → infer → sample loop, full sampling pipeline (wave-5 verbs: dry, xtc, top-n-sigma, mirostat)</td>
+<td><code>IStandardExecutor</code>, <code>SamplingConfig</code></td>
+</tr>
+<tr>
+<td>Batched</td>
+<td>4+ conversations in ONE decode; pre-allocated pool, lease/return with KV cleanup</td>
+<td><code>IConversationPool</code>, <code>IConversation</code></td>
+</tr>
+<tr>
+<td>Vision</td>
+<td>mmproj + image prompt splice (MTMD)</td>
+<td><code>IVisionEncoder</code></td>
+</tr>
+<tr>
+<td>Embeddings</td>
+<td>mean/CLS/last pooling; encoder models (MiniLM/BERT) routed by architecture</td>
+<td><code>GetEmbeddings</code></td>
+</tr>
+<tr>
+<td>Speculative</td>
+<td>draft-simple, n-gram family, EAGLE3, draft-MTP (incl. multi-block chain heads)</td>
+<td><code>SpeculativeConfig</code></td>
+</tr>
+<tr>
+<td>Audio / TTS</td>
+<td>audio input (PCM F32), speech output on gen-audio pipelines</td>
+<td><code>PromptWithAudio</code>, <code>ITtsSession</code></td>
+</tr>
+<tr>
+<td>Rerank / LoRA / cvec</td>
+<td>single-shot rerank; live LoRA attach; control vectors</td>
+<td><code>Rerank</code>, <code>SetAdapters</code></td>
+</tr>
+<tr>
+<td>Audit + telemetry</td>
+<td>per-engine JSON-lines audit trail; model-wide counters; zero-cost when off</td>
+<td><code>ModelConfig.AuditPath</code>, <code>GetEngineTelemetry()</code></td>
+</tr>
+<tr>
+<td>Grammar</td>
+<td>GBNF + JSON-schema→GBNF converter; tiered rejection sampling</td>
+<td><code>CreateGrammar</code>, <code>CreateGrammarFromJsonSchema</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="quickstart">Quickstart</h2>
+<p>Native library (macOS Metal example; see CI matrix for Linux/Windows backends):</p>
+<pre><code class="lang-bash">git submodule update --init --recursive
+cmake -B build-metal -DPVX_BACKEND_METAL=ON -DCMAKE_BUILD_TYPE=Release
+cmake --build build-metal -j
+ctest --test-dir build-metal --output-on-failure   # model-gated legs skip without models
+</code></pre>
+<p>C# bindings (stage the built dylib where the resolver looks):</p>
+<pre><code class="lang-bash">mkdir -p csharp/runtimes/osx-arm64/native
+cp build-metal/libpvxinference.dylib csharp/runtimes/osx-arm64/native/
+cd csharp
+dotnet test Tests/    # 252 tests; live lanes skip typed when no model fixture is present
+</code></pre>
+<p>Minimal consumer code (from the verified consumer harness):</p>
+<pre><code class="lang-csharp">var engine = InferenceEngineBuilder.Gguf(modelPath).Build();
+engine.Initialize();
+var exec = engine.Gguf.CreateExecutor();
+exec.Prompt(&quot;The capital of France is&quot;);
+exec.Infer();
+var token = exec.Sample(new SamplingConfig { Temperature = 0.3f });
+</code></pre>
+<h2 id="backend--capability-matrix">Backend / capability matrix</h2>
+<table>
+<thead>
+<tr>
+<th>RID slice</th>
+<th>Specialist</th>
+<th>Built by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>osx-arm64</td>
+<td>metal (+ generic cpu)</td>
+<td>CI</td>
+</tr>
+<tr>
+<td>win-arm64</td>
+<td>cpu (generic payload)</td>
+<td>CI</td>
+</tr>
+<tr>
+<td>win-x64</td>
+<td>cuda + vulkan</td>
+<td>CI</td>
+</tr>
+<tr>
+<td>linux-x64</td>
+<td>cuda + vulkan</td>
+<td>CI</td>
+</tr>
+<tr>
+<td>linux-arm64</td>
+<td>source-build + ORT</td>
+<td>documented path</td>
+</tr>
+</tbody>
+</table>
+<p>No native binaries are checked in — CI builds every slice at pack time (keeps
+compiler-baked build paths out of the repository). The managed resolver picks the
+specialist for the host OS; the cpu specialist falls back to the generic payload name.</p>
+<h2 id="architecture">Architecture</h2>
+<pre><code class="lang-mermaid">graph TD
+    LLM[ProvostXLLM — orchestration only] --&gt; FACADE[Engines facade&lt;br/&gt;Builder → Factory → ops views]
+    FACADE --&gt; IMPL[Implementation — native wrappers, engine selection]
+    IMPL --&gt; INTEROP[Interop — per-handle dispatch, ABI handshake]
+    INTEROP --&gt; NATIVE[libpvxinference — C API: model, context, pool,&lt;br/&gt;batched decode, sampling, embeddings, vision, spec, KV, audit]
+    NATIVE --&gt; LLAMA[llama.cpp — vendored, frozen]
+</code></pre>
+<p>Details: <a href="ARCHITECTURE.html">ARCHITECTURE.md</a> · Consumer contract: <a href="CONTRACT.html">CONTRACT.md</a></p>
+<h2 id="documentation">Documentation</h2>
+<table>
+<thead>
+<tr>
+<th>Document</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="CONTRACT.html">CONTRACT.md</a></td>
+<td>Consumer contract — what you may touch, what is guaranteed</td>
+</tr>
+<tr>
+<td><a href="ARCHITECTURE.html">ARCHITECTURE.md</a></td>
+<td>As-is architecture, all layers, ABI waves</td>
+</tr>
+<tr>
+<td><a href="docs/CAPABILITY.html">docs/CAPABILITY.md</a></td>
+<td>Capability matrix + careful-handling areas</td>
+</tr>
+<tr>
+<td><a href="docs/CONFIGURATION.html">docs/CONFIGURATION.md</a></td>
+<td>Configuration reference</td>
+</tr>
+<tr>
+<td><a href="GETTING-STARTED.html">GETTING-STARTED.md</a></td>
+<td>Getting started</td>
+</tr>
+<tr>
+<td><a href="docs/api-glossary.html">docs/api-glossary.md</a></td>
+<td>Every public type explained</td>
+</tr>
+<tr>
+<td><a href="docs/faq.html">docs/faq.md</a></td>
+<td>Frequently asked questions</td>
+</tr>
+<tr>
+<td><a href="TEST-MATRIX-2026-10-18.html">TEST-MATRIX-2026-10-18.md</a></td>
+<td>Real-model verification matrix</td>
+</tr>
+</tbody>
+</table>
+<h2 id="license">License</h2>
+<p>MIT — see <a href="LICENSE">LICENSE</a>. Third-party notices: <a href="THIRD-PARTY-NOTICES.html">THIRD-PARTY-NOTICES.md</a>
+(llama.cpp, ONNX Runtime, and the corporate design dependencies).</p>
+
+</article>
+          </div>
+
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In this article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="index.html">Home</a>&ensp;&middot;&ensp;<a href="#top">Back to top</a>
+            </span>
+      ProvostXInference — MIT
+      
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script type="text/javascript" src="styles/docfx.vendor.min.js"></script>
+    <script type="text/javascript" src="styles/docfx.js"></script>
+    <script type="text/javascript" src="styles/main.js"></script>
+  </body>
+</html>

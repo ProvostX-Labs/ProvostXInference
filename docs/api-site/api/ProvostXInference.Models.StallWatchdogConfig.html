@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+
+  <head>
+    <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>Class StallWatchdogConfig | ProvostXInference API </title>
+      <meta name="viewport" content="width=device-width">
+      <meta name="title" content="Class StallWatchdogConfig | ProvostXInference API ">
+    
+    <meta name="description" content="Configuration for the engine-level stall-safe prefill watchdog     (stall_watchdog config section; INF BL-33). Defaults follow the owner     decision: multiplier 5 over the rolling median chunk wall, 3 retries, the     full four-step recovery ladder.">
+      <link rel="shortcut icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../styles/docfx.vendor.min.css">
+      <link rel="stylesheet" href="../styles/docfx.css">
+      <link rel="stylesheet" href="../styles/main.css">
+      <meta property="docfx:navrel" content="">
+      <meta property="docfx:tocrel" content="toc.html">
+    
+    <meta property="docfx:rel" content="../">
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+
+        <div id="search-results">
+          <div class="search-list">Search Results for <span></span></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination" data-first=First data-prev=Previous data-next=Next data-last=Last></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="ProvostXInference.Models.StallWatchdogConfig">
+
+
+
+  <h1 id="ProvostXInference_Models_StallWatchdogConfig" data-uid="ProvostXInference.Models.StallWatchdogConfig" class="text-break">Class StallWatchdogConfig</h1>
+  <div class="markdown level0 summary">Configuration for the engine-level stall-safe prefill watchdog
+    (stall_watchdog config section; INF BL-33). Defaults follow the owner
+    decision: multiplier 5 over the rolling median chunk wall, 3 retries, the
+    full four-step recovery ladder.</div>
+  <div class="markdown level0 conceptual"></div>
+  <div class="inheritance">
+    <h5>Inheritance</h5>
+    <div class="level0"><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object">object</a></div>
+    <div class="level1"><span class="xref">StallWatchdogConfig</span></div>
+  </div>
+  <div class="implements">
+    <h5>Implements</h5>
+    <div><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.iequatable-1">IEquatable</a>&lt;<a class="xref" href="ProvostXInference.Models.StallWatchdogConfig.html">StallWatchdogConfig</a>&gt;</div>
+  </div>
+  <div class="inheritedMembers">
+    <h5>Inherited Members</h5>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)">object.Equals(object)</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)">object.Equals(object, object)</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.gethashcode">object.GetHashCode()</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.gettype">object.GetType()</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.referenceequals">object.ReferenceEquals(object, object)</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.tostring">object.ToString()</a>
+    </div>
+  </div>
+  <h6><strong>Namespace</strong>: <span class="xref">ProvostXInference</span>.<a class="xref" href="ProvostXInference.Models.html">Models</a></h6>
+  <h6><strong>Assembly</strong>: ProvostXInference.dll</h6>
+  <h5 id="ProvostXInference_Models_StallWatchdogConfig_syntax">Syntax</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public sealed record StallWatchdogConfig : IEquatable&lt;StallWatchdogConfig&gt;</code></pre>
+  </div>
+  <h3 id="fields">Fields
+</h3>
+  <h4 id="ProvostXInference_Models_StallWatchdogConfig_SectionName" data-uid="ProvostXInference.Models.StallWatchdogConfig.SectionName">SectionName</h4>
+  <div class="markdown level1 summary">Config section name used by the owning server config
+    (kebab snake-case as specified by the owner).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public const string SectionName = &quot;stall_watchdog&quot;</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="properties">Properties
+</h3>
+  <a id="ProvostXInference_Models_StallWatchdogConfig_BaselineWindow_" data-uid="ProvostXInference.Models.StallWatchdogConfig.BaselineWindow*"></a>
+  <h4 id="ProvostXInference_Models_StallWatchdogConfig_BaselineWindow" data-uid="ProvostXInference.Models.StallWatchdogConfig.BaselineWindow">BaselineWindow</h4>
+  <div class="markdown level1 summary">Rolling baseline window (recent chunk walls feeding the median).
+    Default 8.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public int BaselineWindow { get; init; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Models_StallWatchdogConfig_ChunkSizeTokens_" data-uid="ProvostXInference.Models.StallWatchdogConfig.ChunkSizeTokens*"></a>
+  <h4 id="ProvostXInference_Models_StallWatchdogConfig_ChunkSizeTokens" data-uid="ProvostXInference.Models.StallWatchdogConfig.ChunkSizeTokens">ChunkSizeTokens</h4>
+  <div class="markdown level1 summary">Chunk size (tokens) for committed chunked prefill. Default 2048
+    (mirrors the upstream ub-chunking the stall evidence was gathered on).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public int ChunkSizeTokens { get; init; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Models_StallWatchdogConfig_Enabled_" data-uid="ProvostXInference.Models.StallWatchdogConfig.Enabled*"></a>
+  <h4 id="ProvostXInference_Models_StallWatchdogConfig_Enabled" data-uid="ProvostXInference.Models.StallWatchdogConfig.Enabled">Enabled</h4>
+  <div class="markdown level1 summary">Watchdog master switch. Disabled = single-shot prefill with
+    zero watchdog overhead (behavior identical to the plain layer below).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool Enabled { get; init; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Models_StallWatchdogConfig_GapMultiplier_" data-uid="ProvostXInference.Models.StallWatchdogConfig.GapMultiplier*"></a>
+  <h4 id="ProvostXInference_Models_StallWatchdogConfig_GapMultiplier" data-uid="ProvostXInference.Models.StallWatchdogConfig.GapMultiplier">GapMultiplier</h4>
+  <div class="markdown level1 summary">A chunk stalls when its wall exceeds GapMultiplier × the
+    rolling median of recent chunk walls. Default 5.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public double GapMultiplier { get; init; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.double">double</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Models_StallWatchdogConfig_LadderSteps_" data-uid="ProvostXInference.Models.StallWatchdogConfig.LadderSteps*"></a>
+  <h4 id="ProvostXInference_Models_StallWatchdogConfig_LadderSteps" data-uid="ProvostXInference.Models.StallWatchdogConfig.LadderSteps">LadderSteps</h4>
+  <div class="markdown level1 summary">Recovery ladder, executed in order across retry attempts.
+    Defaults to the full owner-specified ladder.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public IReadOnlyList&lt;PrefillRecoveryStep&gt; LadderSteps { get; init; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.ireadonlylist-1">IReadOnlyList</a>&lt;<a class="xref" href="ProvostXInference.Models.PrefillRecoveryStep.html">PrefillRecoveryStep</a>&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Models_StallWatchdogConfig_MaxRetries_" data-uid="ProvostXInference.Models.StallWatchdogConfig.MaxRetries*"></a>
+  <h4 id="ProvostXInference_Models_StallWatchdogConfig_MaxRetries" data-uid="ProvostXInference.Models.StallWatchdogConfig.MaxRetries">MaxRetries</h4>
+  <div class="markdown level1 summary">Maximum recovery attempts before the ladder fails loud. Default 3.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public int MaxRetries { get; init; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Models_StallWatchdogConfig_MinChunkSizeTokens_" data-uid="ProvostXInference.Models.StallWatchdogConfig.MinChunkSizeTokens*"></a>
+  <h4 id="ProvostXInference_Models_StallWatchdogConfig_MinChunkSizeTokens" data-uid="ProvostXInference.Models.StallWatchdogConfig.MinChunkSizeTokens">MinChunkSizeTokens</h4>
+  <div class="markdown level1 summary">Floor for the SmallerChunkRetry halving step. Default 128.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public int MinChunkSizeTokens { get; init; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="methods">Methods
+</h3>
+  <a id="ProvostXInference_Models_StallWatchdogConfig_DefaultLadder_" data-uid="ProvostXInference.Models.StallWatchdogConfig.DefaultLadder*"></a>
+  <h4 id="ProvostXInference_Models_StallWatchdogConfig_DefaultLadder" data-uid="ProvostXInference.Models.StallWatchdogConfig.DefaultLadder">DefaultLadder()</h4>
+  <div class="markdown level1 summary">Owner default ladder: fresh-slot → smaller-chunk → draft/ngram
+    disabled → fail loud.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public static IReadOnlyList&lt;PrefillRecoveryStep&gt; DefaultLadder()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.ireadonlylist-1">IReadOnlyList</a>&lt;<a class="xref" href="ProvostXInference.Models.PrefillRecoveryStep.html">PrefillRecoveryStep</a>&gt;</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Models_StallWatchdogConfig_Validate_" data-uid="ProvostXInference.Models.StallWatchdogConfig.Validate*"></a>
+  <h4 id="ProvostXInference_Models_StallWatchdogConfig_Validate" data-uid="ProvostXInference.Models.StallWatchdogConfig.Validate">Validate()</h4>
+  <div class="markdown level1 summary">Fail-closed validation: every constraint violation is a typed
+    argument error naming the field — never a silent clamp.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void Validate()</code></pre>
+  </div>
+  <h3 id="implements">Implements</h3>
+  <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.iequatable-1">IEquatable&lt;T&gt;</a>
+  </div>
+
+</article>
+          </div>
+
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In this article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="../index.html">Home</a>&ensp;&middot;&ensp;<a href="#top">Back to top</a>
+            </span>
+      ProvostXInference — MIT
+      
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script type="text/javascript" src="../styles/docfx.vendor.min.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>

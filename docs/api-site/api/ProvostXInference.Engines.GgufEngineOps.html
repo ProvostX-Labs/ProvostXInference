@@ -1,0 +1,1561 @@
+<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+
+  <head>
+    <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>Class GgufEngineOps | ProvostXInference API </title>
+      <meta name="viewport" content="width=device-width">
+      <meta name="title" content="Class GgufEngineOps | ProvostXInference API ">
+    
+    <meta name="description" content="GGUF lane ops implementation over the wrapper-layer graph. Holds the model, the live context (created from the request&#39;s context settings), and the pool (lazily created on first ). Disposal flows outward-in via the owning .">
+      <link rel="shortcut icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../styles/docfx.vendor.min.css">
+      <link rel="stylesheet" href="../styles/docfx.css">
+      <link rel="stylesheet" href="../styles/main.css">
+      <meta property="docfx:navrel" content="">
+      <meta property="docfx:tocrel" content="toc.html">
+    
+    <meta property="docfx:rel" content="../">
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+
+        <div id="search-results">
+          <div class="search-list">Search Results for <span></span></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination" data-first=First data-prev=Previous data-next=Next data-last=Last></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="ProvostXInference.Engines.GgufEngineOps">
+
+
+
+  <h1 id="ProvostXInference_Engines_GgufEngineOps" data-uid="ProvostXInference.Engines.GgufEngineOps" class="text-break">Class GgufEngineOps</h1>
+  <div class="markdown level0 summary">GGUF lane ops implementation over the wrapper-layer graph. Holds the model,
+the live context (created from the request's context settings), and the pool
+(lazily created on first <a class="xref" href="ProvostXInference.Engines.GgufEngineOps.html#ProvostXInference_Engines_GgufEngineOps_LeaseConversation">LeaseConversation()</a>). Disposal flows
+outward-in via the owning <a class="xref" href="ProvostXInference.Engines.InferenceEngine.html">InferenceEngine</a>.</div>
+  <div class="markdown level0 conceptual"></div>
+  <div class="inheritance">
+    <h5>Inheritance</h5>
+    <div class="level0"><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object">object</a></div>
+    <div class="level1"><span class="xref">GgufEngineOps</span></div>
+  </div>
+  <div class="implements">
+    <h5>Implements</h5>
+    <div><a class="xref" href="ProvostXInference.Engines.IGgufEngineOps.html">IGgufEngineOps</a></div>
+    <div><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></div>
+  </div>
+  <div class="inheritedMembers">
+    <h5>Inherited Members</h5>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)">object.Equals(object)</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)">object.Equals(object, object)</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.gethashcode">object.GetHashCode()</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.gettype">object.GetType()</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.referenceequals">object.ReferenceEquals(object, object)</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.tostring">object.ToString()</a>
+    </div>
+  </div>
+  <h6><strong>Namespace</strong>: <span class="xref">ProvostXInference</span>.<a class="xref" href="ProvostXInference.Engines.html">Engines</a></h6>
+  <h6><strong>Assembly</strong>: ProvostXInference.dll</h6>
+  <h5 id="ProvostXInference_Engines_GgufEngineOps_syntax">Syntax</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public sealed class GgufEngineOps : IGgufEngineOps, IDisposable</code></pre>
+  </div>
+  <h3 id="constructors">Constructors
+</h3>
+  <a id="ProvostXInference_Engines_GgufEngineOps__ctor_" data-uid="ProvostXInference.Engines.GgufEngineOps.#ctor*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps__ctor_ProvostXInference_Abstractions_IInferenceModel_ProvostXInference_Models_ContextConfig_ProvostXInference_Models_SamplingConfig_ProvostXInference_Abstractions_IInferenceBackend_" data-uid="ProvostXInference.Engines.GgufEngineOps.#ctor(ProvostXInference.Abstractions.IInferenceModel,ProvostXInference.Models.ContextConfig,ProvostXInference.Models.SamplingConfig,ProvostXInference.Abstractions.IInferenceBackend)">GgufEngineOps(IInferenceModel, ContextConfig, SamplingConfig, IInferenceBackend)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public GgufEngineOps(IInferenceModel model, ContextConfig contextSettings, SamplingConfig sampling, IInferenceBackend backend)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IInferenceModel.html">IInferenceModel</a></td>
+        <td><span class="parametername">model</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.ContextConfig.html">ContextConfig</a></td>
+        <td><span class="parametername">contextSettings</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.SamplingConfig.html">SamplingConfig</a></td>
+        <td><span class="parametername">sampling</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IInferenceBackend.html">IInferenceBackend</a></td>
+        <td><span class="parametername">backend</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="properties">Properties
+</h3>
+  <a id="ProvostXInference_Engines_GgufEngineOps_AudioSampleRate_" data-uid="ProvostXInference.Engines.GgufEngineOps.AudioSampleRate*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_AudioSampleRate" data-uid="ProvostXInference.Engines.GgufEngineOps.AudioSampleRate">AudioSampleRate</h4>
+  <div class="markdown level1 summary">Native PCM rate the audio projector expects (-1 when
+    unsupported). Product code never resamples.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public int AudioSampleRate { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_Backend_" data-uid="ProvostXInference.Engines.GgufEngineOps.Backend*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_Backend" data-uid="ProvostXInference.Engines.GgufEngineOps.Backend">Backend</h4>
+  <div class="markdown level1 summary">Read-only live backend introspection (BL-02 seam surfaced as a
+property): per-context probe profile — backend name, probe pass/fail,
+probe error, KV-flush need, effective vs requested GPU layers. Each get
+re-probes the live context (cheap; state lives ON the context, ABI v4).
+Visibility, not control: mutation stays on the load-time knobs.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public BackendInfo Backend { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.BackendInfo.html">BackendInfo</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_Context_" data-uid="ProvostXInference.Engines.GgufEngineOps.Context*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_Context" data-uid="ProvostXInference.Engines.GgufEngineOps.Context">Context</h4>
+  <div class="markdown level1 summary">The live inference context (rebuilt by <a class="xref" href="ProvostXInference.Engines.IGgufEngineOps.html#ProvostXInference_Engines_IGgufEngineOps_RebuildContext">RebuildContext()</a>).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public IInferenceContext Context { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IInferenceContext.html">IInferenceContext</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_ContextSettings_" data-uid="ProvostXInference.Engines.GgufEngineOps.ContextSettings*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_ContextSettings" data-uid="ProvostXInference.Engines.GgufEngineOps.ContextSettings">ContextSettings</h4>
+  <div class="markdown level1 summary">Context sizing knobs — mutable; changes take effect on the next
+<a class="xref" href="ProvostXInference.Engines.IGgufEngineOps.html#ProvostXInference_Engines_IGgufEngineOps_RebuildContext">RebuildContext()</a> (existing conversations keep the old context).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public ContextConfig ContextSettings { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.ContextConfig.html">ContextConfig</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_Model_" data-uid="ProvostXInference.Engines.GgufEngineOps.Model*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_Model" data-uid="ProvostXInference.Engines.GgufEngineOps.Model">Model</h4>
+  <div class="markdown level1 summary">The loaded native model (raw abstraction escape hatch).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public IInferenceModel Model { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IInferenceModel.html">IInferenceModel</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_PartialRewindSupported_" data-uid="ProvostXInference.Engines.GgufEngineOps.PartialRewindSupported*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_PartialRewindSupported" data-uid="ProvostXInference.Engines.GgufEngineOps.PartialRewindSupported">PartialRewindSupported</h4>
+  <div class="markdown level1 summary">Whether this model's memory supports partial-sequence rewind (arch probed).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool PartialRewindSupported { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_Pool_" data-uid="ProvostXInference.Engines.GgufEngineOps.Pool*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_Pool" data-uid="ProvostXInference.Engines.GgufEngineOps.Pool">Pool</h4>
+  <div class="markdown level1 summary">The conversation pool (raw pool ops: Return/AvailableCount).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public IConversationPool Pool { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IConversationPool.html">IConversationPool</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_Sampling_" data-uid="ProvostXInference.Engines.GgufEngineOps.Sampling*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_Sampling" data-uid="ProvostXInference.Engines.GgufEngineOps.Sampling">Sampling</h4>
+  <div class="markdown level1 summary">Sampling knobs — mutable, applied on every sample.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public SamplingConfig Sampling { get; set; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.SamplingConfig.html">SamplingConfig</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_SpeculativeCapabilities_" data-uid="ProvostXInference.Engines.GgufEngineOps.SpeculativeCapabilities*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_SpeculativeCapabilities" data-uid="ProvostXInference.Engines.GgufEngineOps.SpeculativeCapabilities">SpeculativeCapabilities</h4>
+  <div class="markdown level1 summary">Speculative self-report: types supported for THIS loaded model.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public SpeculativeCapabilities SpeculativeCapabilities { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.SpeculativeCapabilities.html">SpeculativeCapabilities</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_SupportsAudioInput_" data-uid="ProvostXInference.Engines.GgufEngineOps.SupportsAudioInput*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_SupportsAudioInput" data-uid="ProvostXInference.Engines.GgufEngineOps.SupportsAudioInput">SupportsAudioInput</h4>
+  <div class="markdown level1 summary">Capability probe: loaded mmproj carries an audio adapter
+    (false until a mmproj is loaded; vision-only projectors report
+    false).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool SupportsAudioInput { get; }</code></pre>
+  </div>
+  <h5 class="propertyValue">Property Value</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="methods">Methods
+</h3>
+  <a id="ProvostXInference_Engines_GgufEngineOps_ActiveConversationSpeculation_" data-uid="ProvostXInference.Engines.GgufEngineOps.ActiveConversationSpeculation*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_ActiveConversationSpeculation_ProvostXInference_Abstractions_IConversation_" data-uid="ProvostXInference.Engines.GgufEngineOps.ActiveConversationSpeculation(ProvostXInference.Abstractions.IConversation)">ActiveConversationSpeculation(IConversation)</h4>
+  <div class="markdown level1 summary">Per-conversation live mirror of the active speculative config
+    (null when none).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public SpeculativeConfig? ActiveConversationSpeculation(IConversation conversation)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IConversation.html">IConversation</a></td>
+        <td><span class="parametername">conversation</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.SpeculativeConfig.html">SpeculativeConfig</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_ApplyChatTemplate_" data-uid="ProvostXInference.Engines.GgufEngineOps.ApplyChatTemplate*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_ApplyChatTemplate_System_String_System_Collections_Generic_IReadOnlyList_System_ValueTuple_System_String_System_String___System_Boolean_System_Int32_" data-uid="ProvostXInference.Engines.GgufEngineOps.ApplyChatTemplate(System.String,System.Collections.Generic.IReadOnlyList{System.ValueTuple{System.String,System.String}},System.Boolean,System.Int32)">ApplyChatTemplate(string?, IReadOnlyList&lt;(string role, string content)&gt;, bool, int)</h4>
+  <div class="markdown level1 summary">Model template: prompt → templated text (native ApplyChatTemplate).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string ApplyChatTemplate(string? template, IReadOnlyList&lt;(string role, string content)&gt; messages, bool addAssistant = true, int enableThinking = -1)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td><span class="parametername">template</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.ireadonlylist-1">IReadOnlyList</a>&lt;(<a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.valuetuple-system.string,system.string-.role">role</a>, <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.valuetuple-system.string,system.string-.content">content</a>)&gt;</td>
+        <td><span class="parametername">messages</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></td>
+        <td><span class="parametername">addAssistant</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td><span class="parametername">enableThinking</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_ClearControlVector_" data-uid="ProvostXInference.Engines.GgufEngineOps.ClearControlVector*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_ClearControlVector" data-uid="ProvostXInference.Engines.GgufEngineOps.ClearControlVector">ClearControlVector()</h4>
+  <div class="markdown level1 summary">Clear the applied control vector (baseline logits return).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void ClearControlVector()</code></pre>
+  </div>
+  <a id="ProvostXInference_Engines_GgufEngineOps_ClearLora_" data-uid="ProvostXInference.Engines.GgufEngineOps.ClearLora*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_ClearLora" data-uid="ProvostXInference.Engines.GgufEngineOps.ClearLora">ClearLora()</h4>
+  <div class="markdown level1 summary">Detach all adapters on the live context (baseline logits
+    return; KV untouched).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void ClearLora()</code></pre>
+  </div>
+  <a id="ProvostXInference_Engines_GgufEngineOps_ConversationSpeculationStats_" data-uid="ProvostXInference.Engines.GgufEngineOps.ConversationSpeculationStats*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_ConversationSpeculationStats_ProvostXInference_Abstractions_IConversation_" data-uid="ProvostXInference.Engines.GgufEngineOps.ConversationSpeculationStats(ProvostXInference.Abstractions.IConversation)">ConversationSpeculationStats(IConversation)</h4>
+  <div class="markdown level1 summary">Per-conversation spec acceptance telemetry (0/0 when none).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public SpeculationStats ConversationSpeculationStats(IConversation conversation)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IConversation.html">IConversation</a></td>
+        <td><span class="parametername">conversation</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.SpeculationStats.html">SpeculationStats</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_CreateExecutor_" data-uid="ProvostXInference.Engines.GgufEngineOps.CreateExecutor*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_CreateExecutor" data-uid="ProvostXInference.Engines.GgufEngineOps.CreateExecutor">CreateExecutor()</h4>
+  <div class="markdown level1 summary">Create a standard executor on the live context.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public IStandardExecutor CreateExecutor()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IStandardExecutor.html">IStandardExecutor</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_CreateGrammarFromJsonSchema_" data-uid="ProvostXInference.Engines.GgufEngineOps.CreateGrammarFromJsonSchema*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_CreateGrammarFromJsonSchema_System_String_System_String_" data-uid="ProvostXInference.Engines.GgufEngineOps.CreateGrammarFromJsonSchema(System.String,System.String)">CreateGrammarFromJsonSchema(string, string?)</h4>
+  <div class="markdown level1 summary">ABI v7: JSON Schema → GBNF through the model converter
+    (typed refusals: parse position / unsupported keyword).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public IGrammar CreateGrammarFromJsonSchema(string jsonSchema, string? rootName = null)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td><span class="parametername">jsonSchema</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td><span class="parametername">rootName</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IGrammar.html">IGrammar</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_CreateTtsSession_" data-uid="ProvostXInference.Engines.GgufEngineOps.CreateTtsSession*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_CreateTtsSession_System_String_System_UInt32_" data-uid="ProvostXInference.Engines.GgufEngineOps.CreateTtsSession(System.String,System.UInt32)">CreateTtsSession(string, uint)</h4>
+  <div class="markdown level1 summary">Create a TTS session: a SEPARATE decode context on the
+    backbone model + the gen-audio mmproj (KV-neutral by construction).
+    Typed refusal (tts/gen-audio-capability) on a mmproj without a
+    gen-audio pipeline.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public ITtsSession CreateTtsSession(string ttsMmprojPath, uint contextSize = 0)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td><span class="parametername">ttsMmprojPath</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.uint32">uint</a></td>
+        <td><span class="parametername">contextSize</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.ITtsSession.html">ITtsSession</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_Detokenize_" data-uid="ProvostXInference.Engines.GgufEngineOps.Detokenize*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_Detokenize_System_Int32___System_Boolean_" data-uid="ProvostXInference.Engines.GgufEngineOps.Detokenize(System.Int32[],System.Boolean)">Detokenize(int[], bool)</h4>
+  <div class="markdown level1 summary">Detokenize on the context.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string Detokenize(int[] tokens, bool removeSpecial = false)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a>[]</td>
+        <td><span class="parametername">tokens</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></td>
+        <td><span class="parametername">removeSpecial</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_DisableConversationSpeculation_" data-uid="ProvostXInference.Engines.GgufEngineOps.DisableConversationSpeculation*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_DisableConversationSpeculation_ProvostXInference_Abstractions_IConversation_" data-uid="ProvostXInference.Engines.GgufEngineOps.DisableConversationSpeculation(ProvostXInference.Abstractions.IConversation)">DisableConversationSpeculation(IConversation)</h4>
+  <div class="markdown level1 summary">Teardown of a conversation's spec session (idempotent).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void DisableConversationSpeculation(IConversation conversation)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IConversation.html">IConversation</a></td>
+        <td><span class="parametername">conversation</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_Dispose_" data-uid="ProvostXInference.Engines.GgufEngineOps.Dispose*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_Dispose" data-uid="ProvostXInference.Engines.GgufEngineOps.Dispose">Dispose()</h4>
+  <div class="markdown level1 summary">Teardown owned by the engine: pool first, then context; model is NOT disposed here.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void Dispose()</code></pre>
+  </div>
+  <a id="ProvostXInference_Engines_GgufEngineOps_EnableConversationSpeculation_" data-uid="ProvostXInference.Engines.GgufEngineOps.EnableConversationSpeculation*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_EnableConversationSpeculation_ProvostXInference_Abstractions_IConversation_ProvostXInference_Models_SpeculativeConfig_" data-uid="ProvostXInference.Engines.GgufEngineOps.EnableConversationSpeculation(ProvostXInference.Abstractions.IConversation,ProvostXInference.Models.SpeculativeConfig)">EnableConversationSpeculation(IConversation, SpeculativeConfig)</h4>
+  <div class="markdown level1 summary">Capability-gated enable of speculation on ONE pooled
+    conversation: the model self-report is validated first
+    (ValidateSpeculation), then the conversation session is enabled (which
+    re-validates fail-closed natively). Typed refusal — never a silent
+    non-spec run.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void EnableConversationSpeculation(IConversation conversation, SpeculativeConfig config)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IConversation.html">IConversation</a></td>
+        <td><span class="parametername">conversation</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.SpeculativeConfig.html">SpeculativeConfig</a></td>
+        <td><span class="parametername">config</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_ExportConversationCheckpoint_" data-uid="ProvostXInference.Engines.GgufEngineOps.ExportConversationCheckpoint*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_ExportConversationCheckpoint_ProvostXInference_Abstractions_IConversation_" data-uid="ProvostXInference.Engines.GgufEngineOps.ExportConversationCheckpoint(ProvostXInference.Abstractions.IConversation)">ExportConversationCheckpoint(IConversation)</h4>
+  <div class="markdown level1 summary">KV-cache portable export: raw checkpoint bytes.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public byte[] ExportConversationCheckpoint(IConversation conversation)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IConversation.html">IConversation</a></td>
+        <td><span class="parametername">conversation</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.byte">byte</a>[]</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_GetConversationStats_" data-uid="ProvostXInference.Engines.GgufEngineOps.GetConversationStats*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_GetConversationStats_ProvostXInference_Abstractions_IConversation_" data-uid="ProvostXInference.Engines.GgufEngineOps.GetConversationStats(ProvostXInference.Abstractions.IConversation)">GetConversationStats(IConversation)</h4>
+  <div class="markdown level1 summary">Stats snapshot of one conversation lane.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public EngineStats GetConversationStats(IConversation conversation)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IConversation.html">IConversation</a></td>
+        <td><span class="parametername">conversation</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.EngineStats.html">EngineStats</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_GetEngineTelemetry_" data-uid="ProvostXInference.Engines.GgufEngineOps.GetEngineTelemetry*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_GetEngineTelemetry" data-uid="ProvostXInference.Engines.GgufEngineOps.GetEngineTelemetry">GetEngineTelemetry()</h4>
+  <div class="markdown level1 summary">ABI v9: model-wide telemetry snapshot for THIS engine instance
+    (per-engine, never process-wide). Rates derive between two snapshots.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public EngineTelemetry GetEngineTelemetry()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.EngineTelemetry.html">EngineTelemetry</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_GetExecutorStats_" data-uid="ProvostXInference.Engines.GgufEngineOps.GetExecutorStats*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_GetExecutorStats_ProvostXInference_Abstractions_IStandardExecutor_" data-uid="ProvostXInference.Engines.GgufEngineOps.GetExecutorStats(ProvostXInference.Abstractions.IStandardExecutor)">GetExecutorStats(IStandardExecutor)</h4>
+  <div class="markdown level1 summary">Stats snapshot of one executor lane.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public EngineStats GetExecutorStats(IStandardExecutor executor)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IStandardExecutor.html">IStandardExecutor</a></td>
+        <td><span class="parametername">executor</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.EngineStats.html">EngineStats</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_ImportConversationCheckpoint_" data-uid="ProvostXInference.Engines.GgufEngineOps.ImportConversationCheckpoint*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_ImportConversationCheckpoint_ProvostXInference_Abstractions_IConversation_System_Byte___" data-uid="ProvostXInference.Engines.GgufEngineOps.ImportConversationCheckpoint(ProvostXInference.Abstractions.IConversation,System.Byte[])">ImportConversationCheckpoint(IConversation, byte[])</h4>
+  <div class="markdown level1 summary">KV-cache portable import: replace conversation memory from bytes.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void ImportConversationCheckpoint(IConversation conversation, byte[] data)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IConversation.html">IConversation</a></td>
+        <td><span class="parametername">conversation</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.byte">byte</a>[]</td>
+        <td><span class="parametername">data</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_KvClearSeq_" data-uid="ProvostXInference.Engines.GgufEngineOps.KvClearSeq*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_KvClearSeq_System_Int32_" data-uid="ProvostXInference.Engines.GgufEngineOps.KvClearSeq(System.Int32)">KvClearSeq(int)</h4>
+  <div class="markdown level1 summary">Native context ops: clear one KV sequence.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void KvClearSeq(int seqId)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td><span class="parametername">seqId</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_KvCopy_" data-uid="ProvostXInference.Engines.GgufEngineOps.KvCopy*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_KvCopy_System_Int32_System_Int32_" data-uid="ProvostXInference.Engines.GgufEngineOps.KvCopy(System.Int32,System.Int32)">KvCopy(int, int)</h4>
+  <div class="markdown level1 summary">Native context ops: copy KV src→dst sequence.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void KvCopy(int srcSeqId, int dstSeqId)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td><span class="parametername">srcSeqId</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td><span class="parametername">dstSeqId</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_LeaseConversation_" data-uid="ProvostXInference.Engines.GgufEngineOps.LeaseConversation*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_LeaseConversation" data-uid="ProvostXInference.Engines.GgufEngineOps.LeaseConversation">LeaseConversation()</h4>
+  <div class="markdown level1 summary">Lease a conversation from the context pool (Return via pool).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public IConversation LeaseConversation()</code></pre>
+  </div>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IConversation.html">IConversation</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_LoadControlVector_" data-uid="ProvostXInference.Engines.GgufEngineOps.LoadControlVector*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_LoadControlVector_System_String_" data-uid="ProvostXInference.Engines.GgufEngineOps.LoadControlVector(System.String)">LoadControlVector(string)</h4>
+  <div class="markdown level1 summary">Load a control-vector direction file (n_embd-matched;
+    typed refusal naming both dims).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public IControlVector LoadControlVector(string path)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td><span class="parametername">path</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IControlVector.html">IControlVector</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_LoadLora_" data-uid="ProvostXInference.Engines.GgufEngineOps.LoadLora*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_LoadLora_System_String_" data-uid="ProvostXInference.Engines.GgufEngineOps.LoadLora(System.String)">LoadLora(string)</h4>
+  <div class="markdown level1 summary">Load a LoRA adapter (arch-matched; typed refusal on
+    file/arch mismatch).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public ILoraAdapter LoadLora(string path)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td><span class="parametername">path</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.ILoraAdapter.html">ILoraAdapter</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_PromptWithAudio_" data-uid="ProvostXInference.Engines.GgufEngineOps.PromptWithAudio*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_PromptWithAudio_ProvostXInference_Abstractions_IConversation_System_String_ProvostXInference_Models_AudioChunk_" data-uid="ProvostXInference.Engines.GgufEngineOps.PromptWithAudio(ProvostXInference.Abstractions.IConversation,System.String,ProvostXInference.Models.AudioChunk)">PromptWithAudio(IConversation, string, AudioChunk)</h4>
+  <div class="markdown level1 summary">Conversation-lane prompt with ONE raw audio clip.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void PromptWithAudio(IConversation conversation, string text, AudioChunk audio)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IConversation.html">IConversation</a></td>
+        <td><span class="parametername">conversation</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td><span class="parametername">text</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.AudioChunk.html">AudioChunk</a></td>
+        <td><span class="parametername">audio</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_PromptWithAudio_" data-uid="ProvostXInference.Engines.GgufEngineOps.PromptWithAudio*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_PromptWithAudio_ProvostXInference_Abstractions_IStandardExecutor_System_String_ProvostXInference_Models_AudioChunk_" data-uid="ProvostXInference.Engines.GgufEngineOps.PromptWithAudio(ProvostXInference.Abstractions.IStandardExecutor,System.String,ProvostXInference.Models.AudioChunk)">PromptWithAudio(IStandardExecutor, string, AudioChunk)</h4>
+  <div class="markdown level1 summary">Executor-lane prompt with ONE raw audio clip (PCM F32 mono at
+    the projector's native rate; media marker in text). Typed refusal when
+    the projector lacks an audio adapter.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void PromptWithAudio(IStandardExecutor executor, string text, AudioChunk audio)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IStandardExecutor.html">IStandardExecutor</a></td>
+        <td><span class="parametername">executor</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td><span class="parametername">text</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.AudioChunk.html">AudioChunk</a></td>
+        <td><span class="parametername">audio</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_RebuildContext_" data-uid="ProvostXInference.Engines.GgufEngineOps.RebuildContext*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_RebuildContext" data-uid="ProvostXInference.Engines.GgufEngineOps.RebuildContext">RebuildContext()</h4>
+  <div class="markdown level1 summary">Rebuild the live context from <a class="xref" href="ProvostXInference.Engines.IGgufEngineOps.html#ProvostXInference_Engines_IGgufEngineOps_ContextSettings">ContextSettings</a> (disposes the old).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void RebuildContext()</code></pre>
+  </div>
+  <a id="ProvostXInference_Engines_GgufEngineOps_Rerank_" data-uid="ProvostXInference.Engines.GgufEngineOps.Rerank*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_Rerank_System_String_System_Collections_Generic_IReadOnlyList_System_String__" data-uid="ProvostXInference.Engines.GgufEngineOps.Rerank(System.String,System.Collections.Generic.IReadOnlyList{System.String})">Rerank(string, IReadOnlyList&lt;string&gt;)</h4>
+  <div class="markdown level1 summary">Single-shot rerank scores (RANK-pooling context required —
+    set ContextSettings.PoolingType = Rank; typed refusal otherwise).
+    KV-neutral (fresh seq per pair).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public float[] Rerank(string query, IReadOnlyList&lt;string&gt; documents)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td><span class="parametername">query</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.ireadonlylist-1">IReadOnlyList</a>&lt;<a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a>&gt;</td>
+        <td><span class="parametername">documents</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.single">float</a>[]</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_RestoreConversationState_" data-uid="ProvostXInference.Engines.GgufEngineOps.RestoreConversationState*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_RestoreConversationState_ProvostXInference_Abstractions_IConversationPool_ProvostXInference_Abstractions_IConversationState_" data-uid="ProvostXInference.Engines.GgufEngineOps.RestoreConversationState(ProvostXInference.Abstractions.IConversationPool,ProvostXInference.Abstractions.IConversationState)">RestoreConversationState(IConversationPool, IConversationState)</h4>
+  <div class="markdown level1 summary">KV-cache restore: bring a saved state back into a pool conversation.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void RestoreConversationState(IConversationPool pool, IConversationState state)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IConversationPool.html">IConversationPool</a></td>
+        <td><span class="parametername">pool</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IConversationState.html">IConversationState</a></td>
+        <td><span class="parametername">state</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_SaveConversationState_" data-uid="ProvostXInference.Engines.GgufEngineOps.SaveConversationState*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_SaveConversationState_ProvostXInference_Abstractions_IConversation_" data-uid="ProvostXInference.Engines.GgufEngineOps.SaveConversationState(ProvostXInference.Abstractions.IConversation)">SaveConversationState(IConversation)</h4>
+  <div class="markdown level1 summary">KV-cache save: export the conversation state (token count included).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public IConversationState SaveConversationState(IConversation conversation)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IConversation.html">IConversation</a></td>
+        <td><span class="parametername">conversation</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IConversationState.html">IConversationState</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_SetCausalAttention_" data-uid="ProvostXInference.Engines.GgufEngineOps.SetCausalAttention*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_SetCausalAttention_System_Boolean_" data-uid="ProvostXInference.Engines.GgufEngineOps.SetCausalAttention(System.Boolean)">SetCausalAttention(bool)</h4>
+  <div class="markdown level1 summary">Toggle causal attention for the context (vision prefill needs non-causal).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void SetCausalAttention(bool causal)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></td>
+        <td><span class="parametername">causal</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_Tokenize_" data-uid="ProvostXInference.Engines.GgufEngineOps.Tokenize*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_Tokenize_System_String_System_Boolean_System_Boolean_" data-uid="ProvostXInference.Engines.GgufEngineOps.Tokenize(System.String,System.Boolean,System.Boolean)">Tokenize(string, bool, bool)</h4>
+  <div class="markdown level1 summary">Tokenize on the context.</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public int[] Tokenize(string text, bool addBos = false, bool parseSpecial = true)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td><span class="parametername">text</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></td>
+        <td><span class="parametername">addBos</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></td>
+        <td><span class="parametername">parseSpecial</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a>[]</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_ValidateSpeculation_" data-uid="ProvostXInference.Engines.GgufEngineOps.ValidateSpeculation*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_ValidateSpeculation_ProvostXInference_Models_SpeculativeConfig_" data-uid="ProvostXInference.Engines.GgufEngineOps.ValidateSpeculation(ProvostXInference.Models.SpeculativeConfig)">ValidateSpeculation(SpeculativeConfig)</h4>
+  <div class="markdown level1 summary">Typed pre-validation of a speculative config (mode/path/capability).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void ValidateSpeculation(SpeculativeConfig config)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Models.SpeculativeConfig.html">SpeculativeConfig</a></td>
+        <td><span class="parametername">config</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_WithControlVector_" data-uid="ProvostXInference.Engines.GgufEngineOps.WithControlVector*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_WithControlVector_ProvostXInference_Abstractions_IControlVector_System_Int32_System_Int32_" data-uid="ProvostXInference.Engines.GgufEngineOps.WithControlVector(ProvostXInference.Abstractions.IControlVector,System.Int32,System.Int32)">WithControlVector(IControlVector, int, int)</h4>
+  <div class="markdown level1 summary">Scoped control-vector apply (layer range 0/0 = full);
+    detaches on Dispose (KV-neutral).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public IDisposable WithControlVector(IControlVector vector, int layerStart = 0, int layerEnd = 0)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="ProvostXInference.Abstractions.IControlVector.html">IControlVector</a></td>
+        <td><span class="parametername">vector</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td><span class="parametername">layerStart</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></td>
+        <td><span class="parametername">layerEnd</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <a id="ProvostXInference_Engines_GgufEngineOps_WithLora_" data-uid="ProvostXInference.Engines.GgufEngineOps.WithLora*"></a>
+  <h4 id="ProvostXInference_Engines_GgufEngineOps_WithLora_System_String_System_Single_" data-uid="ProvostXInference.Engines.GgufEngineOps.WithLora(System.String,System.Single)">WithLora(string, float)</h4>
+  <div class="markdown level1 summary">Scoped attach: loads + attaches the adapter, returns a scope
+    that detaches AND disposes on Dispose (weights-surface: KV-neutral,
+    attach mid-conversation without rewind).</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="declaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public IDisposable WithLora(string path, float scale)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></td>
+        <td><span class="parametername">path</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.single">float</a></td>
+        <td><span class="parametername">scale</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="implements">Implements</h3>
+  <div>
+      <a class="xref" href="ProvostXInference.Engines.IGgufEngineOps.html">IGgufEngineOps</a>
+  </div>
+  <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a>
+  </div>
+
+</article>
+          </div>
+
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In this article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="../index.html">Home</a>&ensp;&middot;&ensp;<a href="#top">Back to top</a>
+            </span>
+      ProvostXInference — MIT
+      
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script type="text/javascript" src="../styles/docfx.vendor.min.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>

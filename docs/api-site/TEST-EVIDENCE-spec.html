@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+
+  <head>
+    <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>Speculative decoding test evidence (owner-requested, 2026-10-11 23:27) | ProvostXInference API </title>
+      <meta name="viewport" content="width=device-width">
+      <meta name="title" content="Speculative decoding test evidence (owner-requested, 2026-10-11 23:27) | ProvostXInference API ">
+    
+    
+      <link rel="shortcut icon" href="favicon.ico">
+      <link rel="stylesheet" href="styles/docfx.vendor.min.css">
+      <link rel="stylesheet" href="styles/docfx.css">
+      <link rel="stylesheet" href="styles/main.css">
+      <meta property="docfx:navrel" content="">
+      <meta property="docfx:tocrel" content="">
+    
+    <meta property="docfx:rel" content="">
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+
+              <a class="navbar-brand" href="index.html">
+                <img id="logo" class="svg" src="logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+
+        <div id="search-results">
+          <div class="search-list">Search Results for <span></span></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination" data-first=First data-prev=Previous data-next=Next data-last=Last></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+        <div class="article row grid">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+<h1 id="speculative-decoding-test-evidence-owner-requested-2026-10-11-2327">Speculative decoding test evidence (owner-requested, 2026-10-11 23:27)</h1>
+
+<p>All runs: llama-cli (vendored build-spec, metal), temp 0.</p>
+<h2 id="draft_simple--works">draft_simple — WORKS</h2>
+<ul>
+<li>Target Llama-3.2-3B-Q4_K_M + draft Llama-3.2-1B-Q4_K_M: clean generation.</li>
+<li>Baseline 168.9 t/s vs draft ~161–162 t/s → NO gain on a fast small target (draft overhead ≥ savings at 3B speeds). Expected physics; use spec on bigger/slower targets.</li>
+</ul>
+<h2 id="draft_mtp--works-real-speedup">draft_mtp — WORKS, real speedup</h2>
+<ul>
+<li>Model: unsloth/Qwen3.5-9B-MTP-GGUF (Qwen3.5-9B-Q4_K_M.gguf, 5.9 GB, MTP tensors embedded).</li>
+<li>Short gen (96 tok): baseline 63.1 t/s → MTP 90.3 t/s (+43%)</li>
+<li>Long gen (256 tok): baseline 82.2 t/s → MTP 108.1 t/s (+31%)</li>
+<li>Conclusion: ~1.3–1.4× on Qwen3.5-9B via --spec-type draft-mtp. No second model needed.</li>
+</ul>
+<h2 id="notes-for-abi-wiring">Notes for ABI wiring</h2>
+<ul>
+<li>CLI flag: <code>--spec-type draft-mtp</code> (enum: none, draft-simple, draft-eagle3, draft-mtp, draft-dflash, draft-dspark, ngram-*).</li>
+<li>Our other local GGUFs (Qwen3-8B, Llama-3.2-3B, Qwen3.6-35B) have NO nextn tensors → engine capability discovery must read GGUF metadata (arch + nextn tensor presence), not assume.</li>
+<li>EAGLE3/DFLASH/DSpark drafts are per-target companions; drafts need GGUF conversion against the target (docs/speculative.md has exact commands; EAGLE3 pairs AngelSlim/Qwen3-8B_eagle3 with our local Qwen3-8B).</li>
+</ul>
+
+</article>
+          </div>
+
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In this article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="index.html">Home</a>&ensp;&middot;&ensp;<a href="#top">Back to top</a>
+            </span>
+      ProvostXInference — MIT
+      
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script type="text/javascript" src="styles/docfx.vendor.min.js"></script>
+    <script type="text/javascript" src="styles/docfx.js"></script>
+    <script type="text/javascript" src="styles/main.js"></script>
+  </body>
+</html>

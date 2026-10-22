@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+
+  <head>
+    <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>ProvostXInference — Architecture (as-is) | ProvostXInference API </title>
+      <meta name="viewport" content="width=device-width">
+      <meta name="title" content="ProvostXInference — Architecture (as-is) | ProvostXInference API ">
+    
+    
+      <link rel="shortcut icon" href="favicon.ico">
+      <link rel="stylesheet" href="styles/docfx.vendor.min.css">
+      <link rel="stylesheet" href="styles/docfx.css">
+      <link rel="stylesheet" href="styles/main.css">
+      <meta property="docfx:navrel" content="">
+      <meta property="docfx:tocrel" content="">
+    
+    <meta property="docfx:rel" content="">
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+
+              <a class="navbar-brand" href="index.html">
+                <img id="logo" class="svg" src="logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+
+        <div id="search-results">
+          <div class="search-list">Search Results for <span></span></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination" data-first=First data-prev=Previous data-next=Next data-last=Last></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+        <div class="article row grid">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+<h1 id="provostxinference--architecture-as-is">ProvostXInference — Architecture (as-is)</h1>
+
+<p>C/C++ inference engine + C# bindings for ProvostX. A <strong>llama.cpp-only, GGUF-only</strong> execution
+substrate: the vendored llama.cpp tree is linked directly behind a flat C API, P/Invoked from a
+strict-OOP C# layer. Replaces LLamaSharp entirely — full control over batching, KV cache,
+vision, speculative decoding, and backend safety. ProvostXLLM consumes this library in-process
+and knows <strong>only</strong> this API — never llama.cpp, ONNX, or any engine internals.</p>
+<h2 id="layers">Layers</h2>
+<pre><code>┌─────────────────────────────────────────────┐
+│ ProvostXLLM (C# — HTTP server)               │
+│  OpenAI API, sessions, orchestration only    │
+├─────────────────────────────────────────────┤
+│ ProvostXInference C# (this repo)             │
+│  Engines facade → Abstractions → Interop     │
+│  Decision (ONNX judge), Encoder, watchdog     │
+├─────────────────────────────────────────────┤
+│ libpvxinference (C++ — this repo)            │
+│  Model, context, pool, batched decode,        │
+│  sampling, embeddings, vision, spec decode,   │
+│  KV ops, backend safety                       │
+├─────────────────────────────────────────────┤
+│ llama.cpp (vendored submodule — FROZEN)       │
+│  Native inference, Metal/CUDA/Vulkan/CPU     │
+└─────────────────────────────────────────────┘
+</code></pre>
+<p>Dependency flow is strictly one-directional: callers touch only the Engines facade; the facade
+composes backend adapters into one uniform engine object; nothing below leaks upward.</p>
+<h2 id="native-core-src-include">Native core (src/, include/)</h2>
+<h3 id="c-api-pvxinferenceh--abi-v9">C API (pvxinference.h) — ABI v9</h3>
+<p>Flat C API, 90+ exports. Opaque handles: <code>pvx_model_t</code>, <code>pvx_context_t</code>, <code>pvx_pool_t</code>,
+<code>pvx_conversation_t</code>, <code>pvx_executor_t</code>, <code>pvx_state_t</code>, <code>pvx_grammar_t</code>, mmproj wrapper,
+<code>pvx_adapter_t</code> (LoRA), <code>pvx_cvec_t</code> (control vectors), <code>pvx_tts_session_t</code> (gen-audio).
+The ABI version is handshake-checked against the C# binding's <code>ExpectedAbiVersion</code> at
+engine open — mismatch refuses to load (fail-closed, never best-effort). v6 (wave 1) was
+append-only: <code>pvx_spec_mode_t</code> gained the n-gram modes, <code>pvx_spec_params_t</code> appends
+<code>pvx_ngram_params_t</code>, <code>pvx_spec_capabilities_t</code> appends <code>spec_vision</code>. v7 (wave 2) is
+append-only too: <code>pvx_spec_mode_t</code> gains <code>PVX_SPEC_EAGLE3</code>/<code>PVX_SPEC_DFLASH</code>,
+<code>pvx_spec_params_t</code> appends the eagle/dflash companion paths, and the new surfaces are
+the batched/pool-lane spec trio (<code>pvx_conversation_spec_init/_generate_spec/_spec_stats</code>),
+the per-conversation spec-session teardown hook (<code>pvx_conversation_spec_free</code>), and the
+pure JSON-schema→GBNF converter (<code>pvx_grammar_from_json_schema</code>, string→string, KV-neutral).
+v8 (wave 3) is append-only as well: <code>pvx_pooling_type_t</code> gains <code>PVX_POOL_RANK</code> (the
+rerank lane — classification head attached to the graph, upstream llama-server
+<code>--reranking</code> contract; <code>pvx_rerank</code> scores (query, doc) pairs single-shot on a fresh
+seq, refusal typed on any other pooling), audio input rides the mtmd surface
+(<code>pvx_mtmd_supports_audio</code> / <code>pvx_mtmd_audio_sample_rate</code> /
+<code>pvx_executor_prompt_with_audio</code> / <code>pvx_conversation_prompt_with_audio</code> — PCM F32 at
+the projector's native rate, no resampling in product code), TTS is a SEPARATE decode
+context (<code>pvx_tts_session_create</code>/<code>_free</code>/<code>pvx_tts_generate</code> — single-shot session,
+fresh sessions replay byte-identically per (text, seed), typed refusal when the mmproj
+has no gen-audio pipeline), LoRA adapters attach/detach on LIVE contexts
+(<code>pvx_adapter_load</code>/<code>pvx_context_set_lora</code>, weights-surface modifier — KV-neutral),
+control vectors port <code>common_control_vector_load</code> into src/
+(<code>pvx_control_vector_load</code>/<code>pvx_context_set_control_vector</code>, same KV-neutrality),
+and the stats export is a snapshot copy-out. v8 wave 4 (draft-mtp, owner order
+2026-10-19 17:00) is append-only too: <code>pvx_spec_mode_t</code> gains
+<code>PVX_SPEC_MTP_DRAFT</code> (9) and <code>pvx_spec_params_t</code> appends <code>mtp_draft_path</code> — the
+SEPARATE self-contained MTP head GGUF (upstream <code>-md --spec-type draft-mtp</code>),
+distinct from <code>draft_model_path</code> (draft-simple only) and from
+<code>PVX_SPEC_MTP_AUTO</code> (embedded nextn, which stays a typed wiring boundary).
+Embedded-nextn FILE CONVENTION (live-verified 2026-10-19): <code>load_mtp</code> reads the
+nextn projections from the SAME GGUF, named at the LAST TRUNK layer index
+(<code>blk.{n_layer-1}.nextn.*</code> — NOT upstream's <code>blk.{n_layer}.*</code>), and wants only the
+6 projection tensors (eh_proj/enorm/hnorm/hc_head_norm/hc_head_down/hc_head_up);
+<code>qwen4exp.attention.compress_ratios</code> must stay n_layer_all-long (do NOT extend for
+the nextn layer). See memory/2026-10-19-mtp-merge-fix.md for the merge tooling.
+The stats export remains a snapshot (<code>pvx_executor_stats</code>/<code>pvx_conversation_stats</code>,
+<code>pvx_stats_t</code> copy-out counters, spec telemetry mirrors the spec stats).</p>
+<h3 id="per-engine-audit--telemetry-abi-v9-owner-order-2026-10-22">Per-engine audit + telemetry (ABI v9, owner order 2026-10-22)</h3>
+<p>Append-only wave: <code>pvx_model_params_t</code> gains <code>audit_path</code> + <code>audit_include_prompts</code>
+(zeroed struct = disabled, bit-identical loads). The audit sink is PER-MODEL — own
+<code>FILE*</code> + own mutex, opened at load, closed at free; NEVER process globals (an LLM
+array of engines yields one audit trail per engine instance). Events are JSON lines
+(<code>ts</code>, monotonic <code>seq</code>, <code>event</code>, optional <code>detail</code>), flushed per line (survives hard
+kill): model_loaded/model_freed, context_created/freed, spec_enabled/disabled,
+kv_cleared/kv_shifted. Prompt TEXT is never recorded — token counts only when
+<code>audit_include_prompts=1</code> (audit must not become a content sink). Model-wide
+telemetry counters ride the same struct (plain int64 bumps at the existing commit
+sites under the infer mutex) and are exported via <code>pvx_engine_telemetry</code>
+(<code>pvx_engine_telemetry_t</code>: prompt/decode/committed tokens, spec drafted/accepted,
+errors, contexts alive). ZERO COST when not configured: every counter bump and file
+write is gated behind <code>audit.enabled</code> — an unconfigured engine executes one branch
+per commit and nothing else (owner directive 10:42). Rates are derived by the caller
+between two snapshots; the native side stays stateless.</p>
+<ul>
+<li><p><strong><code>pvxinference.cpp</code></strong> — core: model load, tokenize, chat template, context, conversation
+pool, batched + executor inference, sampling, KV ops (save/restore/copy/rewind/shift),
+embeddings, speculative decode, chunked decode (all decode paths split pending tokens into
+≤ <code>n_batch</code> slices with per-slice position advance — <code>llama_decode</code> ABORTS beyond one batch).</p>
+</li>
+<li><p><strong><code>pvx_backend.cpp</code></strong> — backend safety layer (below).</p>
+</li>
+<li><p><strong><code>pvx_adapters.cpp</code></strong> — ABI v8 (wave 3): LoRA adapter load/attach/detach
+(<code>llama_set_adapters_lora</code> — weights-surface: live contexts, KV content untouched,
+serialized by the context <code>infer_mtx</code>) and the control-vector loader (pattern-port of
+the vendored <code>common_control_vector_load_one</code>: <code>direction.&lt;L&gt;</code> F32 1-D tensors
+accumulated into an n_embd × max_layer buffer; explicit out-of-range layer ends are a
+typed refusal, never a silent clamp).</p>
+</li>
+<li><p><strong><code>pvx_tts.cpp</code></strong> — ABI v8 (wave 3): speech output via the PUBLIC mtmd gen-audio
+helper surface (<code>mtmd_helper_gen_audio_*</code> — never the frozen common runtimes): a
+dedicated decode context on the backbone (qwen3tts — embeddings on, semantic codes
+through the classification-style output), our own deterministic top-k/top-p backbone
+sampler, raw-PCM output. The session is SINGLE-SHOT: the gen pipeline carries
+cross-call state inside the mtmd context, so a second generate refuses typed
+(<code>tts/session-consumed</code>) rather than degrade — fresh sessions replay byte-identically.</p>
+</li>
+<li><p><strong><code>pvx_spec_engine.*</code></strong> — speculative decoding: draft model (draft-simple / MTP per
+vendored llama.cpp support) AND n-gram modes (simple / map-k / mod / cache — no draft
+model, drafts from the committed stream). The draft-context mirror is EMBD-AWARE
+(ABI v6): the executor's committed-stream ring (<code>pvx_mirror_entry_t</code>) replays token
+rows by id and multimodal rows by projected embedding at pinned positions (draft-width
+mismatch zero-pads with a one-time warn — upstream pattern); the ring's invariant is
+enforced fail-closed by a consistency guard on every round. Image prompts land embd
+rows in the ring via the stable <code>llama_batch_ext</code> surface (helper semantics ported
+exactly, M-RoPE decoder positions included). Capability discovery on load inspects
+GGUF metadata (arch + nextn/MTP tensors) and self-reports a SUPPORTED-TYPES LIST
+(draft_simple + the n-gram types for every standard-vocab target), not booleans, plus
+the model-independent <code>spec_vision</code> bit; unwired types answer typed NOT_SUPPORTED with
+the boundary named. A second draft model is required for draft-simple — missing draft
+= typed error, no silent fallback. A corrupt n-gram cache file is a typed LOAD_FAILED
+naming the path — never a silently empty cache.</p>
+</li>
+<li><p><strong><code>pvx_ngram.*</code></strong> — pattern-port of the vendored n-gram drafters (simple, map-k with
+accept statistics, mod hashed-suffix table, static+dynamic token-prob caches with
+save/load/merge) against stable llama.h types only; the frozen tree is never included.</p>
+</li>
+<li><p><strong><code>pvx_spec_engine.*</code> (ABI v7 companion modes)</strong> — EAGLE3 (upstream draft-eagle3
+pattern-port): the draft decoder consumes (token, g_embd) pairs, g rows are the
+EAGLE3 encoder output of the target's captured layer features
+(<code>eagle3.target_layers</code>, exactly 3 entries, plus compatible vocab family — validated
+typed at spec_init naming the metadata key); deferred-boundary <code>pending_g_last</code> state
+rides the existing executor state chain additively (versioned length-prefixed payload:
+an EAGLE3-enabled restore of a checkpoint without EAGLE3 state types the refusal and
+demands re-init). Live-verified against a genuine Qwen3-8B +
+community EAGLE3-speculator pair; three round invariants, kept as-is now: (a) the capture hook drops the drafted-but-unverified chain
+cells before the decoder training batch (draft-KV restore-to-committed-prefix
+pattern, upstream TAG_SPEC_AVOID_DRAFT_REEVAL — without the drop the training
+batch starts at pos_first while the draft KV still ends at the chain tail and
+llama's Y = X+1 consecutiveness check aborts); (b) the verify chain is bounded
+per ROUND by the remaining out_max budget (a call-wide cap alone let the last
+rounds overrun out_max); (c) a deferred-boundary-only capture (single-row
+commit, bridge skipped) adds no pairs and decodes NOTHING (an empty batch is
+llama's n_tokens == 0 refusal). Executor-lane acceptance telemetry:
+<code>pvx_executor_spec_stats</code> — its definition shipped without the header
+declaration (C++-mangled export, unreachable from the C ABI); the declaration
+is restored (extern &quot;C&quot; linkage, no ABI-version change). DFlash: companion
+metadata is validated at the metadata boundary,
+then the unwired drafting boundary refuses typed NOT_SUPPORTED (<code>dflash-wiring</code>),
+MTP_AUTO precedent — never faked (live-verified against a genuine
+LFM2.5-1.2B-Instruct target + DSpark sidecar pair: the real sidecar — arch
+dflash, dflash.target_layers i32[5] — passes the metadata precheck, the
+enable refuses typed naming spec-engine/dflash-wiring, no phantom session;
+block-diffusion drafting is NOT claimed). Both refuse typed on the
+batched/pool lane.</p>
+</li>
+<li><p><strong><code>pvx_json_schema_grammar.*</code></strong> (ABI v7) — pattern-port of the vendored
+<code>common/json-schema-to-grammar</code> converter (JSON Schema → GBNF, pure string→string,
+feeds the existing grammar chain; the frozen tree is never linked into product code).
+Fail-closed per keyword: invalid JSON → INVALID_ARG naming the parse position; an
+unsupported schema keyword (e.g. regex <code>pattern</code>) → NOT_SUPPORTED naming the keyword —
+never a best-effort loose grammar.</p>
+</li>
+<li><p><strong>Batched/pool-lane speculative decoding (ABI v7)</strong> — the executor trio mirrored
+per-conversation (<code>pvx_conversation_spec_init/generate_spec/spec_stats</code> + <code>spec_free</code>):
+per-seq draft state keyed by the conversation's seq_id, spec ops under the same
+<code>infer_mtx</code> discipline as sample ops, pool return tears the session down in the
+existing teardown order, pool <code>seq_max</code> budgeted for the draft-side KV. Fail-closed:
+spec init on a pool with <code>seq_max &lt; 2</code> types the refusal; generation without a session
+types NOT_SUPPORTED — never a silent plain run.</p>
+</li>
+<li><p><strong>Separate-head draft-MTP (ABI v8 wave 4)</strong> — <code>pvx_spec_engine.*</code> pattern-port of the
+vendored <code>common_speculative_impl_draft_mtp</code> (upstream llama.cpp PR #28243, evolved):
+the MTP head is a self-contained GGUF (own token embedding + output head + one nextn
+block) loaded as a SECOND draft model and run on a <code>LLAMA_CONTEXT_TYPE_MTP</code> context
+(nextn-layer-only KV, <code>n_rs_seq = 0</code>). BL-42: the head context ALWAYS links the
+target trunk via <code>ctx_other</code> (upstream ctor parity — self-contained heads ignore it);
+shared-memory heads (<code>gemma4-assistant</code>) are SUPPORTED (no catch-up decodes, no
+head seq_rm, all draft rows at the SAME position, state restore replays the h ring
+only) — BL-45 extends the lane to multi-block chain heads (step35 class,
+<code>n_layer_nextn &gt; 1</code>, per-step <code>nextn_layer_offset</code> selection). Multi-block
+chain heads (BL-45): <code>chain_heads = n_mtp_layers &gt; 1 &amp;&amp; !is_mem_shared</code> (pure
+planner <code>pvx_mtp_chain_plan</code>, unit-tested); the chain budget is clamped to the
+trained block count (<code>n_max = min(n_max, n_mtp_layers)</code> — an untrained block is
+never addressed). Shared-memory multi-block heads (gemma4 class) run all blocks
+in one graph — NOT chain mode, BL-42 path byte-identical; single-block heads
+(<code>n_layer_nextn == 1</code>) are byte-identical to BL-42 (offset untouched everywhere).
+Catch-up/state-restore replay is per head: seq_rm <code>[pos_first, end)</code>,
+<code>llama_set_nextn_layer_offset(head)</code>, chunked <code>(t_p, h_{p-1})</code> replay
+(<code>mtp_replay_rows</code>), offset restored to 0; the head context KV holds every nextn
+block (MTP-context layer filter), so each head rebuilds its OWN layer's committed
+prefix. Chain drafting mirrors upstream draft(): step i selects head i via
+<code>llama_set_nextn_layer_offset(i)</code> and re-decodes the WHOLE prefix (seed row +
+drafted so far, pairing row t = <code>chain_h[t]</code>, then each head's own nextn output),
+per-step seq_rm <code>(base, -1)</code>, logits only on the last row (<code>pvx_mtp_chain_arm</code>
+planner, unit-tested); verification/acceptance/commit are unchanged — the
+target-side verify is head-count-agnostic. This family has NO typed refusal
+(upstream supports it); refusals stay only for non-MTP heads, width mismatch,
+vocab incompat. Fixture plumbing: the vision+MTP live leg accepts
+<code>PVX_MTP_MMPROJ_PATH</code> (family override) before falling back to
+<code>PVX_MMPROJ_PATH</code>/suite MMPROJ — the MTP pair may be a different family than the
+suite's vision fixtures. Pairing convention (DeepSeek-style): a draft row predicting stream
+position P consumes <code>(embd(t_{P-1}), h_{P-1})</code> — <code>h</code> = the target trunk's nextn
+embedding (<code>llama_set_embeddings_nextn(target, true, masked=false)</code>), row width =
+<code>llama_model_n_embd_out</code> (head must match target — typed refusal at spec_init, never
+an upstream-style assert); chain rows pair the DRAFT's own nextn output
+(<code>llama_set_embeddings_nextn(draft, true, masked=true)</code>). Round structure mirrors the
+EAGLE3 lane: per-committed-position <code>h_hist</code> capture hook after every target decode
+(<code>mtp_process_target_rows</code> — catch-up decodes the committed rows into the draft KV
+with the <code>(t_p, h_{p-1})</code> pairing, zero-h at position 0, dropping stale chain cells
+first), seed pair-decode <code>(t_last, h_last)</code> at the next position, greedy top-1 chain
+under <code>p_min</code>/EOG gates, ONE verify decode on the target, sample-and-match
+acceptance (greedy-exact), KV repair, <code>h_hist</code> truncated to the committed count.
+Sequential executor lane only — the batched/pool conversation lane refuses typed
+(capture-hook seams are executor-lane wiring, EAGLE3 precedent); spec enable
+requires an EMPTY stream (per-position capture must observe every commit);
+vision prompts now coexist EXACTLY in the SAME session (BL-39): the capture
+hook takes mirror ENTRIES, so image embd rows ride the same pairing — the
+image embedding is the head INPUT (<code>add_embd</code> arm, upstream
+speculative.cpp:1630 &quot;vision tokens carry an embedding instead of an id&quot;),
+the <code>h_{p-1}</code> state pairing is unchanged, and every commit site
+(<code>pvx_executor_infer</code> slices, the vision-prompt text flush, and EACH embd
+decode chunk — h rows die at the next decode) fires the hook; the capture-
+order invariant (<code>h_hist.size() == n_tokens</code>) holds across vision chunks,
+and <code>mtp_state_restore</code> replays vision rows the same way (the old typed
+multimodal refusal is gone; pure pairing planner
+<code>pvx_mtp_catch_up_arm</code> is unit-tested without models). EAGLE3 still refuses
+vision prompts typed (its per-position feature capture cannot see embd
+rows). AUDIO prompts coexist EXACTLY too (BL-40, same embd-row class as
+BL-39): audio embd rows ride the same <code>add_embd</code> input arm with unchanged
+<code>h_{p-1}</code> pairing at FLAT pinned positions (upstream <code>mrope_1d</code> == plain),
+the hook fires at every audio commit site (the audio-prompt text flush —
+per n_batch slice — and EACH audio embd decode chunk), and the old typed
+audio-in-MTP refusal is gone. EAGLE3 still refuses audio prompts typed
+(same feature-capture seam as vision). State save/restore carries the <code>h_hist</code> rows additively (mismatch on
+restore invalidates the session typed, re-init required); kv <code>shift_left</code> refuses
+typed. <code>llama_model_n_layer_nextn(head) == 0</code> (head GGUF without nextn tensors) is a
+typed refusal naming the boundary — never faked. The TARGET context carries the
+recurrent-state snapshot ring via <code>pvx_context_params_t.n_rs_seq</code> (ABI v8 wave-4
+append; upstream <code>llama_context_params.n_rs_seq</code>) — 0 = llama default (no
+snapshots, hybrid targets then refuse partial rewind per the existing contract);
+the C# binding mirrors it (<code>PvxContextParams</code> 5th field, size-pinned by
+<code>PvxContextParamsMarshalTests</code>; <code>ContextConfig.NRsSeq</code> pass-through) and the LLM
+layer AUTO-sizes it (8 while <code>spec_mode draft_mtp</code> is active).</p>
+</li>
+</ul>
+<h3 id="config-surface-parity-abi-v8-wave-5--full-llamacpp-config-verbs">Config-surface parity (ABI v8 wave 5) — full llama.cpp config verbs</h3>
+<p>Every llama.cpp configuration verb is reachable from C# (engine structs → P/Invoke →
+facade configs). Wave-5 fields are APPENDED ONLY — a zeroed struct is bit-identical to
+the pre-wave-5 load (proven: native suite 48/48, ngram 25/25, stress 31/31 with zeroed
+wave-5 everywhere; C# 230/230). Zero-value semantics: model/context ints and floats at
+0, bools false, and null kv-override lists mean &quot;llama default&quot; — the native side maps
+them to upstream defaults, never to a literal zero override. Knobs whose llama default
+is TRUE (use_extra_bufts, offload_kqv, op_offload, swa_full, kv_unified, no_perf) use
+a tri-state int: 0 = llama default, 1 = force on, 2 = force off — a plain bool could
+not express &quot;unset&quot;. kv-override tag mapping: upstream <code>llama_model_kv_override_type</code>
+order is INT/FLOAT/BOOL/STR; the pvx ABI uses 0=bool, 1=int64, 2=f64, 3=str — mapped
+explicitly at the native boundary (never by enum order). Seed: &lt;=0 = time entropy
+(llama default), &gt;=1 = deterministic sampling. Wave-5 samplers run inside
+<code>pooled_selection_chain</code> in OpenAI-parity order: penalties (repeat/present/frequency)
+→ logit_bias → dry → top_k → typical_p → top_p/min_p → top_n_sigma → xtc → mirostat
+1/2 (mirostat bypasses top_p when active) → dist(seed). Facade pass-through:
+<code>GgufEngineRequest(Builder).WithAdvanced(ModelConfig?, ContextConfig?)</code> carries the
+extended knobs; classic With* fields always win in the merge, so existing callers are
+unchanged. ABI sizeof pins (Release, osx-arm64): <code>pvx_model_params_t</code> = 72,
+<code>pvx_context_params_t</code> = 112, <code>pvx_sampling_params_t</code> = 112 (incl. wave-5 sub-struct
+pointer), <code>pvx_sampling_params_wave5_t</code> = 72, <code>pvx_logit_bias_t</code> = 8,
+<code>pvx_kv_override_t</code> = 288 — pinned by <code>PvxAbiSizeTests</code> (C#) and probed at build time.</p>
+<h3 id="embeddings--architecture-routed">Embeddings — architecture-routed</h3>
+<p>Routing is by the model's own architecture (<code>llama_model_has_encoder/has_decoder</code>); typed
+NOT_SUPPORTED when a model exposes neither. Encoder models (MiniLM) use <code>llama_encode</code>;
+causal models decode and mean-pool. Decoder-only models whose output head differs from the
+hidden state (merged multi-token heads, e.g. n_embd_out ≠ n_embd) fail closed with a typed
+NOT_SUPPORTED before any decode. The extraction path fails closed if no embedding source
+produces data — never zeros dressed as an embedding.</p>
+<h3 id="grammar-gbnf">Grammar (GBNF)</h3>
+<p>Persistent grammar chain on executor/conversation; grammar FIRST in the sampler chain;
+sampled token accepted once at commit (EOG/control skipped). Prompt tokens are NOT
+grammar-accepted (a per-token accept hook desyncs the stateless feedback loop — removed).
+Known upstream llama.cpp issue: <code>llama_grammar_accept</code> can crash on multi-character tokens
+spanning rules with optional whitespace. Mitigation is structural, not a catch-handler: the
+grammar section runs TIERED REJECTION SAMPLING (tier 1 single-token validation → tier 2
+top-k mask → tier 2.5 top-256 mask → tier 3 full grammar-first mask) and every returned
+token has passed a grammar check before accept() is ever called — there is NO path that
+yields unconstrained output, and accept() only ever sees a validated token.</p>
+<h3 id="rewind--hybrid-memory-guard">Rewind / hybrid-memory guard</h3>
+<p>All partial rewinds check <code>llama_memory_seq_rm</code>'s return and answer <code>PVX_ERR_REWIND_UNSUPPORTED</code>
+on refusal (hybrid/recurrent archs cannot take partial erasure) — counters untouched, no
+corruption. Full-range rewind still works everywhere. <code>pvx_model_partial_rewind_supported</code>
+surfaces the capability (C#: <code>IInferenceModel.PartialRewindSupported</code>).</p>
+<h3 id="backend-probe--safety-pvx_backendcpp">Backend probe &amp; safety (pvx_backend.cpp)</h3>
+<p>Per-CONTEXT probe state (<code>pvx_context_s::backend</code> — never process-global). Detection skips
+CPU-class devices and matches stable vendor-tag device ids (<code>MTL</code>/<code>Metal</code>, <code>CUDA</code>, <code>Vulkan</code>);
+an unrecognized accelerator reports its raw device name instead of lying &quot;CPU&quot;. All seven
+<code>pvx_backend_*</code> queries take <code>pvx_context_t*</code> (null-safe) and are re-run by <code>pvx_probe_backend</code>.
+GPU-layer profile fields (Effective/Original/ReducedGpuLayers) are filled on every facade path.</p>
+<p>Safety layer intervenes only on probe failure: minimal 1-token decode probe validates config;
+progressive fallback gpu_layers N → N/2 → 0 (<code>pvx_create_context_safe</code>); Vulkan stale-KV
+flush after pool return (upstream #26744). On total fallback failure the caller's original
+gpu_layers is reloaded; if even that fails, <code>*model</code> is null and is not freed.</p>
+<h3 id="concurrency--lifetime">Concurrency &amp; lifetime</h3>
+<ul>
+<li><code>infer_mtx</code> on every context serializes all <code>llama_*</code> work; KV-mutating conversation ops
+(rewind/reset/shift/export) and pool-return hold the SAME lock in a fixed order
+(pool → infer) as lease — no inverted lock pairs.</li>
+<li><code>pvx_state_save</code> clears the backup seq before copying (seq_cp MERGES).</li>
+<li><strong>Backup mechanism (implemented 2026-10-20, seq1-free):</strong> save-state arms by slot
+budget. With <code>n_seq_max &gt;= 2</code> it copies seq0 → seq1 (<code>llama_memory_seq_cp</code>) and
+restore copies back after a seq-0 clear — cheap cell-level copy, but it spends a
+sequence slot and halves per-sequence capacity (<code>n_ctx_seq = n_ctx/n_seq_max</code>).
+With <code>n_seq_max == 1</code> (the LLM <code>seq_max</code> knob AUTO=1 full-context posture) the
+save now BYTE-SERIALIZES the seq-0 state instead (<code>llama_state_seq_get_size</code> /
+<code>get_data</code> — cells + K/V rows — held in <code>pvx_state_s::kv_bytes</code>) and restore
+replays it via <code>llama_state_seq_set_data</code> after the <code>seq_rm</code> clear. One full-state
+copy at save time buys save/rewind at full per-session context; the old typed
+<code>PVX_ERR_NOT_SUPPORTED</code> refusal is gone. (Verified 2026-10-20: llama-level
+roundtrip is byte-identical and logit-exact on CPU and Metal, q8_0/F16 KV;
+journey <code>SingleSlotSaveRewindJourneyTests</code> pins the recall.)</li>
+<li>Model destruction ordering: per-model <code>active_context_count</code> + condition variable;
+<code>pvx_free_model</code> blocks until all its contexts are freed (prevents Metal device-before-buffers
+aborts); contexts of different models free concurrently.</li>
+<li>Vision: a second mmproj load is refused while a wrapper is alive (refcounted shared mtmd
+context — the model waits for wrapper release before freeing it). A failed pre-image text
+flush in <code>pvx_executor_prompt_with_images</code> is a typed decode failure with pending tokens
+kept for retry — image embeddings never land at wrong positions.</li>
+</ul>
+<h3 id="errors--logging">Errors &amp; logging</h3>
+<p>Every failure path sets a typed result + reason string: context-scoped <code>pvx_last_error</code>,
+model-scoped <code>pvx_model_last_error</code> (ABI v5 — model-level calls must NOT pass a model handle
+to the context-scoped function). <code>PVX_LOG</code> structured logging: zero-overhead when disabled
+(null callback check), levels DEBUG/INFO/WARN/ERROR/NONE, set via <code>pvx_set_log_callback</code> +
+<code>pvx_set_log_level</code>; C# bridge pins the delegate.</p>
+<h2 id="c-layer-csharp--one-type-per-file-constructor-injection-no-statics-no-env-vars">C# layer (csharp/) — one type per file, constructor injection, no statics, no env vars</h2>
+<h3 id="namespace-map">Namespace map</h3>
+<table>
+<thead>
+<tr>
+<th>Namespace</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Interop</code></td>
+<td>P/Invoke + per-handle dispatch: <code>PvxNative</code>, <code>PvxAbiDelegates</code>, <code>PvxEngineHandle</code>, <code>PvxDispatchRouter</code>/<code>Registry</code>, <code>NativeModuleLoader</code>; injected seams <code>IPvxModuleLoader</code>, <code>IPvxEntryPoints</code>, <code>IPvxFileExistence</code>, <code>IOSProbe</code></td>
+</tr>
+<tr>
+<td><code>SafeHandles</code></td>
+<td>One SafeHandle per native resource — guaranteed <code>pvx_free_*</code> cleanup</td>
+</tr>
+<tr>
+<td><code>Abstractions</code></td>
+<td><code>IInferenceModel/Context/State</code>, <code>IConversation(Pool)</code>, <code>IStandardExecutor</code>, <code>IGrammar</code>, <code>IVisionEncoder</code>, <code>IInferenceBackend</code>, watchdog seams <code>IPrefillStallDetector</code>/<code>IChunkWallClock</code>/<code>ISpeculationSuspender</code>/<code>IStallRecoveryLadder</code></td>
+</tr>
+<tr>
+<td><code>Implementation</code></td>
+<td>Native* wrappers; <code>StandardEngineActivator</code>, <code>PvxDefaultEngineSelector</code>, stall-safe prefill classes</td>
+</tr>
+<tr>
+<td><code>Engines</code></td>
+<td>Caller-facing facade: <code>IInferenceEngine</code>, <code>InferenceEngine(Builder/Factory)</code>, request records + ops views + the black-box helper facades <code>EngineLogging</code> (native log routing), <code>EngineMaintenance</code> (GGUF EOG metadata repair), <code>StallWatchdogOps</code> (sole construction seam for detector/ladder/wall-clock)</td>
+</tr>
+<tr>
+<td><code>Decision</code></td>
+<td>ONNX judge execution — <code>DecisionSession</code>, <code>IDecisionSessionFactory</code>, <code>JudgeTokenizer</code>, <code>JudgeSequenceEncoder</code>, <code>JudgeNumericsGate</code>, <code>ExecutionProviderChain</code></td>
+</tr>
+<tr>
+<td><code>Models</code></td>
+<td>Config records: <code>ModelConfig</code> (incl. <code>AuditPath</code>/<code>AuditIncludePrompts</code>, ABI v9), <code>ContextConfig</code>, <code>SamplingConfig</code>, <code>SpeculativeConfig</code>, <code>StallWatchdogConfig</code>, <code>BackendInfo</code>, <code>EngineStats</code> (per-lane), <code>EngineTelemetry</code> (model-wide, ABI v9), engine selection types</td>
+</tr>
+<tr>
+<td><code>Exceptions</code></td>
+<td><code>InferenceException</code>, <code>InvalidEngineRequestException</code>, <code>EngineKindMismatchException</code>, <code>PrefillStallUnrecoveredException</code>, <code>PvxResultExtensions</code></td>
+</tr>
+<tr>
+<td><code>Logging</code></td>
+<td><code>IInferenceLogger</code>, <code>NativeLogBridge</code> (pinned delegate, UTF-8)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="engine-object-model-the-only-caller-facing-surface">Engine object model (the ONLY caller-facing surface)</h3>
+<pre><code>InferenceEngineBuilder.Gguf(path) / .Decision(path) / .Encoder(path)
+  → validated EngineRequest (fail-closed) → InferenceEngineFactory.Create(request)
+  → InferenceEngine (unloaded) → Initialize()
+  → three typed views: IGgufEngineOps / IDecisionEngineOps / IEncoderEngineOps
+</code></pre>
+<ul>
+<li>Kind routing is exhaustive + fail-closed; a view for the wrong kind throws
+<code>EngineKindMismatchException</code>. Views WRAP the underlying graph, never duplicate it.</li>
+<li><code>IGgufEngineOps</code> exposes the model/context/pool graph: chat template, tokenize, sampling
+knobs, live context rebuild, KV copy/clear, checkpoints, rewind, speculation
+(validate/enable/disable, <code>ActiveSpeculation</code> mirror), live <code>Backend</code> probe,
+per-lane stats (<code>GetExecutorStats</code>/<code>GetConversationStats</code>) and model-wide telemetry
+(<code>GetEngineTelemetry</code>, ABI v9 — per-engine snapshot, never process-wide).</li>
+<li><code>IDecisionEngineOps</code> exposes the judge session; <code>IEncoderEngineOps</code> the vision/image
+embedding route.</li>
+<li>Load failure leaves the engine unloaded and disposable — no partial state leaks.</li>
+</ul>
+<h3 id="per-handle-backend-dispatch-engine-selection">Per-handle backend dispatch (engine selection)</h3>
+<p><code>ModelConfig.Engine</code> picks the specialist (<code>metal</code> = macOS only; <code>cuda</code>/<code>vulkan</code> =
+Windows/Linux only). <code>PvxEngineSelector</code> + <code>PvxEngineFileResolver</code> validate fail-closed —
+unknown/empty/wrong-OS pairs refuse, never fall back. The native-dir RID is ARCH-AWARE
+on Linux and Windows: <code>IOSProbe.Architecture()</code> (injectable seam; <code>SystemOsProbe</code> reads
+<code>RuntimeInformation.ProcessArchitecture</code>, test doubles override) drives the resolver
+(<code>linux-arm64</code>/<code>linux-x64</code>, <code>win-arm64</code>/<code>win-x64</code>); the <code>PvxNative</code> static ctor derives
+the same from <code>ProcessArchitecture</code> in the bootstrap context (no injectable seam exists
+pre-activation); macOS stays <code>osx-arm64</code>. Per-RID payload story (BL-49): NO native
+binaries are checked in — every RID slice (osx-arm64 metal + generic, win-arm64 cpu
+generic, win-x64/linux-x64 cuda+vulkan) is built by the CI specialist matrix at
+NuGet-pack time. This keeps compiler-baked build paths out of the repository
+(anonymity rule — MSVC/ld embed absolute paths in debug strings); local payloads
+remain gitignored working-tree artifacts for VM testing only. linux-arm64 has no
+CI payload — source-build the native engine (cmake) and ONNX Runtime for arm64
+(no official ORT arm64 payload exists); the resolver looks in
+<code>runtimes/linux-arm64/native/</code> for the source-built artifacts. <code>PvxEngineHandle.Open</code>:
+resolve file → load image → resolve per-image entry-point tables → ABI handshake →
+router bundle; the process-wide <code>PvxDispatchRegistry</code> routes only the
+activation-window DllImports (steady-state calls go through per-handle tables).
+Ownership chain is constructor-injected: Model → Context → Pool/Executor → Conversation.</p>
+<h3 id="stall-safe-chunked-prefill-layer">Stall-safe chunked prefill layer</h3>
+<p>Engine-level, backend-independent, above the native seam (no ABI surface):
+<code>ChunkedStallSafePrefillRunner</code> commits PromptTokens in chunks over <code>IConversationPool</code>,
+timing each with <code>IChunkWallClock</code> (wall-clock is the sole mechanism — no backend hooks).
+<code>RollingPrefillStallDetector</code>: stall = chunk wall &gt; GapMultiplier × rolling median of the
+baseline window; stalled walls never enter the baseline. <code>StallRecoveryLadder</code>: FreshSlotRetry
+(smaller-chunk retry halves to the floor) → SmallerChunkRetry → DraftDisabledRetry (via
+injected <code>ISpeculationSuspender</code>, idempotent native teardown) → FailLoud. Budget exhausted =
+typed <code>PrefillStallUnrecoveredException</code> carrying chunk index, walls, baseline, steps.
+Watchdog disabled = single plain commit, zero overhead. Config: <code>stall_watchdog</code> section
+(fail-closed Validate).</p>
+<h2 id="test-coverage--evidence">Test coverage &amp; evidence</h2>
+<ul>
+<li><strong>Native:</strong> basic + stress C++ suites (<code>tests/</code>), Release build, <code>ctest</code> green —
+stress covers NULL args, empty inputs, pool exhaustion, double-return, KV boundaries,
+sampling extremes, race stress (grammar mutex, pool churn). Test fixtures are
+model-agnostic — dims/path fixtures derive from the loaded GGUF at runtime (e.g. the
+control-vector test scans <code>&lt;arch&gt;.embedding_length</code>/<code>.block_count</code>), never hardcoded
+per-model constants; live legs are env-gated (typed skip when the fixture env is unset).</li>
+<li><strong>C#:</strong> full suite green (251/251 at last run), one test class per type, all native seams
+faked (<code>FakeModuleLoader</code>, fakes) — no test touches a real dylib except env-guarded
+live smoke/journey tests. Decision tests run on tiny real ONNX fixtures.</li>
+<li><strong>Real-model journey tier (BL-47):</strong> <code>csharp/Tests/RealModelJourneyTests.cs</code> +
+<code>LiveModelFixtures.cs</code> — the formerly manual TEST-MATRIX lanes, automated against a small
+real model (Llama-3.2-1B ≤1 GB: load/generate, KV save/restore + checkpoint round-trip,
+8-conv batching, GBNF grammar, MEAN-pooling embeddings (SIGSEGV guard) + MiniLM encoder,
+speculative draft-simple token-exact, vision mmproj splice, greedy determinism, tokenizer
+hygiene). Fixture discovery is env-driven with repo-relative defaults
+(<code>PVX_SMALL_*_PATH</code> / <code>Tests/models</code> symlinks); lanes run CPU-only (GpuLayers=0) so the
+same suite is cross-platform by construction; a missing fixture yields a named skip, and
+a RAM gate enforces the &gt;60%-free house rule before every load. The tier is green both
+with fixtures and hermetically (no env, no models → all live lanes skip typed).</li>
+<li><strong>Live capability matrix:</strong> <code>TEST-MATRIX-2026-10-18.md</code> — 6 models (dense, hybrid-GDN,
+MoE/Flash-Next, 3B, MiniLM encoder, judge-ONNX) × all lanes (load, sequential gen,
+continuous batching, KV ops, rewind, speculative, grammar, tool calls, vision, embeddings),
+executed on the Release build.</li>
+<li><strong>LDC:</strong> API-INDEX.md + RELATIONSHIP-GRAPH.md regenerated + enforcement PASS in the same
+commit as any public-surface change.</li>
+</ul>
+<h2 id="ci--nuget-policy">CI / NuGet policy</h2>
+<h3 id="windows-msvc-build-portability">Windows (MSVC) build portability</h3>
+<p>The native tree builds under MSVC (VS 2022, ARM64 and x64) with a fixed portability set:
+explicit <code>&lt;functional&gt;</code> include (libc++ transitive, MSVC not), <code>localtime_s</code> under
+<code>_WIN32</code> (POSIX <code>localtime_r</code>), no designated initializers at /std:c++17 (lambda-built
+constant), no raw strings inside the ASSERT macro stringize path, <code>_USE_MATH_DEFINES</code>
+for <code>M_PI</code>, <code>WINDOWS_EXPORT_ALL_SYMBOLS ON</code> (no dllexport in the extern &quot;C&quot; header —
+restores the macOS-parity export surface + import lib), and WIN32 test executables
+link llama/ggml/ggml-base directly (Windows import libs don't re-export transitive
+static-lib symbols).</p>
+<ul>
+<li>CI workflow builds native + C# + runs tests; does NOT publish or tag. Specialist
+matrix (6 lanes): osx-arm64 metal, linux-x64 cuda + vulkan, win-x64 cuda + vulkan,
+win-arm64 cpu (BL-49 — the win-arm64 cpu lane replaces the former checked-in payload).
+A dedicated <code>windows</code> lane (ci.yml <code>windows</code> job, windows-latest) builds the native
+engine with MSVC (Release) + runs ctest (model-gated legs typed-skip without model
+files) + runs the C# suite with the fresh x64 dll staged into
+<code>csharp/runtimes/win-x64/native/</code> so the arch-aware resolver finds it.</li>
+<li>Package <code>ProvostXInference</code> packs all CI-built RID slices into <code>runtimes/{RID}/native/</code>.
+Pack verified end-to-end locally (private nupkg, consumer project resolved the
+package and ran a Metal-backed generation). All work stays local — no push, no tags
+without explicit owner order.</li>
+</ul>
+<h2 id="files">Files</h2>
+<ul>
+<li><code>include/pvxinference.h</code>, <code>include/pvx_internal.h</code> — public C API + internal structs</li>
+<li><code>src/pvxinference.cpp</code>, <code>src/pvx_backend.cpp</code>, <code>src/pvx_spec_engine.{cpp,h}</code>,
+<code>src/pvx_ngram.{cpp,h}</code> — native core</li>
+<li><code>csharp/</code> — bindings, facade, Decision domain, tests</li>
+<li><code>assets/models/judge/</code> — ONNX judge assets (tokenizer.json, judge specs)</li>
+<li><code>docs/CAPABILITY.md</code> — capability matrix; root <code>TEST-EVIDENCE-spec.md</code> — evidence policy</li>
+<li><code>CMakeLists.txt</code>, <code>.github/workflows/</code> — build + CI</li>
+</ul>
+<p><strong>Status:</strong> as-is — native ctest green (Release build), C# suite green, LDC PASS.
+Latest gates: native 48/48 + ngram 27/27 + stress 31/31; C# 252/252 (also verified
+249+2 skips on the ARM64 Linux and Windows lab VMs, BL-47/48); the real-model journey
+tier (11 lanes incl. BL-50 audit/telemetry) is green with and without fixtures; no
+native binaries in the repo (BL-49, CI-built payloads); ABI v9 handshake-locked.</p>
+<h2 id="black-box-consumption-contract">Black-box consumption contract</h2>
+<p>The caller (ProvostXLLM) consumes this library ONLY through the engine/builder/factory
+facade surface; everything else in this repo is a CLOSED BLACK BOX to it. To make that
+consumable without leaking internals, three facade views live in <code>csharp/Engines</code>
+(pure delegation, no logic added):</p>
+<ul>
+<li><code>StallWatchdogOps</code> — sole construction seam for the stall-watchdog helper family;
+returns <code>IPrefillStallDetector</code> / <code>IStallRecoveryLadder</code> / <code>IChunkWallClock</code>
+(the ladder interface is <code>csharp/Abstractions/IStallRecoveryLadder.cs</code>;
+<code>Implementation.StallRecoveryLadder</code> implements it).</li>
+<li><code>EngineMaintenance</code> — file-level engine-bound maintenance (GGUF EOG/special-token
+metadata repair) without a loaded engine object in hand.</li>
+<li><code>EngineLogging</code> — process-wide native log routing (file sink / managed handler /
+level), previously reachable only via the <code>Logging</code> namespace. NOTE (BL-50): this is
+the DEBUG/llama.cpp stream — process-wide by nature (one specialist module owns the
+log state). For PER-ENGINE trails, use the audit surface below.</li>
+<li><strong>Per-engine audit + telemetry (ABI v9, BL-50)</strong> — consumer-relevant contract:
+<ul>
+<li><code>ModelConfig.AuditPath</code> + <code>AuditIncludePrompts</code> at engine build time: each engine
+instance writes its OWN JSON-lines audit trail (lifecycle/operation events; never
+prompt text). Unconfigured = the feature is dead (one branch per commit, no I/O).</li>
+<li><code>IGgufEngineOps.GetEngineTelemetry()</code> — model-wide counter snapshot for THAT engine
+instance (<code>EngineTelemetry</code> record). Pull-based: derive rates between two snapshots
+in the caller. Per-lane detail remains on <code>GetExecutorStats</code>/<code>GetConversationStats</code>.</li>
+<li>Two engines in one process → two independent audit files and two independent
+telemetry streams; nothing is shared (verified by Journey10's isolation leg).</li>
+</ul>
+</li>
+</ul>
+<p>Effect: callers never reference <code>Implementation</code>, <code>Interop</code>, <code>SafeHandles</code>, or <code>Logging</code>
+namespaces at all. The native tree is untouched by this contract (the C API surface is
+unchanged). <code>Decision.Engine.DecisionSessionFactory</code> therefore constructs parameterless —
+the logger is a settable <code>Logger</code> property (quiet default) — so a facade-only caller's
+compiled metadata never drags the <code>Logging</code> namespace in (a ctor parameter's member-ref
+signature would do exactly that). No caller passes a logger through the ctor.</p>
+
+</article>
+          </div>
+
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In this article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="index.html">Home</a>&ensp;&middot;&ensp;<a href="#top">Back to top</a>
+            </span>
+      ProvostXInference — MIT
+      
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script type="text/javascript" src="styles/docfx.vendor.min.js"></script>
+    <script type="text/javascript" src="styles/docfx.js"></script>
+    <script type="text/javascript" src="styles/main.js"></script>
+  </body>
+</html>

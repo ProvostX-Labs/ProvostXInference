@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+
+  <head>
+    <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>BACKLOG-MASTER — ProvostXInference (per-repo work queue) | ProvostXInference API </title>
+      <meta name="viewport" content="width=device-width">
+      <meta name="title" content="BACKLOG-MASTER — ProvostXInference (per-repo work queue) | ProvostXInference API ">
+    
+    
+      <link rel="shortcut icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../styles/docfx.vendor.min.css">
+      <link rel="stylesheet" href="../styles/docfx.css">
+      <link rel="stylesheet" href="../styles/main.css">
+      <meta property="docfx:navrel" content="">
+      <meta property="docfx:tocrel" content="">
+    
+    <meta property="docfx:rel" content="../">
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+
+        <div id="search-results">
+          <div class="search-list">Search Results for <span></span></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination" data-first=First data-prev=Previous data-next=Next data-last=Last></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+        <div class="article row grid">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+<h1 id="backlog-master--provostxinference-per-repo-work-queue">BACKLOG-MASTER — ProvostXInference (per-repo work queue)</h1>
+
+<p><strong>Summary:</strong> Active work queue. ONLY items owner-accepted from the global IDEAS-MASTER (~/Agent/ProvostX/docs/IDEAS-MASTER.md) enter here. Agents pick one item at a time.</p>
+<h2 id="item-schema">Item schema</h2>
+<pre><code>### BL-&lt;n&gt; · &lt;title&gt;
+- Source: &lt;IDEAS-MASTER ID&gt; (accepted by owner &lt;date&gt;)
+- Spec: one-two sentences
+- Scope: files/areas allowed to touch — NOTHING outside
+- Acceptance: which tests prove it (unit / integration / journey)
+- Status: ready / in-progress / in-review / done
+</code></pre>
+<h2 id="rules">Rules</h2>
+<ul>
+<li>One item per sandbox clone. No drive-by changes.</li>
+<li>Implementation: sandbox clone → build → tests → verify live → merge to main.</li>
+<li>Cross-repo items reference the shared contract doc; implement this repo's slice only.</li>
+<li>⚠ DOC GATE (owner 2026-10-09 13:26, MANDATORY): ARCHITECTURE.md MUST be updated and LDC REGENERATED + PASS in the sandbox clone BEFORE merge (pre-merge check). THEN, after merge, a post-merge verification pass on main: re-run LDC + review ARCHITECTURE.md against the merged state; if anything fails, item stays NOT done until fixed on main. Both gates required.</li>
+<li>Finished items get a <code>done</code> line with commit + date, then stay for audit (trim quarterly).</li>
+<li>Owner is the only gate for new items AND for merging to main.</li>
+</ul>
+<h2 id="queue">Queue</h2>
+<h3 id="bl-01--ggml-multi-backend-isolation-spike-phase-a-of-inf-01">BL-01 · ggml multi-backend isolation spike (Phase A of INF-01)</h3>
+<ul>
+<li>Source: INF-01 (accepted by owner 2026-10-09 13:36)</li>
+<li>Spec: prove or disprove that ggml's global backend registries allow two different-specialist dylibs loaded in ONE process without cross-contamination. Spike only — no product code.</li>
+<li>Scope: spike project under csharp/tests or scratch dir; PvxEngineLibrary, loader seam only. NOTHING else.</li>
+<li>Acceptance: written verdict doc (docs/) + repro test; green = Phase B unlocked, red = design rethink reported to owner.</li>
+<li>Status: <strong>done</strong> 2026-10-09 13:53 — verdict GREEN. Evidence: per-image ggml registries (image A registry identical after image B init; reg_get(0) pointers differ), zero symbol collisions via per-handle resolvers, dlopen path-keying confirmed. Verdict doc: <code>docs/spike-BL01-ggml-isolation.md</code>.</li>
+</ul>
+<h3 id="bl-02--config-driven-per-os-backend-selection--per-handle-dispatch--ci-matrix-phase-b-of-inf-01">BL-02 · Config-driven per-OS backend selection + per-handle dispatch + CI matrix (Phase B of INF-01)</h3>
+<ul>
+<li>Source: INF-01 (accepted by owner 2026-10-09 13:36) — REQUIREMENT: model config selects WHICH backend dylib runs, depending on OS (metal on macOS; cuda/vulkan on Win/Linux; fail-closed on invalid pairs)</li>
+<li>Spec: per-handle dispatch tables replacing the global P/Invoke routing; model-config engine field resolved per-OS at load; CI matrix builds all 5 specialists.</li>
+<li>Scope: PvxEngineLibrary, engine pool/SafeHandle layer, model config schema + validator, csproj packaging, CI workflows. NOTHING outside.</li>
+<li>Acceptance: unit (selector matrix incl. fail-closed pairs), integration (live load per available specialist), journey (model starts on configured backend, wrong-OS config refuses); token-exactness re-proven per specialist; ARCHITECTURE.md + LDC per double doc gate.</li>
+<li>Status: <strong>done</strong> 2026-10-09 16:05 — merged to main. Live SmokeTests 51/51 (metal), Tier-2 exactness TOKEN_EXACT=YES against MAIN build; internal router method renamed Resolve→RouteLibrary in doc-gate commit; CI matrix build proven locally.</li>
+</ul>
+<h3 id="bl-03--error-masking-when-specialist-dylib-is-missing">BL-03 · Error-masking when specialist dylib is missing</h3>
+<ul>
+<li>Source: owner order 2026-10-09 18:41 &quot;fix all bugs&quot; — bug surfaced during BL-01/BL-02 verification.</li>
+<li>Spec: audit remaining swallow-sites for the masking class; verify each intentional swallow is DOCUMENTED and logs/traces loudly; file/fix any real masking found.</li>
+<li>Scope: docs/ + csharp only where a genuine mask is found. NOTHING else.</li>
+<li>Acceptance: sweep table in this item (site → verdict intentional/real); missing-dylib error path test; ARCHITECTURE.md + LDC per double doc gate if code changes.</li>
+<li>Status: <strong>done</strong> 2026-10-09 19:02 — sweep verdicts: 3 intentional+documented (PvxNative static-ctor safety net, NativeModuleLoader.GetExport→typed export error, FileExists wrong-OS fail-closed), 1 real observability gap FIXED (pool-return trace now Release-observable). Net code change: one line. New tests: <code>ErrorMaskingSweepTests.cs</code> (3). Build 0/0; C# tests 97/97.</li>
+</ul>
+<h3 id="bl-05--speculative-decoding-in-the-pvx_-abi-sequential-mode--inf-03-inference-slice">BL-05 · Speculative decoding in the pvx_* ABI (sequential mode) — INF-03 Inference slice</h3>
+<ul>
+<li>Source: INF-03 (accepted by owner 2026-10-11 22:12)</li>
+<li>Spec: surface speculative decoding in the engine matrix: (a) draft-model mode — second small draft model + prompt/verify loop exposed through pvx_* ABI; (b) MTP hooks for models with native multi-token-prediction heads. Engine self-report gains spec-decode capability flags; typed NOT_SUPPORTED where model/engine lacks the feature (fail-closed).</li>
+<li>Scope: include/pvxinference.h (ABI additions only where required), src/ (spec decode path), csharp/Interop + tests, docs/, CMakeLists. NOTHING else.</li>
+<li>⚠ OWNER REFINEMENT 22:22: capability discovery is the core feature — on model load the ENGINE inspects the model (arch, MTP layers, draft structures) and self-reports a SUPPORTED-TYPES LIST from the llama.cpp speculative enum (not boolean flags). If the model supports NO native type, &quot;second draft model&quot; remains available — it works for any target model when a draft model is provided.</li>
+<li>Acceptance: live smoke — sequential generation with draft model shows measurable speedup + IDENTICAL output text vs non-spec path (token-exact); unit tests for verify loop + capability flags; C# tests green; doc gates.</li>
+<li>Status: <strong>merged/done</strong> 2026-10-12 01:30 — capability discovery (supported-types list from GGUF metadata), draft-simple wired, MTP typed per vendored support, C# bindings + SpecDecodeTests, vision fixture pairing fix; native 21/21 (0 skipped incl. vision); token-exact vs plain loop proven. Live speedup evidence: draft-mtp Qwen3.5-9B +31-43%.</li>
+</ul>
+<h3 id="bl-12--engine-object-blackbox-refactor-s0s5-engine-obj-01">BL-12 · Engine-object blackbox refactor S0–S5 (ENGINE-OBJ-01)</h3>
+<ul>
+<li>Spec: caller-facing engine object = the ONLY surface (implemented: see csharp/ARCHITECTURE.md Engines facade). Remaining stages: S2 LLM flip (LLM consumes the facade exclusively), S4 decision/vision fold refinements, S5 residue sweep. Arch-test: LLM must reference no backend types.</li>
+<li>Status: facade + factory + three ops views implemented and gated (2026-10-17); S2 LLM-side flip pending owner go.</li>
+</ul>
+<h3 id="bl-33--stall-safe-chunked-prefill-layer-engine-level">BL-33 · Stall-safe chunked prefill layer (engine-level)</h3>
+<ul>
+<li>Spec: <code>stall_watchdog</code> config + <code>ChunkedStallSafePrefillRunner</code> over <code>IConversationPool</code> — wall-clock stall detection, recovery ladder (fresh-slot retry / smaller-chunk retry / draft-disable retry via <code>ISpeculationSuspender</code>), terminal FailLoud with typed <code>PrefillStallUnrecoveredException</code>. Backend-independent by construction.</li>
+<li>Status: <strong>done</strong> 2026-10-17 — full unit + runner integration coverage; wired into ProvostXLLM per-model config (see LLM-side evidence there). Remaining increment: live ~224k-token journey with watchdog active (large-memory host, RAM-gated); optional finer-granularity backend timing hook (wall-clock fallback mandatory, never a dependency).</li>
+</ul>
+<h3 id="bl-35--upstream-parity-wave-1-abi-v6-embd-aware-spec-mirror-specvision-n-gram-modes">BL-35 · Upstream parity wave 1 (ABI v6): embd-aware spec mirror, spec+vision, n-gram modes</h3>
+<ul>
+<li><p>Source: owner order 2026-10-18 15:04 (upstream-parity plan, docs/plans/UPSTREAM-PARITY-PLAN.md)</p>
+</li>
+<li><p>Spec: embd-aware mirror ring in the standard executor (token id OR projected
+embedding, pinned positions — the vendored draft-simple batch-builder pattern, zero-pad</p>
+<ul>
+<li>one-time warn on draft-width mismatch) so spec sessions draft after image prompts;
+fail-closed mirror-consistency guard per round. Spec+vision capability bit
+(<code>spec_vision</code>); the consumer's blanket image refusal flips to a capability check with
+sticky per-session auto-off until KV reset. n-gram speculative modes (simple / map-k /
+mod / cache) ported from the vendored common/ngram-* implementation behind
+<code>PVX_SPEC_*</code> params + knobs via ABI + SpeculativeConfig + the ops/facade speculation
+surface; capability self-report lists the n-gram types. ABI v6 append-only with C#
+lockstep in the same commit.</li>
+</ul>
+</li>
+<li><p>Scope: src/pvx_spec_engine.{h,cpp}, src/pvx_ngram.{h,cpp} (new), src/pvxinference.cpp,
+include/pvxinference.h, include/pvx_internal.h, tests/, csharp/ (interop + models +
+implementation + tests), docs; consumer flip in ProvostXLLM Engine/SessionContext.</p>
+</li>
+<li><p>Acceptance: native ctest green incl. new unit tests (ngram map/mod/cache logic, mirror
+embd entries, mirror guard) + n-gram &amp; spec-vision token-exactness (spec ON == OFF);
+C# build 0/0 (Debug+Release) + full suite green incl. new n-gram exactness/fail-closed
+tests; live gates env-gated; LDC both roots PASS; docs as-is.</p>
+</li>
+<li><p>Status: <strong>done</strong> 2026-10-18 — branch wave1-upstream-parity. Native ctest 3/3
+(basic 24/24 incl. new spec_ngram_token_exactness ×4 modes, spec_ngram_fail_closed,
+spec_vision_exactness; ngram unit suite 14/14; stress). C# 194/194 (Debug+Release,
+0 errors/0 warnings) incl. n-gram fail-closed + 4-mode token-exactness vs plain loop.
+Live evidence: n-gram ON == OFF byte-identical (Llama-3.2-3B native + Qwen3.5-4B C#);
+image-prompt spec ON == OFF prefix-identical (Qwen3.5-4B + mmproj, ngram mode).
+NOT verified live: draft-model spec after images (no vocab-compatible draft GGUF on
+this host — every candidate is rejected typed at spec_init, which is the fail-closed
+contract working). ProvostXLLM flip: spec/session tests 60/62 (2 pre-existing live-
+server-fixture failures, no loaded model). LDC PASS both roots.</p>
+</li>
+<li><p>Audit evidence (2026-10-18 comprehensive audit, branch wave1-upstream-parity): mirror
+bookkeeping verified on all mutation paths (prompt commit per-slice, rewind, shift_left,
+kv_copy, checkpoint save/restore/import, pool return/lease); ONE regression found+fixed:
+pvx_executor_infer's mid-chunk decode-failure path re-added recent_tokens + mirror entries
+for already-committed slices (double-commit, breaks mirror.size()==n_tokens invariant;
+commit 2c521e2). NEW permanent leg: conversation_checkpoint_import_phantom_prefix_guard —
+checkpoint import restores KV+counters but NOT the ring → spec init must refuse typed
+naming mirror-consistency (fresh-lease control OK, imported stream continues after a fresh
+decode). Native suite 44/44 with standard fixtures (was 43/43), 0 skipped.</p>
+</li>
+</ul>
+<h3 id="bl-36--upstream-parity-wave-2-abi-v7-eagle3dflash-companion-modes-batched-lane-spec-json-schemagbnf">BL-36 · Upstream parity wave 2 (ABI v7): EAGLE3/DFlash companion modes, batched-lane spec, JSON-schema→GBNF</h3>
+<ul>
+<li><p>Source: owner order 2026-10-18 17:43 (upstream-parity plan wave 2, docs/plans/UPSTREAM-PARITY-PLAN.md)</p>
+</li>
+<li><p>Spec: companion-draft modes behind <code>pvx_spec_mode_t</code> appends (PVX_SPEC_EAGLE3 /
+PVX_SPEC_DFLASH): EAGLE3 pattern-port of the vendored draft-eagle3 (draft decoder fed
+(token, g_embd) pairs from the target's captured layer features — <code>eagle3.target_layers</code>
+metadata validated typed at spec_init naming the key; deferred-boundary state rides the
+state chain additively); DFlash metadata precheck + typed NOT_SUPPORTED wiring boundary
+(never faked, MTP_AUTO precedent). Batched/pool-lane spec trio per conversation
+(<code>pvx_conversation_spec_init/_generate_spec/_stats/_free</code>, <code>infer_mtx</code> discipline, pool
+return teardown order, ≥2 seq slots typed refusal). JSON-schema→GBNF converter
+(<code>pvx_grammar_from_json_schema</code>, pure string→string pattern-port; invalid JSON →
+INVALID_ARG naming the parse position, unsupported keyword → NOT_SUPPORTED naming the
+keyword; golden pin vs tests/fixtures/decision-envelope.gbnf). ABI v7 append-only; C#
+<code>ExpectedAbiVersion=7</code> lockstep in the same commit.</p>
+</li>
+<li><p>Scope: include/pvxinference.h, include/pvx_internal.h, src/pvx_spec_engine.{h,cpp},
+src/pvx_json_schema_grammar.cpp (new), src/pvxinference.cpp, CMakeLists.txt, tests/
+(test_basic.cpp legs 25–32, fixtures), csharp/ (interop delegates/structs/handle-table,
+models SpeculativeMode/Config/SpeculationStats/GrammarKind, abstractions IConversation/
+IInferenceModel/IGrammar, implementation NativeConversationSpecSession (new, one per
+file) + Native{Conversation,Grammar,InferenceModel,StandardExecutor}, engines
+IGgufEngineOps/GgufEngineOps facade, tests SpecDecode/JsonSchemaGrammar/StallWatchdog/
+EngineTestDoubles), docs (ARCHITECTURE ×2 as-is ABI v7).</p>
+</li>
+<li><p>Acceptance: native ctest green incl. new legs (eagle3/dflash typed, conversation spec
+exactness ×4 modes + churn + rewind + fail-closed, json-schema roundtrip); C# build
+0/0 (Debug+Release) + full suite green incl. new capability-gating matrices + typed
+refusals + converter fixture pin; KV/context regression sweep green; live gates
+env-gated; LDC both roots PASS; docs as-is.</p>
+</li>
+<li><p>Status: <strong>done</strong> 2026-10-18 — branch wave1-upstream-parity. Native ctest 2/2 (basic
+32/32: rewind/shift/state/copy/pool legs green — [3] partial_rewind_capability,
+[4] partial_rewind_refused_on_hybrid, [6] pool, [9] state_save_restore, [12] pool_reuse,
+[14] shift_left, [15] kv_copy, [28] conversation_spec_rewind_continue; new wave-2 legs
+[25]–[32]; ngram suite 14/14). C# build 0/0 (Debug+Release); full suite 206/206
+(194 baseline + 12 new) default-env + live targeted 21/21 (Llama-3.2-3B: ngram 4-mode
+token-exactness, conversation spec lane token-exact + typed refusals + stats, eagle3/
+dflash typed refusals, JSON-schema converter byte-exact vs fixture). Live harness:
+draft+vision BYTE-EXACT 24/24 (Qwen3.5-4B + mmproj + Qwen3.5-0.8B draft). NOT verified
+live: EAGLE3 drafting (no EAGLE3 companion GGUF on this machine — enabling types the
+refusal at the metadata/load boundary, the fail-closed contract working). LDC both
+roots regenerated + enforcement PASS.</p>
+</li>
+<li><p>Live verification (2026-10-18 evening, owner order): BOTH companion legs verified
+with real HF pairs (downloaded ~7.96 GB ≤ 8 GB budget into the owner-sanctioned
+models dir; sizes verified byte-exact vs HF metadata; RAM-gated loads, 95% free).
+EAGLE3 REAL DRAFTING: Qwen/Qwen3-8B-GGUF (Qwen3-8B-Q4_K_M.gguf, 5.03 GB) +
+williamliao/Qwen3-8B-EAGLE3-Speculator-GGUF (Qwen3-8B-speculator.eagle3-F16.gguf,
+2.05 GB; eagle3.target_layers [2,18,33]) — spec ON vs plain greedy (N=24, temp 0,
+top_k 1, ignore_eos in both legs) BYTE-IDENTICAL 24/24 tokens; spec stats
+drafted=95 accepted=9 (accept-rate 9.5% — real drafting, no silent degradation).
+The live run surfaced FOUR native defects, all fixed + full rerun green:</p>
+<ol>
+<li><code>pvx_executor_spec_stats</code> shipped without its header declaration — C++-mangled
+export unreachable from the C ABI (declaration restored, symbol extern &quot;C&quot;);</li>
+<li>eagle3 capture did not drop the drafted-but-unverified chain cells before the
+decoder training batch — llama's Y = X+1 consecutiveness check aborted round 1
+(&quot;training write failed&quot;: draft KV pos_max 30 vs batch start 24) — the
+restore-to-committed-prefix drop added (upstream TAG_SPEC_AVOID_DRAFT_REEVAL);</li>
+<li>the verify chain was bounded by a call-wide cap only — the last rounds overran
+out_max (26 emitted for N=24) — per-ROUND budget bound added;</li>
+<li>deferred-boundary-only captures (single-row plain-step commits, bridge skipped)
+decoded an EMPTY training batch — llama refuses n_tokens == 0 — batch.size() &gt; 0
+guard added (upstream pattern).
+DFLASH leg: LiquidAI/LFM2.5-1.2B-Instruct-GGUF (LFM2.5-1.2B-Instruct-Q4_0.gguf,
+0.70 GB, arch lfm2) + LiquidAI/LFM2.5-1.2B-Instruct-DSpark-GGUF
+(LFM2.5-1.2B-Instruct-DSpark-Q4_K_M.gguf, 0.18 GB, arch dflash,
+dflash.target_layers i32[5]) — the honest typed boundary verified LIVE: the genuine
+sidecar PASSES the metadata precheck, then <code>pvx_model_spec_validate</code> AND
+<code>pvx_executor_spec_init</code> both refuse typed PVX_ERR_NOT_SUPPORTED naming
+spec-engine/dflash-wiring; no phantom session (generate_spec typed refusal); the
+real target generates plain greedy 8/8. Block-diffusion drafting is NOT claimed
+(ABI v7 typed wiring boundary — never faked; the finding stands: our vendored
+upstream dflash/DSpark wiring is not ported, and no GGUF pair can make pvx draft
+dflash this slice).
+Permanent env-gated tests: native <code>spec_eagle3_live_pair</code> / <code>spec_dflash_live_pair</code>
+and C# <code>Eagle3_Live_TokenExact_EnvGated</code> / <code>Dflash_Live_TypedWiringRefusal_EnvGated</code>
+(PVX_EAGLE3_TARGET_PATH / PVX_EAGLE3_DRAFT_PATH, PVX_DFLASH_TARGET_PATH /
+PVX_DFLASH_DRAFT_PATH; typed skip when unset; no absolute paths; exact HF repo+file
+names in the doc comments for re-provisioning). Full regression after the fixes:
+native ctest 3/3 — basic 34/34 passed 0 skipped (incl. both live legs) with standard
+fixtures (Llama-3.2-3B, Qwen3.5-4B hybrid + mmproj, Llama-1B draft, MiniLM embed) +
+ngram 14/14 + stress; C# build 0/0 + full suite 208/208 (206 baseline + 2 new)
+default-env + targeted live 2/2 env-set; LDC both roots regenerated + PASS.</li>
+</ol>
+</li>
+<li><p>Audit evidence (2026-10-18 comprehensive audit): EAGLE3 session lifecycle gap found+fixed
+(2c521e2): the graceful eagle_on_stream_shrunk hook existed but was never invoked — a live
+EAGLE3 session died permanently (capture-order invariant typed INTERNAL) after ANY executor
+rewind/reset; now wired into rewind + reset under infer_mtx, and executor shift_left refuses
+typed NOT_SUPPORTED (front-drop cannot re-index g rows) while preserving the conversation-lane
+refusal symmetry; executor shift_left additionally now resets grammar state (conversation twin
+did). DFlash metadata-precheck vs draft-tensor contract re-verified fail-closed (no change).
+Batched-lane round lock verified: nothing inside a spec round re-enters infer_mtx (typed
+refusal paths are pre-round). Re-test: eagle3/dflash live pairs green, ngram 23/23, stress 31/31.</p>
+</li>
+</ul>
+<h3 id="bl-37--upstream-parity-wave-3-abi-v8-audio-inout-rerank-lora-control-vectors-stats">BL-37 · Upstream parity wave 3 (ABI v8): audio in/out, rerank, LoRA, control vectors, stats</h3>
+<ul>
+<li><p>Source: owner order 2026-10-18 20:16 (upstream-parity plan wave 3, docs/plans/UPSTREAM-PARITY-PLAN.md)</p>
+</li>
+<li><p>Spec: six plan features, ABI v8 additive-only, PVX_ABI_VERSION + C# ExpectedAbiVersion bumped
+lockstep in the same commit: (6) audio input — <code>pvx_mtmd_supports_audio</code> /
+<code>pvx_mtmd_audio_sample_rate</code> probes + <code>pvx_executor_prompt_with_audio</code> /
+<code>pvx_conversation_prompt_with_audio</code> (MTMD_INPUT_CHUNK_TYPE_AUDIO through the same embd-row
+mirror mechanics as vision; PCM F32 at the projector's native rate, NO resampling in product
+code); (7) TTS — <code>pvx_tts_session_create</code>/<code>_free</code>/<code>pvx_tts_generate</code> via the PUBLIC
+mtmd-helper gen-audio surface, a SEPARATE decode context on the backbone (qwen3tts:
+embeddings on), our own deterministic top-k/top-p backbone sampler (frozen common runtimes
+untouched), SINGLE-SHOT session (<code>tts/session-consumed</code> — upstream gen pipeline carries
+cross-call state in the mtmd context; fresh sessions replay byte-identically per (text, seed));
+(8) rerank — <code>PVX_POOL_RANK</code> pooling append + <code>pvx_rerank</code> (upstream llama-server --reranking
+contract: RANK pooling attaches the classification head; score = pooled embd[0]; &quot;rerank&quot;
+chat template or BOS/query/EOS/SEP/doc/EOS token fallback; fresh seq per pair);
+(9) LoRA — <code>pvx_adapter_load</code> (arch precheck naming both) + <code>pvx_context_set_lora</code>
+(weights-surface: LIVE context attach/detach under infer_mtx, all-or-nothing, scale &gt; 0 typed);
+(10) control vectors — <code>pvx_control_vector_load</code> (pattern-port of common_control_vector_load
+into src/: direction.<l> F32 accumulation, n_embd typed mismatch naming both dims, explicit
+out-of-range layer ends typed, never clamped) + <code>pvx_context_set_control_vector</code> (NULL clears);
+(12) stats export — <code>pvx_executor_stats</code>/<code>pvx_conversation_stats</code> snapshot (pvx_stats_t copy-out
+counters: tokens / kv-pos / prompt-tokens / decode-steps + spec telemetry mirroring spec stats).</l></p>
+</li>
+<li><p>Scope: include/pvxinference.h, include/pvx_internal.h, src/pvx_adapters.cpp (new),
+src/pvx_tts.cpp (new), src/pvxinference.cpp, CMakeLists.txt, tests/test_basic.cpp (legs
+35–43), csharp/ (interop PvxAbiDelegates/PvxTtsParams/PvxStats/IPvxEntryPoints/PvxHandleEntryPoints/
+PvxNative v8 + PoolingType.Rank, SafeHandles Adapter/ControlVector/TtsSession, models
+AudioChunk/TtsRequest/TtsResult/EngineStats, abstractions ILoraAdapter/IControlVector/
+ITtsSession + IInferenceModel/IInferenceContext/IStandardExecutor/IConversation appends,
+implementation NativeLoraAdapter/NativeControlVector/NativeTtsSession (new) +
+NativeInferenceModel/NativeInferenceContext/NativeStandardExecutor/NativeConversation appends,
+engines IGgufEngineOps/GgufEngineOps facade view: Rerank/PromptWithAudio/WithLora/ClearLora/
+WithControlVector/CreateTtsSession/GetExecutorStats/GetConversationStats, tests
+Wave3FeatureTests (new) + EngineTestDoubles/StallWatchdog fake appends + SmokeTests vision
+hybrid-pair fix), docs (ARCHITECTURE ×2 → ABI v8).</p>
+</li>
+<li><p>KV-neutrality (owner constraint, argued per feature): audio = image mechanics (positions
+advance, mirror rows added; no KV-op changes); TTS = separate decode context, zero
+conversation interaction; rerank = single-shot fresh seq per pair; LoRA + cvec =
+weights-surface modifiers (upstream semantics: existing KV content stays valid, no context
+recreation required — gated live: attach/detach mid-conversation on ONE context via state
+save/restore, detached continuation == baseline continuation); stats = read-only snapshot.</p>
+</li>
+<li><p>Acceptance / Status: <strong>done</strong> 2026-10-18 — branch wave1-upstream-parity, HEAD child of 88f8c1a.
+Native Release build 0 errors; native suite <strong>43/43 passed, 0 skipped</strong> with standard fixtures
+(Llama-3.2-3B dense, Qwen3.5-4B hybrid + mmproj, Llama-1B draft, MiniLM embed) + all nine new
+legs (rerank_typed / rerank_live / audio_capability_typed / audio_live / tts_live / lora_typed
+/ lora_live / control_vector / stats_export); ngram 23/23; stress 31/31; EAGLE3 live legs
+green (PVX_EAGLE3_TARGET_PATH/PVX_DRAFT_PATH: Qwen3-8B pair — &quot;live: eagle3 exact 24/24
+tokens, drafted=95 accepted=9 (accept-rate 9.5%)&quot;). KV/context regression sweep (all green,
+from the 43/43 run): [3] partial_rewind_capability, [4] partial_rewind_refused_on_hybrid,
+[6] pool, [9] state_save_restore, [12] pool_reuse, [14] shift_left, [15] kv_copy,
+[16] causal_attn, [28] conversation_spec_rewind_continue. Wave-1 draft+vision harness
+rebuilt + <strong>BYTE-EXACT 24/24</strong> (Qwen3.5-4B-PVXLLM + mmproj + Qwen3.5-0.8B draft). C# build
+Debug+Release 0 errors / suite <strong>219/219</strong> (208 baseline + 11 new) with ALL wave-3 live legs
+env-set; SmokeTests vision legs pinned to the hybrid pair (env-gating mismatch fix).
+LDC regenerated + enforcement <strong>PASS both roots</strong> (repo + csharp; 1888 types indexed).
+Provisioning (owner-sanctioned ≤ 8 GB; ~4.07 GB used; range-request header prechecks BEFORE
+download, byte-size verified after, RAM-gated loads): audio pair
+ggml-org/Qwen3-ASR-1.7B-GGUF (Qwen3-ASR-1.7B-Q8_0.gguf 2165034944 B + mmproj-...-Q8_0.gguf
+355709344 B; clip.has_audio_encoder=true, qwen3a projector), TTS pair
+ggml-org/Qwen3-TTS-12Hz-1.7B-Base-GGUF (Qwen3-TTS-12Hz-1.7B-Base-Q4_K_M.gguf 1035965280 B +
+mmproj-...-Q8_0.gguf 446422912 B; clip.has_gen_audio_encoder=true, QWEN3TTS), LoRA adapter
+Leejy0-0/Llama-3.2-3b-lora_model-F16-GGUF (Llama-3.2-3b-lora_model-f16.gguf 97282976 B;
+general.type=adapter, adapter.type=lora, arch llama — matches the Llama-3.2-3B fixture),
+reranker gpustack/jina-reranker-v1-tiny-en-GGUF (jina-reranker-v1-tiny-en-Q8_0.gguf 36676960 B;
+cls.weight 384x1 score head). Control vectors: NO download — synthetic direction.GGUF written
+by the test via the stable gguf writer API (tests-only; product loader is a pattern-port).
+Live evidence: rerank scores 0.1101 / 0.0029 / 0.0449 (relevant docs &gt; distractor, replay
+bit-stable); ASR native rate 16000 Hz both lanes + post-audio greedy continuation;
+TTS 26880 samples @ 24000 Hz, seed-42 replay byte-identical on fresh session + random-seed leg;
+LoRA/cvec attach/detach: prompt-greedy=35308, baseline-cont=927, lora-cont=927,
+detached-cont=927 (detach == baseline at the same anchor KV, single context, no reset);
+stats counters consistent (n_tokens == n_kv_pos == n_prompt_tokens, decode_steps ≥ 1, spec 0/0).</p>
+</li>
+<li><p>Honest findings (documented, no band-aids): (a) TTS single-shot contract — repeated generates
+on one live session shift the output (cross-call gen-pipeline state inside the mtmd context);
+typed <code>tts/session-consumed</code> refusal + fresh-session determinism is the shipped contract.
+(b) UPSTREAM LEAK (llama.cpp frozen, not fixed here): mtmd_init_from_file of a vision mmproj
+against the qwen3tts backbone fails deep and leaks a Metal buffer set → exit-time
+GGML_ASSERT([rsets-&gt;data count] == 0) abort; the suite deliberately avoids that combination
+(the negative leg uses the audio-only mmproj → clean typed NOT_SUPPORTED); repro is minimal
+(load pair, gen, exit). (c) rerank gate is the pooling TYPE (upstream --reranking contract);
+<code>llama_model_n_embd_out</code> is NOT a rerank capability signal (the jina conversion lacks
+embedding_length_out; score-head presence (cls.weight) is the GGUF conversion contract,
+verified at provisioning). (d) Plan deviation: shipped lane-specific prompt-with-audio
+exports instead of the generalized <code>pvx_media_chunk_t</code> union — the vision path stays
+ABI-stable untouched (additive-only wave constraint); EncoderEngineOps untouched (images-only,
+audio rides the Gguf ops view) per plan.</p>
+</li>
+<li><p>Audit evidence (2026-10-18 comprehensive audit): wave-3 surfaces fixed in the same audit
+batch (commits 2c521e2 + 356a366): (1) pvx_rerank leaked llama_set_embeddings(true) into every
+subsequent decode on the shared context on ALL exit paths incl. success — RAII-balanced now
+(pvx_get_embeddings discipline); (2) conversation-lane vision errors were swallowed
+(set_error(nullptr)) — routed to the conversation's context scope; the lane also lacked the
+executor twin's fail-closed on a projector that yields no usable embd rows (silently advanced
+nothing) — now typed DECODE_FAILED; (3) pvx_load_mmproj's second-encoder refusal path leaked
+the freshly created mtmd context (no dtor) — freed explicitly; (4) pvx_pool_return kept
+stale recent_tokens across leases (cross-lease penalty contamination) — cleared (fresh lease =
+fresh penalty history); (5) pvx_tts raw stderr diagnostics routed through pvx_log. C# wrapper
+audit: interop delegate/signature table verified 1:1 vs native ABI v8 (PvxStats field order,
+PvxTtsParams layout, rerank/audio HGlobal pinning freed on every path, SafeHandle releases
+match frees, reverse-pinvoke GC.KeepAlive pattern present); engine facade verified
+fail-closed (builder→request validation, factory kind routing, mismatch views, disposal
+chain); no facade changes needed. Full regression: native 44/44 + ngram 23/23 + stress 31/31,
+C# build 0/0 Debug+Release, C# suite green (see run log), live eagle3/dflash pairs green,
+LDC enforcement unaffected (internal fixes only — public surface unchanged).</p>
+</li>
+</ul>
+<h3 id="ongoing-verification-duty">Ongoing verification duty</h3>
+<ul>
+<li>Every repo state keeps: native Release build 0 errors, ctest green, C# suite green, LDC regenerated + enforcement PASS. Any public-surface change regenerates LDC artifacts in the SAME commit.</li>
+</ul>
+<p><strong>History note (2026-10-18):</strong> the repo was re-initialized on this date to reflect the as-is
+product state (llama.cpp/GGUF-only). Completed historical backlog entries not relevant to the
+as-is product were retired; pre-reset history is archived outside every repo and is NOT
+recoverable from this git.</p>
+<h3 id="bl-38--separate-head-draft-mtp-spec-mode-abi-v8-wave-4--inf-04-inference-slice-owner-order-2026-10-19-1700">BL-38 · Separate-head draft-MTP spec mode (ABI v8 wave 4) — INF-04 Inference slice (owner order 2026-10-19 17:00)</h3>
+<ul>
+<li>Source: INF-04 (owner order 2026-10-19 17:00 &quot;I want mtp to work&quot; — Qwen3.8-Flash-Next on the large-memory host serving).</li>
+<li>Spec: port the vendored <code>common_speculative_impl_draft_mtp</code> (upstream PR #28243) as <code>PVX_SPEC_MTP_DRAFT</code> (mode 9) + <code>mtp_draft_path</code> — the separate self-contained MTP head GGUF. EAGLE3-lane round structure: per-position <code>h_hist</code> capture hook (<code>mtp_process_target_rows</code>) after every target decode, <code>(t_{P-1}, h_{P-1})</code> pairing (zero-h at position 0), seed/chain pair-decodes, ONE verify decode + sample-and-match, KV repair, state save/restore additive h rows. Executor lane only (conversation lane refuses typed); empty-stream enable requirement; <code>n_layer_nextn(head)==0</code> and width/vocab mismatches are typed refusals. <code>PVX_SPEC_MTP_AUTO</code> (embedded) stays a typed wiring boundary — unchanged.</li>
+<li>Scope: include/pvxinference.h, include/pvx_internal.h, src/pvx_spec_engine.{h,cpp}, src/pvxinference.cpp, csharp bindings (PvxSpecMode, PvxSpecParams, SpeculativeMode, SpeculativeConfig, 3 marshal sites), tests/test_basic.cpp, ARCHITECTURE.md, LDC artifacts. NOTHING outside.</li>
+<li>Acceptance: native suite legs (typed fail-closed: missing path, metadata-only head, wrong-arch head, conversation-lane refusal, empty-stream refusal; env-gated live leg PVX_MTP_TARGET_PATH/PVX_MTP_DRAFT_PATH — typed skip off-pair) + C# binding/marshaling tests; Debug+Release 0 errors/0 warnings; LDC regen + enforcement same commit.</li>
+<li>Status: done 2026-10-19 (local commit, no push). Live the large-memory host verification (160GB pair) = orchestrator.</li>
+</ul>
+<h3 id="bl-39--specvision-same-session-mtp-capture-hook-embedding-row-pairing-owner-order-2026-10-20-0834">BL-39 · Spec+vision same-session: MTP capture hook embedding-row pairing (owner order 2026-10-20 08:34)</h3>
+<ul>
+<li>Source: 2026-10-19 session backlog (memory/2026-10-20.md); owner order &quot;do the open backlog items now&quot;.</li>
+<li>Spec: make speculative decoding + vision work in the SAME session: the draft-MTP per-position <code>h_hist</code> capture hook (<code>mtp_process_target_rows</code>) runs after every target decode and must capture ONLY transformer rows — when a vision chunk (image embd rows) rode the batch, row indices shift and the hook must not pair image-embd positions as (t,h) history (zero-h at pos 0 only, never vision rows). Typed refusal for mixed spec+vision in one lane is acceptable ONLY if pairing cannot be made exact — but exactness is preferred (upstream speculative.cpp pairs on target text decode; vision tokens are inputs, not sampled positions).</li>
+<li>Scope: src/pvx_spec_engine.cpp, src/pvxinference.cpp, include/pvx_internal.h, tests (native vision+spec leg), ARCHITECTURE.md, LDC artifacts. NOTHING outside.</li>
+<li>Acceptance: native test proving spec ON == OFF token-exact on a vision-then-text session (env-gated live leg) or a typed fail-closed refusal with a clear native error; regression: existing native suite green, C# suite green, LDC regen + enforcement PASS.</li>
+<li>Status: done 2026-10-20 (local commit, no push). Vision+MTP live leg env-gated (PVX_MTP_TARGET_PATH/PVX_MTP_DRAFT_PATH/PVX_MMPROJ_PATH/PVX_TEST_IMAGE — typed skip off-pair; no vision+MTP pair on this host — the orchestrator runs it where one exists).</li>
+</ul>
+<h3 id="bl-40--specaudio-same-session-mtp-audio-embd-row-pairing-owner-order-2026-10-20-0913">BL-40 · Spec+audio same-session: MTP audio embd-row pairing (owner order 2026-10-20 09:13)</h3>
+<ul>
+<li>Source: BL-39 follow-up (owner order 2026-10-20 09:13 &quot;yes do also for audio&quot;); same embd-row class as vision.</li>
+<li>Spec: audio prompts currently refuse typed in draft-MTP sessions. Apply the BL-39 mechanism (commit b08700d): audio embd rows must ride the upstream input arm feeding the MTP head, h-history capture hook pairing only on mirror/text commit sites, per-audio-chunk decode commits, and mtp_state_restore replaying audio rows — removing the typed audio refusal in MTP sessions. Exactness required, not refusal.</li>
+<li>Scope: src/pvx_spec_engine.cpp, src/pvxinference.cpp, include/pvx_internal.h, tests (native audio+spec leg, env-gated live leg), ARCHITECTURE.md, LDC artifacts. NOTHING outside.</li>
+<li>Acceptance: native audio+spec leg deterministic OR token-exact live (env-gated); typed refusal gone; regression native + C# suites green; LDC regen + enforcement PASS same commit.</li>
+<li>Status: done 2026-10-20 (local commit, no push). Audio+MTP live leg env-gated (PVX_MTP_TARGET_PATH/PVX_MTP_DRAFT_PATH/PVX_AUDIO_MMPROJ_PATH — typed skip off-pair/not audio-capable; no audio+MTP pair on this host — the orchestrator runs it where one exists).</li>
+</ul>
+<h3 id="bl-41--control-vector-test-fixture-de-hardcoding-owner-order-2026-10-20-0950-nothing-should-be-hardcoded-please-fix">BL-41 · control-vector test fixture de-hardcoding (owner order 2026-10-20 09:50 &quot;nothing should be hardcoded please fix&quot;)</h3>
+<ul>
+<li>Source: BL-40 follow-up note (pre-existing failure surfaced by the 2026-10-20 runs); owner order.</li>
+<li>Spec: test_control_vector hardcoded Llama-3.2-3B dims (3072/28) against the default Qwen3-8B model path → deterministic load failure in build-metal-rel3. Fixture now derives BOTH dims at runtime from the model GGUF (<arch>.embedding_length/.block_count scanned by suffix), wrong-width file derived (n_embd/2), out-of-range layer end derived (n_layer+1) — no constants, model-agnostic.</arch></li>
+<li>Acceptance: pvxinference_tests green against Qwen3-8B AND Llama-3.2-3B (48/48 each); ngram 25/25; stress 31/31; LDC regen + enforcement PASS on merged main.</li>
+<li>Status: <strong>done</strong> 2026-10-20 10:05 — main d8a122a (fixture) + LDC post-merge regen; local only, no push.</li>
+</ul>
+<h3 id="bl-39-live-verification-follow-up-2026-10-20-1050--done-root-caused">BL-39 live verification follow-up (2026-10-20 10:50) — DONE, root-caused</h3>
+<ul>
+<li>the large-memory host live run (134.7GB Q5_K_M-mtp pair) initially failed the vision+MTP leg: token-exact but accepted=0. Instrumented spike probe (per-round h-norm/chain/match prints) proved the pairing is CORRECT — root cause: the leg's RAW un-templated prompt degenerated the target into a near-tied argmax between ADJACENT end-marker specials (248044/248045); the head picks the sibling, greedy-exact verification rejects every draft (legitimate behavior, not corruption). Fix: both live legs (vision+MTP, audio+MTP) apply the model chat template (pvx_apply_chat_template, thinking=0) — commit 0d971f6.</li>
+<li>LIVE RESULT after fix (the large-memory host, prod pair): text 24/24 exact accepted 11/26 (42.3%); vision 12/12 exact accepted 5/12 (41.7%); audio leg typed-skips (mtmd_support_audio false — flashnext mmproj is vision-only; audio+MTP exactness stands on the deterministic unit leg until an audio-capable pair exists). Suite 48/48 on the large-memory host.</li>
+<li>Status: <strong>done</strong> (live-verified 2026-10-20). Local only, no push.</li>
+</ul>
+<h3 id="bl-42--shared-memory-draft-mtp-heads--gemma4-assistant-support-owner-order-2026-10-20-1200">BL-42 · Shared-memory draft-MTP heads — gemma4-assistant support (owner order 2026-10-20 12:00)</h3>
+<ul>
+<li>Source: owner order &quot;I dont get what the issue is with our engine and MTP. Can you adjust it so it works and supports it.&quot;</li>
+<li>Spec: gemma-4's MTP head (gemma4-assistant arch) SHARES memory with the target trunk (upstream ctx_other at head init; our engine created heads standalone → typed &quot;mtp-head-context&quot; refusal). Fix: always link cp.ctx_other = ctx_tgt at head-context creation (upstream-faithful); detect is_mem_shared via llama_get_ctx_other; shared heads skip catch-up decodes + head seq_rm entirely, draft rows all ride the same position (upstream is_mem_shared draft()), state restore replays only the h ring.</li>
+<li>Survey (owner question): three MTP behavioral classes in the vendored tree — (1) plain self-contained heads (qwen4exp, qwen35/moe, deepseek2/32/4, glm4-moe/glm5-next, qwen3next, nemotron-h-moe, mimo2, bailingmoe3, cohere2moe, hy-v3, granite-switch, glm-dsa: supported, live-proven); (2) shared-memory (gemma4-assistant: NOW supported, BL-42); (3) multi-block chain heads (step35 class, n_layer_nextn &gt; 1: still typed-refused — needs nextn_layer_offset wiring, separate slice).</li>
+<li>Scope: src/pvx_spec_engine.h/.cpp, tests/test_basic.cpp (PVX_MTP_MMPROJ_PATH fixture override), ARCHITECTURE.md, LDC artifacts. NOTHING outside.</li>
+<li>Acceptance: full native suite green incl. the three env-gated live legs on the gemma-4 pair (text/vision/audio+MTP); ngram/stress/C# spec suites green; LDC regen + enforcement PASS.</li>
+<li>Status: <strong>done</strong> 2026-10-20 — LIVE: text 24/24 exact 16/16 accepted (100%); vision 12/12 exact 3/15 (20%); audio 12/12 exact 6/9 (66.7%, FIRST audio+MTP live proof). Local only, no push.</li>
+</ul>
+<h3 id="bl-21--full-llamacpp-config-surface-parity-through-c--umbrella-owner-order-2026-10-20-1312">BL-21 · Full llama.cpp config-surface parity through C# — umbrella (owner order 2026-10-20 13:12)</h3>
+<ul>
+<li>Source: owner order &quot;Register as backlog and start doing it we need to capture all&quot; — config survey 2026-10-20 13:06 found ~70 llama.cpp verbs vs ~21 engine verbs (~35% coverage).</li>
+<li>Spec: NO hidden states — every llama.cpp configuration verb reachable from C# (engine structs → ProvostXInference P/Invoke → LLM ModelConfig/request). ABI v8 wave-5: APPENDED fields only (default = current behavior bit-identical).</li>
+<li>Sub-slices:
+<ul>
+<li>BL-21a sampling: seed (deterministic), frequency_penalty, typical_p, xtc (p,t), top_n_sigma, mirostat (mode,tau,eta), dry (multiplier/base/penalty/seq_last_n), logit_bias (token→bias pairs) — wired into the pooled selection chain in OpenAI order.</li>
+<li>BL-21b model-load: load_mtp, vocab_only, check_tensors, use_extra_bufts, no_host, no_alloc, lazy_mode, kv_overrides (GGUF metadata override escape hatch, typed {key,type,value}).</li>
+<li>BL-21c context: ubatch_size, n_outputs_max(<em>per_seq), threads_batch, rope_freq_base/scale, rope_scaling_type, yarn</em>* (ext/attn/beta_fast/beta_slow/orig_ctx), separate type_k/type_v, moe_cache_size, offload_kqv, op_offload, swa_full, kv_unified, embeddings, no_perf, attention_type, defrag_thold.</li>
+<li>BL-21d C#/server: P/Invoke struct extensions, ModelConfig keys, request params (seed/frequency_penalty OpenAI-relevant), typed clamps, tests.</li>
+</ul>
+</li>
+<li>Acceptance: defaults-equivalence (full native suite + C# suites green with no env changes), new-knob unit legs, LDC regen + enforcement PASS, live spot-check on prod pair.</li>
+<li>Status: <strong>done</strong> 2026-10-20 — native 48/48 + ngram 25/25 + stress 31/31 with zeroed wave-5 (defaults equivalence proven); C# 230/230; ABI pins 72/112/112/72/8/288; facade WithAdvanced pass-through; LLM layer + live checks under the LLM repo's BL-21.</li>
+</ul>
+<h3 id="bl-43--linux-arm64-rid-portability-verification-finding-2026-10-20">BL-43 · Linux ARM64 RID portability (verification finding 2026-10-20)</h3>
+<ul>
+<li>Source: Linux ARM64 verification of the LLM repo (post BL-22) — native INF built clean on the VM (cmake Release, CPU backend, 0 errors), but the C# probe layer hardcodes <code>linux-x64</code> for ALL Linux: <code>Interop/PvxNative.cs</code> static ctor probes <code>runtimes/linux-x64/native/libpvxinference.so</code> and <code>Models/PvxEngineFileResolver.cs</code> derives RID <code>linux-x64</code> even on arm64 hosts (no RuntimeInformation.ProcessArchitecture check). On the arm64 VM the freshly built arm64 <code>.so</code> had to be dropped into the <code>linux-x64</code> native dir for the probe to find it — wrong-dir deployment, not a real x64 binary.</li>
+<li>Related: the packaged <code>runtimes/linux-x64/native</code> ORT payloads (libonnxruntime.so etc.) are prebuilt x64 ELF binaries — unusable on arm64 Linux; arm64 hosts need source-built ORT or a linux-arm64 package payload.</li>
+<li>Spec: derive the native dir RID from ProcessArchitecture (linux-arm64 + linux-x64) in the probe + resolver; ship or document an arm64 ORT payload story. No behavior change on existing x64 Linux or macOS/Windows paths.</li>
+<li>Scope: csharp/Interop/PvxNative.cs, csharp/Models/PvxEngineFileResolver.cs, csharp/Tests (RID expectations), ARCHITECTURE.md, LDC artifacts. NOTHING outside.</li>
+<li>Acceptance: unit tests proving arm64 RID derivation (host-overridable), native probe finds <code>.so</code> under <code>linux-arm64</code> on an arm64 Linux host, existing x64 path unchanged, LDC regen + enforcement PASS.</li>
+<li>Status: <strong>done</strong> 2026-10-20 — arch-aware Linux RID (IOSProbe.Architecture seam + PvxNative ProcessArchitecture derive); macOS/Windows unchanged; full C# suite 234/234; live-artifact: the Linux VM build tree (arch-correct .so dir) picks up natively on next sync. ORT arm64 payload story: documented (source-built ORT needed; resolver now finds it in linux-arm64).</li>
+</ul>
+<h3 id="bl-44--windows-arm64-msvc-portability-verification-finding-2026-10-20">BL-44 · Windows ARM64 MSVC portability (verification finding 2026-10-20)</h3>
+<ul>
+<li>Source: Windows 11 ARM64 VM verification of the native build (first-ever MSVC pass, VS 2022 BuildTools 14.44 / ARM64, CMake &quot;Visual Studio 17 2022&quot; generator).</li>
+<li>Findings &amp; fixes (landed same day, this item records the set):
+(1) missing <code>&lt;functional&gt;</code> include (libc++ transitive, MSVC not); (2) POSIX <code>localtime_r</code> → <code>localtime_s</code> under <code>_WIN32</code>; (3) designated initializers under /std:c++17 → lambda-built constant; (4) raw strings inside ASSERT macro args (MSVC legacy preprocessor stringize limitation); (5) <code>M_PI</code> needs <code>_USE_MATH_DEFINES</code>; (6) DLL exported NOTHING (no dllexport in the extern &quot;C&quot; header) → <code>WINDOWS_EXPORT_ALL_SYMBOLS ON</code> restores macOS-parity export surface + import lib; (7) Windows import libs don't re-export transitive static-lib symbols → WIN32 test links to llama/ggml/ggml-base.</li>
+<li>Windows VM results: <code>pvxinference.dll</code> + all 3 test exes build; ngram 25/25, basic 48/48 (41 model-gated skips), stress built (needs model files). the primary host gate: 48/48 + 25/25 + 31/31 unchanged.</li>
+<li>Follow-ups (closed by BL-46 same day): win-arm64 runtime payload + Windows CI lane (see BL-46). The LLM repo's native-gated/model-gated E2E tiers remain unproven on Windows until a model is present on a Windows host (model-gated, by design).</li>
+<li>Status: <strong>done</strong> 2026-10-20 (fixes merged with this item); follow-ups closed by BL-46 (payload + CI lane).</li>
+</ul>
+<h3 id="bl-45--multi-block-chain-draft-mtp-heads--step35-class-owner-order-2026-10-20-1932">BL-45 · Multi-block chain draft-MTP heads — step35 class (owner order 2026-10-20 19:32)</h3>
+<ul>
+<li>Source: BL-42 survey follow-up (owner order); last typed-refused MTP family — heads whose GGUF carries n_layer_nextn &gt; 1 (llama.cpp drives them via llama_set_nextn_layer_offset).</li>
+<li>Spec: upstream SUPPORTS multi-block chain heads (speculative.cpp: chain_heads = n_mtp_layers &gt; 1 &amp;&amp; !is_mem_shared; draft() step i decodes the whole re-added prefix under nextn layer offset i with per-step seq_rm(pos0,-1) and logits only on the last row; process() replays the catch-up batch once per head; offset restored to 0 after both). Wire exactly that: chain detection at head init, draft_max clamped to the trained block count, catch-up/replay per head, chain drafting per head; n_nextn==1 and shared-memory paths byte-identical to BL-42. The typed refusal stays ONLY where upstream itself refuses (none found for this family — support replaces the refusal).</li>
+<li>Scope: src/pvx_spec_engine.h/.cpp, tests/test_ngram.cpp (pure planner legs), ARCHITECTURE.md, LDC artifacts. NOTHING outside.</li>
+<li>Acceptance: deterministic pure-planner unit legs (chain plan + per-step arm); env-gated live leg if a multi-block pair exists (none on this host — unit legs + source-proven semantics); n_nextn==1 regression paths unchanged; native 48/48 + ngram 25/25 + stress 31/31; C# suite green; LDC regen + enforcement PASS.</li>
+<li>Status: <strong>done</strong> 2026-10-20 — upstream SUPPORTS the family (speculative.cpp chain_heads path; no refusal exists to keep); chain detection + per-head catch-up + per-step offset drafting wired upstream-exact; n_nextn==1 and shared paths byte-identical; pure-planner legs ngram 27/27; native 48/48; stress 31/31; C# 234/234; LDC PASS. No multi-block pair on this host — live leg deferred to where a step35-class pair exists (env-gated fixtures unchanged). Local only, no push.</li>
+</ul>
+<h3 id="bl-46--windows-arm64-runtime-payload--windows-ci-lane-bl-23bl-44-follow-ups-2026-10-20">BL-46 · Windows ARM64 runtime payload + Windows CI lane (BL-23/BL-44 follow-ups, 2026-10-20)</h3>
+<ul>
+<li>Source: the two registered follow-ups from the Windows ARM64 VM verification — (a) no win-arm64 native runtime payload in the NuGet runtimes dir (resolver Windows path hardcoded win-x64); (b) no Windows CI lane (the MSVC pass was VM-manual).</li>
+<li>Landed:
+(1) Windows RID is now arch-aware in BOTH the resolver (<code>PvxEngineFileResolver</code>: <code>win-{Architecture()}</code>) and the bootstrap probe (<code>PvxNative</code> static ctor derives from ProcessArchitecture) — mirrors the BL-43 Linux rule; <code>PvxRidDerivationTests</code> covers win-arm64/win-x64 (C# suite 234→235).
+(2) Payload shipped: <code>csharp/runtimes/win-arm64/native/pvxinference.dll</code> + <code>pvxinference.lib</code> (MSVC import lib) — REAL binaries copied from the VM build (VS 2022 BuildTools 14.44, CMake VS generator -A ARM64, Release, CPU/default specialist, ABI v8; provenance in <code>csharp/runtimes/win-arm64/README.md</code>). The csproj <code>runtimes/**</code> glob packs them into the NuGet slice automatically.
+(3) Windows CI lane: ci.yml new <code>windows</code> job (windows-latest) — native cmake MSVC Release build + ctest (model-gated legs typed-skip without models — same as the VM run) + the C# suite, with the fresh x64 dll staged into <code>csharp/runtimes/win-x64/native/</code> first so the arch-aware resolver finds it. Existing specialist/csharp-build/nuget-pack lanes untouched. actionlint clean.
+(4) Test-infra fix found by the gate itself: <code>pvx_stress_tests</code> had no <code>WORKING_DIRECTORY</code> — it silently ran from the build dir under ctest and couldn't find <code>./models</code> (the binary worked when invoked directly, which is why earlier gates passed); now pinned to <code>CMAKE_SOURCE_DIR</code> like the basic suite.</li>
+<li>Per-RID payload story (ARCHITECTURE.md addendum): osx-arm64 = checked-in dylibs (inference + metal); win-arm64 = checked-in VM-built dll + import lib; linux-x64/win-x64 = CI specialist matrix outputs at pack time (not checked in); linux-arm64 = source-build native + ORT (documented, BL-43).</li>
+<li>Gates (the primary host, clone): native 48/48 (+6 typed live-skips) + ngram 27/27 (incl. BL-45 chain legs) + stress 31/31 via ctest (post WORKING_DIRECTORY fix); C# 235/235 (env-set model paths, matched Qwen3.5-4B pair); LLM 924/924. LDC regen on merged main. Local only, no push/tags.</li>
+<li>Still open (model-gated): Windows E2E tiers need a model on a Windows host — CI intentionally runs model-free only (no env vars, no model artifacts by design).</li>
+<li>Status: <strong>done</strong> 2026-10-20.</li>
+</ul>
+<h3 id="bl-47--automated-real-model-journey-tier--cross-platform-fixture-contract-owner-order-2026-10-22-0753">BL-47 · Automated real-model journey tier + cross-platform fixture contract (owner order 2026-10-22 07:53)</h3>
+<ul>
+<li>Source: owner review of test coverage — the TEST-MATRIX real-model lanes were manual-only; owner ordered: small real model as the standard test fixture, all testing gaps closed, tests cross-platform.</li>
+<li>Landed:
+(1) <code>csharp/Tests/LiveModelFixtures.cs</code> — env-driven fixture discovery with repo-relative defaults (small 1B dense model, draft pair, MiniLM encoder, mmproj+hybrid backbone); RAM gate helper (house &gt;60% rule); <code>LiveModelFactAttribute</code> = named skip on every OS when the fixture is absent (never a silent pass, never a platform-only unconditional skip).
+(2) <code>csharp/Tests/RealModelJourneyTests.cs</code> — 10 automated real-model journey lanes: load+generate, KV save/restore + checkpoint export/import round-trip, 8-conversation continuous batching, GBNF grammar-constrained sampling, dense MEAN-pooling embeddings (SIGSEGV regression guard) + MiniLM encoder similarity, speculative draft-simple token-exact vs the plain loop, vision mmproj splice, greedy determinism, model/tokenizer hygiene (catches mislabeled-file vocab mismatches).
+(3) Fixture repair: <code>Tests/models/spec-draft-1b.gguf</code> symlink was DANGLING (target <code>~/models/spec-test/</code> deleted) — retargeted to the canonical 1B file; <code>Tests/models/Llama-3.2-1B-Instruct-Q4_K_M.gguf</code> symlink added so the tier resolves without env vars.
+(4) Pre-existing test bug fixed: <code>PvxEngineSelectorTests.UnknownEngine_FailClosed</code> still listed &quot;cpu&quot; as unknown after caba7d1 added the cpu engine id to the specialist matrix — row removed, positive regression guard added (<code>CpuEngine_IsKnown_SinceSpecialistMatrixAddition</code>).</li>
+<li>Verification (the primary host, Debug, PvxUseProjectRefs): full journey tier 10/10 with real fixtures (Llama-3.2-1B target+draft, MiniLM); full C# suite 247/247 WITH fixtures; 247/247 HERMETIC with all env unset (fixture defaults resolve from repo). Journey lanes ride GpuLayers=0 (CPU) → identical behavior on macOS/Linux/Windows by construction; the vision lane pairs the checked-in mmproj with its hybrid backbone.</li>
+<li>Scope: csharp/Tests (2 new files, selector test fix, fixture symlinks), ARCHITECTURE.md, LDC artifacts. NOTHING outside.</li>
+<li>Acceptance: journey tier green with and without fixtures on this host; cross-platform contract = env-driven discovery + typed skips (CI lanes run the suite model-free, skipped-not-failed); native suites untouched and unchanged.</li>
+<li>Still open (model-gated, unchanged): native CUDA/Vulkan specialists on real models remain unproven until a Windows/Linux host carries a model; MTP end-to-end still awaits a step35-class GGUF pair (BL-45 note).</li>
+<li>Status: <strong>done</strong> 2026-10-22. Local only, no push/tags.</li>
+</ul>
+<h3 id="bl-48--cpu-specialist-generic-payload-fallback--vm-fixture-discovery-hardening-owner-order-2026-10-22-0834">BL-48 · cpu-specialist generic-payload fallback + VM fixture discovery hardening (owner order 2026-10-22 08:34)</h3>
+<ul>
+<li>Source: the large-memory host VM test round (owner order) — the checked-in win-arm64 payload (BL-46) ships <code>pvxinference.dll</code>, but the resolver/selector only accepted specialist-named files (<code>pvx-cpu.dll</code>); manual staging was needed to get green. Owner: &quot;fix the resolver and modelfixture&quot;.</li>
+<li>Landed:
+(1) <code>PvxEngineFileResolver.EffectiveFileName()</code> (new interface member): cpu falls back to the generic payload name (<code>pvxinference.dll</code> / <code>libpvxinference.so</code>) when no specialist-named copy is staged; cuda/vulkan NEVER fall back (backend-specific binaries). <code>FileExists</code> honors the effective name so <code>AvailableEngines</code>/default-engine selection see the generic payload too.
+(2) <code>LiveModelFixtures.Resolve</code> tries multiple repo-relative defaults: <code>Tests/models</code> symlinks first, then the repo-root <code>models/</code> dir (how the lab VMs are provisioned — real files, no symlinks).
+(3) Regression tests: generic-fallback (win), specialist-preferred (linux), backend-never-fallback (cuda/vulkan); <code>ScriptedResolver</code> honors the scripted disk for the fallback.</li>
+<li>Verification: the primary host 251/251; lab-windows ARM64 249+2skip/251 (generic <code>pvxinference.dll</code> alone, manual <code>pvx-cpu.dll</code> deleted); lab-linux ARM64 249+2skip/251 (generic <code>libpvxinference.so</code> alone, staged <code>libpvx-cpu.so</code> removed). LDC regen + enforcement PASS.</li>
+<li>Sync infra note: tar-over-ssh to lab-windows silently failed twice; the working route is HTTP from the large-memory host (python http.server) pulled via the VM NAT gateway (10.0.2.2). scp fails (publickey channel), cmd lacks cat/mv.</li>
+<li>Scope: csharp/Models (resolver + interface), csharp/Interop/PvxEngineHandle.cs, csharp/Tests (fakes + resolver tests + fixtures), ARCHITECTURE.md, LDC artifacts. NOTHING outside.</li>
+<li>Status: <strong>done</strong> 2026-10-22. Local only, no push/tags.</li>
+</ul>
+<h3 id="bl-50--per-engine-audit--telemetry-abi-v9-owner-order-2026-10-22-10081042">BL-50 · Per-engine audit + telemetry (ABI v9, owner order 2026-10-22 10:08/10:42)</h3>
+<ul>
+<li>Spec: each engine instance gets its OWN audit trail + telemetry — never process-wide (LLM runs an array of engines). Feature must be dead-zero when not configured (no compute beyond one branch).</li>
+<li>Landed (native, ctest 3/3): <code>pvx_model_params_t.audit_path</code> + <code>audit_include_prompts</code> (append-only, zeroed = disabled); per-model AuditSink (own FILE* + mutex, opens at load, closes at free); JSON-lines events (model_loaded/freed, context_created/freed, spec_enabled/disabled, kv_cleared/shifted) with monotonic seq + per-line flush; model-wide telemetry counters wired at all 10 decode-commit + prompt/committed/spec sites, ALL gated behind audit.enabled (owner 10:42 zero-cost directive); <code>pvx_engine_telemetry</code> export; PVX_ABI_VERSION 9. Prompt TEXT is never recorded (token counts only) — audit must not become a content sink.</li>
+<li>Landed (C#): ABI pin 9 lockstep; PvxModelParams + size pin 72→88; ModelConfig.AuditPath/AuditIncludePrompts; PvxEngineTelemetry mirror + delegate + per-handle bind; <code>IGgufEngineOps.GetEngineTelemetry()</code> via internal IModelTelemetrySource seam; fake loader export map.</li>
+<li>Gates: native ctest 3/3 (fresh Release build, Metal+generic dylibs); C# 251/251 at 10:19. Journey10 live lane (audit content + per-engine isolation proof) PENDING — dotnet test hung 5x identical (see below).</li>
+<li>Hang analysis (Journey10 — RESOLVED 11:31, root cause = test design, NOT machine/runner): --blame-hang dump showed thread #1 parked in a managed wait after successful native load. Console harness (no vstest) ran the EXACT lane sequence clean end-to-end — disproving the machine/runner theory (owner challenged it at 11:29; correct call). Real bugs were both in the lane: (1) engine B loaded while engine A was still alive with live contexts (pattern no other lane used; now sequential — A fully disposed first, the proven pattern); (2) isolation assertion matched auditPath as a SUBSTRING (auditPath2 = auditPath + &quot;.2&quot; contains it) — flagged engine B's own event; now matches A's path exactly as detail. Lesson: hang dumps + console harness separate code-vs-environment decisively; speculation doesn't.</li>
+<li>Gates final: native ctest 3/3; C# 252/252 (incl. Journey10 green via the runner itself, 887 ms). LDC regen + enforcement PASS.</li>
+<li>Status: <strong>done</strong> 2026-10-22. Local only, no push/tags.</li>
+</ul>
+
+</article>
+          </div>
+
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In this article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="../index.html">Home</a>&ensp;&middot;&ensp;<a href="#top">Back to top</a>
+            </span>
+      ProvostXInference — MIT
+      
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script type="text/javascript" src="../styles/docfx.vendor.min.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>

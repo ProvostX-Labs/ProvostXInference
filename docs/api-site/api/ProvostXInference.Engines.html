@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+
+  <head>
+    <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>Namespace ProvostXInference.Engines | ProvostXInference API </title>
+      <meta name="viewport" content="width=device-width">
+      <meta name="title" content="Namespace ProvostXInference.Engines | ProvostXInference API ">
+    
+    
+      <link rel="shortcut icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../styles/docfx.vendor.min.css">
+      <link rel="stylesheet" href="../styles/docfx.css">
+      <link rel="stylesheet" href="../styles/main.css">
+      <meta property="docfx:navrel" content="">
+      <meta property="docfx:tocrel" content="toc.html">
+    
+    <meta property="docfx:rel" content="../">
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+
+        <div id="search-results">
+          <div class="search-list">Search Results for <span></span></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination" data-first=First data-prev=Previous data-next=Next data-last=Last></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+
+        <div class="sidenav hide-when-search">
+          <a class="btn toc-toggle collapse" data-toggle="collapse" href="#sidetoggle" aria-expanded="false" aria-controls="sidetoggle">Show / Hide Table of Contents</a>
+          <div class="sidetoggle collapse" id="sidetoggle">
+            <div id="sidetoc"></div>
+          </div>
+        </div>
+        <div class="article row grid-right">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="ProvostXInference.Engines">
+
+  <h1 id="ProvostXInference_Engines" data-uid="ProvostXInference.Engines" class="text-break">Namespace ProvostXInference.Engines</h1>
+  <div class="markdown level0 summary"></div>
+  <div class="markdown level0 conceptual"></div>
+  <div class="markdown level0 remarks"></div>
+    <h3 id="classes">
+Classes
+</h3>
+      <h4><a class="xref" href="ProvostXInference.Engines.DecisionEngineOps.html">DecisionEngineOps</a></h4>
+      <section>Decision lane ops over an existing <a class="xref" href="ProvostXInference.Decision.Engine.DecisionSession.html">DecisionSession</a> (loaded by
+the factory through <a class="xref" href="ProvostXInference.Decision.Abstractions.IDecisionSessionFactory.html">IDecisionSessionFactory</a>).</section>
+      <h4><a class="xref" href="ProvostXInference.Engines.DecisionEngineRequest.html">DecisionEngineRequest</a></h4>
+      <section>Contract for an ONNX decision (judge) engine on the managed ORT lane:
+model path, tokenizer JSON, judge sequence-spec JSON, execution-provider
+chain (raw string, LLM-10 format; null = OS default), optional numerics gate.</section>
+      <h4><a class="xref" href="ProvostXInference.Engines.DecisionEngineRequestBuilder.html">DecisionEngineRequestBuilder</a></h4>
+      <section>Fluent builder for <a class="xref" href="ProvostXInference.Engines.DecisionEngineRequest.html">DecisionEngineRequest</a> (ONNX judge lane).
+<a class="xref" href="ProvostXInference.Engines.DecisionEngineRequestBuilder.html#ProvostXInference_Engines_DecisionEngineRequestBuilder_Build">Build()</a> yields a VALIDATED request (fail-closed).</section>
+      <h4><a class="xref" href="ProvostXInference.Engines.EncoderEngineOps.html">EncoderEngineOps</a></h4>
+      <section>Encoder lane ops: wraps the vision encoder + backing model (see interface).</section>
+      <h4><a class="xref" href="ProvostXInference.Engines.EncoderEngineRequest.html">EncoderEngineRequest</a></h4>
+      <section>Contract for a vision ENCODER engine: a GGUF model (for its vocabulary/
+tokenizer context) plus a REQUIRED mmproj projector. The engine's primary
+lane is image embedding; generative GGUF ops are NOT exposed on this kind.</section>
+      <h4><a class="xref" href="ProvostXInference.Engines.EncoderEngineRequestBuilder.html">EncoderEngineRequestBuilder</a></h4>
+      <section>Fluent builder for <a class="xref" href="ProvostXInference.Engines.EncoderEngineRequest.html">EncoderEngineRequest</a> (vision encoder lane:
+GGUF model + REQUIRED mmproj). <a class="xref" href="ProvostXInference.Engines.EncoderEngineRequestBuilder.html#ProvostXInference_Engines_EncoderEngineRequestBuilder_Build">Build()</a> yields a VALIDATED request.</section>
+      <h4><a class="xref" href="ProvostXInference.Engines.EngineLogging.html">EngineLogging</a></h4>
+      <section>Facade view of the native logging bridge (owner black-box directive
+2026-10-19): native C-level log setup is a process-wide facade concern
+(the pvx_set_log_* entry points dispatch on the ACTIVE engine's tables),
+so callers configure it here instead of reaching into the Logging
+namespace. Pure delegation — identical semantics, facade-only surface.</section>
+      <h4><a class="xref" href="ProvostXInference.Engines.EngineMaintenance.html">EngineMaintenance</a></h4>
+      <section>Facade view of the offline engine-maintenance utilities (owner black-box
+directive 2026-10-19): file-level operations that need NO loaded engine
+object but ARE engine-bound (they dispatch on the ACTIVE engine's
+per-handle tables). Currently: GGUF tokenizer-metadata repair (EOG/special
+token fixup — weights stream-copied byte-for-byte, metadata rewritten).
+Pure delegation to the Implementation layer — callers never leave the
+facade surface.</section>
+      <h4><a class="xref" href="ProvostXInference.Engines.EngineRequest.html">EngineRequest</a></h4>
+      <section>The typed engine CONTRACT base: everything a caller must tell Inference to get
+an <a class="xref" href="ProvostXInference.Engines.IInferenceEngine.html">IInferenceEngine</a>. Derived records add lane-specific parameters.
+<a class="xref" href="ProvostXInference.Engines.EngineRequest.html#ProvostXInference_Engines_EngineRequest_Validate">Validate()</a> is fail-closed — any invalid field throws
+<a class="xref" href="ProvostXInference.Exceptions.InvalidEngineRequestException.html">InvalidEngineRequestException</a> before a backend is ever touched.</section>
+      <h4><a class="xref" href="ProvostXInference.Engines.GgufEngineOps.html">GgufEngineOps</a></h4>
+      <section>GGUF lane ops implementation over the wrapper-layer graph. Holds the model,
+the live context (created from the request's context settings), and the pool
+(lazily created on first <a class="xref" href="ProvostXInference.Engines.GgufEngineOps.html#ProvostXInference_Engines_GgufEngineOps_LeaseConversation">LeaseConversation()</a>). Disposal flows
+outward-in via the owning <a class="xref" href="ProvostXInference.Engines.InferenceEngine.html">InferenceEngine</a>.</section>
+      <h4><a class="xref" href="ProvostXInference.Engines.GgufEngineRequest.html">GgufEngineRequest</a></h4>
+      <section>Contract for a GGUF generative engine on the native llama.cpp backend:
+model path, optional vision projector (mmproj) sidecar, optional speculative
+draft-model sidecar, and the full native load knob set (BL-02 engine matrix,
+GPU layers, threads, flash attention, KV type, reasoning markers) plus
+context sizing. Knobs are load-time; live knobs live on the engine object.</section>
+      <h4><a class="xref" href="ProvostXInference.Engines.GgufEngineRequestBuilder.html">GgufEngineRequestBuilder</a></h4>
+      <section>Fluent builder for <a class="xref" href="ProvostXInference.Engines.GgufEngineRequest.html">GgufEngineRequest</a>. <a class="xref" href="ProvostXInference.Engines.GgufEngineRequestBuilder.html#ProvostXInference_Engines_GgufEngineRequestBuilder_Build">Build()</a> yields a
+VALIDATED request (fail-closed); <a class="xref" href="ProvostXInference.Engines.GgufEngineRequestBuilder.html#ProvostXInference_Engines_GgufEngineRequestBuilder_Create_ProvostXInference_Engines_IInferenceEngineFactory_">Create(IInferenceEngineFactory)</a> builds + factory-creates
+an engine in one step.</section>
+      <h4><a class="xref" href="ProvostXInference.Engines.GgufModelLoader.html">GgufModelLoader</a></h4>
+      <section>Production <a class="xref" href="ProvostXInference.Engines.IGgufModelLoader.html">IGgufModelLoader</a>: thin wrapper over the native
+wrapper-layer factories (<a class="xref" href="ProvostXInference.Implementation.NativeInferenceModel.html#ProvostXInference_Implementation_NativeInferenceModel_Load_ProvostXInference_Models_ModelConfig_">Load(ModelConfig)</a> +
+<a class="xref" href="ProvostXInference.Abstractions.IInferenceModel.html#ProvostXInference_Abstractions_IInferenceModel_LoadVisionEncoder_System_String_">LoadVisionEncoder(string)</a>). No state, no fallback.</section>
+      <h4><a class="xref" href="ProvostXInference.Engines.InferenceEngine.html">InferenceEngine</a></h4>
+      <section>Facade implementation: created UNLOADED by <a class="xref" href="ProvostXInference.Engines.InferenceEngineFactory.html">InferenceEngineFactory</a>,
+loaded on <a class="xref" href="ProvostXInference.Engines.InferenceEngine.html#ProvostXInference_Engines_InferenceEngine_Initialize">Initialize()</a> per kind, torn down on Dispose (ops first,
+then backend). All deps constructor-injected; no static state.</section>
+      <h4><a class="xref" href="ProvostXInference.Engines.InferenceEngineBuilder.html">InferenceEngineBuilder</a></h4>
+      <section>Fluent entry point of the engine-object contract:
+<pre><code class="lang-csharp">var engine = InferenceEngineBuilder.Gguf("/path/model.gguf")
+    .WithMmproj("/path/mmproj.gguf").WithGpuLayers(99)
+    .Build();                    // → validated GgufEngineRequest
+engine.Create(factory).Initialize();   // → live IInferenceEngine</code></pre>
+No static mutable state — the builder is a local, disposable scratch record.</section>
+      <h4><a class="xref" href="ProvostXInference.Engines.InferenceEngineFactory.html">InferenceEngineFactory</a></h4>
+      <section>Default factory (composition root of the facade): native GGUF loading via
+<a class="xref" href="ProvostXInference.Engines.GgufModelLoader.html">GgufModelLoader</a> (thin seam over the wrapper-layer static
+factory), decision loading via the existing
+<a class="xref" href="ProvostXInference.Decision.Abstractions.IDecisionSessionFactory.html">IDecisionSessionFactory</a> lane. No static mutable state.</section>
+      <h4><a class="xref" href="ProvostXInference.Engines.StallWatchdogOps.html">StallWatchdogOps</a></h4>
+      <section>Facade factory for the stall-watchdog helper family (INF BL-33, owner
+black-box directive 2026-10-19): the rolling-median detector, the
+recovery ladder and the production wall clock are ENGINE-LEVEL utilities
+(backend-independent, pure managed) — but callers must consume them
+through the facade surface, never the Implementation namespace. This
+static factory is the sole construction seam; the returned types are the
+Abstractions interfaces. Fail-closed: a null/invalid config throws (the
+underlying helpers validate in their constructors).</section>
+    <h3 id="interfaces">
+Interfaces
+</h3>
+      <h4><a class="xref" href="ProvostXInference.Engines.IDecisionEngineOps.html">IDecisionEngineOps</a></h4>
+      <section>Decision (ONNX judge) lane ops view: batch judging on the ORT session with
+truthful active-provider reporting, plus the tokenizer/spec the caller needs
+to build records. Wraps <a class="xref" href="ProvostXInference.Decision.Engine.DecisionSession.html">DecisionSession</a>; adds nothing native.</section>
+      <h4><a class="xref" href="ProvostXInference.Engines.IEncoderEngineOps.html">IEncoderEngineOps</a></h4>
+      <section>Encoder lane ops view: image embedding through the mmproj projector mounted
+on the GGUF model's context. Text embeddings are reachable via the Gguf-style
+model context; this view keeps the vision lane honest and minimal.</section>
+      <h4><a class="xref" href="ProvostXInference.Engines.IGgufEngineOps.html">IGgufEngineOps</a></h4>
+      <section>GGUF lane ops view: the full native llama.cpp surface as properties/methods —
+context management, KV-cache operations, sampling knobs, speculative knobs.
+Wraps the existing wrapper-layer graph (model → context → pool → conversation);
+the raw abstractions stay reachable for advanced callers.</section>
+      <h4><a class="xref" href="ProvostXInference.Engines.IGgufModelLoader.html">IGgufModelLoader</a></h4>
+      <section>Testability seam over the native GGUF loader: the engine factory depends on
+THIS interface, not on <a class="xref" href="ProvostXInference.Implementation.NativeInferenceModel.html">NativeInferenceModel</a>'s static
+factory, so the facade is unit-testable without a native image.</section>
+      <h4><a class="xref" href="ProvostXInference.Engines.IInferenceEngine.html">IInferenceEngine</a></h4>
+      <section>The SOLE caller-facing object of Inference's world: one loaded backend (GGUF
+llama.cpp, ONNX decision, or vision encoder) behind a typed facade with
+lifecycle, inference ops, context management, KV-cache ops, and every knob
+as a property. Callers (e.g. ProvostXLLM) hold an array of these and route
+requests by <a class="xref" href="ProvostXInference.Engines.IInferenceEngine.html#ProvostXInference_Engines_IInferenceEngine_Kind">Kind</a>/<a class="xref" href="ProvostXInference.Engines.IInferenceEngine.html#ProvostXInference_Engines_IInferenceEngine_ModelPath">ModelPath</a>.</section>
+      <h4><a class="xref" href="ProvostXInference.Engines.IInferenceEngineFactory.html">IInferenceEngineFactory</a></h4>
+      <section>Resolves a validated <a class="xref" href="ProvostXInference.Engines.EngineRequest.html">EngineRequest</a> into an UNLOADED
+<a class="xref" href="ProvostXInference.Engines.IInferenceEngine.html">IInferenceEngine</a>. Constructor-injected backend seams keep this
+unit-testable without native images.</section>
+    <h3 id="enums">
+Enums
+</h3>
+      <h4><a class="xref" href="ProvostXInference.Engines.EngineKind.html">EngineKind</a></h4>
+      <section>Which backend lane an <a class="xref" href="ProvostXInference.Engines.IInferenceEngine.html">IInferenceEngine</a> serves. One engine object
+per lane; the facade routes ops views by this kind (fail-closed on mismatch).</section>
+
+
+</article>
+          </div>
+
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In this article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="../index.html">Home</a>&ensp;&middot;&ensp;<a href="#top">Back to top</a>
+            </span>
+      ProvostXInference — MIT
+      
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script type="text/javascript" src="../styles/docfx.vendor.min.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>

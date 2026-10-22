@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+
+  <head>
+    <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>ProvostXInference — API Glossary | ProvostXInference API </title>
+      <meta name="viewport" content="width=device-width">
+      <meta name="title" content="ProvostXInference — API Glossary | ProvostXInference API ">
+    
+    
+      <link rel="shortcut icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../styles/docfx.vendor.min.css">
+      <link rel="stylesheet" href="../styles/docfx.css">
+      <link rel="stylesheet" href="../styles/main.css">
+      <meta property="docfx:navrel" content="">
+      <meta property="docfx:tocrel" content="">
+    
+    <meta property="docfx:rel" content="../">
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+
+        <div id="search-results">
+          <div class="search-list">Search Results for <span></span></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination" data-first=First data-prev=Previous data-next=Next data-last=Last></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+        <div class="article row grid">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+<h1 id="provostxinference--api-glossary">ProvostXInference — API Glossary</h1>
+
+<p>Every public type a consumer can touch, one purpose paragraph each, with the members
+that matter. Types are listed by layer; the consumer-facing set is deliberately small.</p>
+<h2 id="engines-layer-the-consumer-surface">Engines layer (the consumer surface)</h2>
+<h3 id="inferenceenginebuilder-static"><code>InferenceEngineBuilder</code> (static)</h3>
+<p>Entry point for every consumer. <code>InferenceEngineBuilder.Gguf(path)</code> / <code>.Decision(path)</code> /
+<code>.Encoder(path)</code> starts a typed request builder; <code>With*</code> methods add parameters; <code>Build()</code>
+returns a validated <code>EngineRequest</code>. Fail-closed: invalid combinations throw
+<code>InvalidEngineRequestException</code> before any native work.</p>
+<h3 id="inferenceenginefactory"><code>InferenceEngineFactory</code></h3>
+<p>Constructs <code>IInferenceEngine</code> from a validated request. The default instance needs no
+configuration (parameterless).</p>
+<h3 id="iinferenceengine-interface"><code>IInferenceEngine</code> (interface)</h3>
+<p>One loaded-or-unloaded engine object. <code>Initialize()</code> loads it (failure leaves it
+unloaded and disposable); <code>Gguf</code> / <code>Decision</code> / <code>Encoder</code> return typed ops views;
+<code>Dispose()</code> tears down in the fixed order pool → context → model.</p>
+<h3 id="iggufengineops-interface-via-ggufengineops"><code>IGgufEngineOps</code> (interface, via <code>GgufEngineOps</code>)</h3>
+<p>The GGUF lane view: chat template, tokenize/detokenize, sampling, <code>RebuildContext()</code>,
+KV copy/clear, checkpoints, rewind/shift, speculation
+(<code>ValidateSpeculation</code>/<code>EnableSpeculation</code>/<code>DisableSpeculation</code> + <code>ActiveSpeculation</code>),
+vision encoder load, TTS session create, rerank, LoRA/cvec, <code>Backend</code> probe,
+<code>GetExecutorStats</code> / <code>GetConversationStats</code> (per-lane <code>EngineStats</code>),
+<code>GetEngineTelemetry()</code> (model-wide <code>EngineTelemetry</code>), <code>CreateExecutor()</code>,
+<code>Pool</code> (lazy <code>IConversationPool</code>).</p>
+<h3 id="idecisionengineops--iencoderengineops"><code>IDecisionEngineOps</code> / <code>IEncoderEngineOps</code></h3>
+<p>Decision lane (ONNX judge session) and encoder lane (vision embedding route). Wrong-kind
+access throws <code>EngineKindMismatchException</code>.</p>
+<h3 id="enginelogging-static-facade"><code>EngineLogging</code> (static facade)</h3>
+<p>Process-wide native DEBUG stream: <code>SetLogFile(path)</code> (native file sink),
+<code>Enable(handler)</code> (managed <code>(level, tag, message)</code> callback), <code>SetLevel(0..3, 99)</code>.
+Distinct from the per-engine audit trail (see <code>ModelConfig.AuditPath</code>).</p>
+<h3 id="enginemaintenance-static-facade"><code>EngineMaintenance</code> (static facade)</h3>
+<p>File-level engine-bound maintenance without a loaded engine: GGUF EOG/special-token
+metadata repair.</p>
+<h3 id="stallwatchdogops-static-facade"><code>StallWatchdogOps</code> (static facade)</h3>
+<p>Sole construction seam for the stall-safe prefill helpers
+(<code>IPrefillStallDetector</code>, <code>IStallRecoveryLadder</code>, <code>IChunkWallClock</code>).</p>
+<h2 id="abstractions-layer-implemented-by-the-native-wrappers">Abstractions layer (implemented by the native wrappers)</h2>
+<h3 id="istandardexecutor"><code>IStandardExecutor</code></h3>
+<p>Single-session generation: <code>Prompt(text)</code>, <code>PromptTokens(...)</code> (feed-back during
+generation), <code>Infer()</code> → <code>InferResult</code>, <code>Sample(SamplingConfig)</code> → token,
+<code>GenerateSpeculative(...)</code>, <code>SaveState()/RestoreState()</code>, <code>GetStats()</code>,
+<code>EnableSpeculation(SpeculativeConfig)</code>, <code>PromptWithAudio(...)</code>.</p>
+<h3 id="iconversation--iconversationpool"><code>IConversation</code> / <code>IConversationPool</code></h3>
+<p>Pooled batched lane. Pool: <code>Lease()</code> / return-by-dispose, <code>AvailableCount</code>. Conversation:
+prompt/sample/grammar (<code>SampleWithGrammar</code>), <code>SaveState()/RestoreState</code>,
+<code>ExportCheckpoint()/ImportCheckpoint()</code> (byte-exact blobs), <code>Rewind</code>, <code>Reset</code>,
+<code>GetStats()</code>, <code>SpeculationStats()</code>.</p>
+<h3 id="iinferencecontext"><code>IInferenceContext</code></h3>
+<p>Per-model decode context: <code>Tokenize/Detokenize/TokenToPiece/IsEos</code>, <code>CreatePool()</code>,
+<code>CreateExecutor()</code>, KV ops (<code>KvCopy</code>, <code>KvClearSeq</code>), <code>ContextSize</code>, <code>SeqMax</code>.</p>
+<h3 id="iinferencemodel"><code>IInferenceModel</code></h3>
+<p>Model handle surface: <code>CreateContext(ContextConfig)</code>, <code>GetEmbeddings(ctx, text)</code>,
+<code>EmbeddingDimension</code>, <code>LoadVisionEncoder(mmprojPath)</code>, <code>ApplyChatTemplate(...)</code>,
+<code>CreateGrammar(...)</code> / <code>CreateGrammarFromJsonSchema(...)</code>,
+<code>SpeculativeCapabilities</code>, <code>CreateLoraAdapter(path)</code>, <code>SupportsAudioInput</code>,
+<code>AudioSampleRate</code>, <code>PartialRewindSupported</code>.</p>
+<h3 id="ivisionencoder"><code>IVisionEncoder</code></h3>
+<p>Vision pipeline handle: <code>Marker</code> (prompt splice token) — used with
+<code>PromptWithImages(prompt, encoder, imageBytes)</code>.</p>
+<h3 id="ittssession"><code>ITtsSession</code></h3>
+<p>Single-shot speech generation: <code>Generate(text, params)</code> → PCM F32 samples + rate;
+second generate refuses typed (<code>tts/session-consumed</code>); fresh sessions replay
+byte-identically per (text, seed).</p>
+<h3 id="igrammar"><code>IGrammar</code></h3>
+<p>Grammar handle (GBNF or schema-derived; <code>Kind</code> reports which). Owned by the sampled
+lane; dispose after the executor/conversation.</p>
+<h2 id="models-layer-config-records-and-snapshots">Models layer (config records and snapshots)</h2>
+<table>
+<thead>
+<tr>
+<th>Record</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ModelConfig</code></td>
+<td>Model load knobs: <code>Path</code>, <code>GpuLayers</code> (-1 all / 0 CPU), <code>Threads</code>, <code>FlashAttention</code>, <code>KvCacheType</code>, context-pointer fields (wave-5: kv overrides, lazy mode, tri-states, <code>LoadMtp</code>), <strong><code>AuditPath</code>/<code>AuditIncludePrompts</code> (ABI v9 audit)</strong></td>
+</tr>
+<tr>
+<td><code>ContextConfig</code></td>
+<td>Context knobs: <code>ContextSize</code>, <code>BatchSize</code>, <code>SeqMax</code>, <code>PoolingType</code>, recurrent-state ring (<code>NRsSeq</code>), wave-5 extensions</td>
+</tr>
+<tr>
+<td><code>SamplingConfig</code></td>
+<td>Full pipeline: temperature/top-k/top-p/min-p, penalties, dry/xtc/top-n-sigma/mirostat, <code>MaxTokens</code>, grammar pointer</td>
+</tr>
+<tr>
+<td><code>SpeculativeConfig</code></td>
+<td><code>Mode</code> (draft-simple, n-gram family, EAGLE3, draft-MTP), draft/companion paths, n-gram params</td>
+</tr>
+<tr>
+<td><code>StallWatchdogConfig</code></td>
+<td>Watchdog knobs: enabled, chunk size, gap multiplier, ladder budget</td>
+</tr>
+<tr>
+<td><code>EngineStats</code></td>
+<td>Per-lane snapshot: <code>Tokens</code>, <code>KvPositions</code>, <code>PromptTokens</code>, <code>DecodeSteps</code>, <code>SpecDrafted</code>, <code>SpecAccepted</code></td>
+</tr>
+<tr>
+<td><code>EngineTelemetry</code></td>
+<td>Model-wide snapshot (ABI v9): <code>PromptTokens</code>, <code>DecodeSteps</code>, <code>CommittedTokens</code>, <code>SpecDrafted</code>, <code>SpecAccepted</code>, <code>Errors</code>, <code>ContextsAlive</code></td>
+</tr>
+<tr>
+<td><code>BackendInfo</code></td>
+<td>Probe truth: backend type/name, <code>EffectiveGpuLayers</code>/requested, <code>GpuLayersReduced</code>, <code>ProbePassed</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="exceptions-layer">Exceptions layer</h2>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>InferenceException</code></td>
+<td>every native-side failure; <code>ErrorCode</code> + message + named boundary</td>
+</tr>
+<tr>
+<td><code>InvalidEngineRequestException</code></td>
+<td>builder request validation failure</td>
+</tr>
+<tr>
+<td><code>EngineKindMismatchException</code></td>
+<td>ops-view/kind mismatch</td>
+</tr>
+<tr>
+<td><code>PrefillStallUnrecoveredException</code></td>
+<td>watchdog ladder exhausted (carries chunk index, walls, steps)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="enums--small-types">Enums &amp; small types</h2>
+<p><code>InferResult</code> (Ok/NoWork/DecodeFailed), <code>KvType</code> (F16/Q8_0/Q4_0/Q4_1),
+<code>PoolingType</code> (None/Mean/Cls/Last/Rank), <code>SpeculativeType</code>/<code>SpeculativeMode</code>
+(draft/ngram family/mtp/eagle3/dflash), <code>GrammarKind</code> (Gbnf/JsonSchema),
+<code>AudioChunk</code> (PCM F32 + rate).</p>
+
+</article>
+          </div>
+
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In this article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="../index.html">Home</a>&ensp;&middot;&ensp;<a href="#top">Back to top</a>
+            </span>
+      ProvostXInference — MIT
+      
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script type="text/javascript" src="../styles/docfx.vendor.min.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>

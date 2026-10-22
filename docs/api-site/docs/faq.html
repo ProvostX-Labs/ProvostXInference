@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+
+  <head>
+    <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>ProvostXInference — FAQ | ProvostXInference API </title>
+      <meta name="viewport" content="width=device-width">
+      <meta name="title" content="ProvostXInference — FAQ | ProvostXInference API ">
+    
+    
+      <link rel="shortcut icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../styles/docfx.vendor.min.css">
+      <link rel="stylesheet" href="../styles/docfx.css">
+      <link rel="stylesheet" href="../styles/main.css">
+      <meta property="docfx:navrel" content="">
+      <meta property="docfx:tocrel" content="">
+    
+    <meta property="docfx:rel" content="../">
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div class="container body-content">
+
+        <div id="search-results">
+          <div class="search-list">Search Results for <span></span></div>
+          <div class="sr-items">
+            <p><i class="glyphicon glyphicon-refresh index-loading"></i></p>
+          </div>
+          <ul id="pagination" data-first=First data-prev=Previous data-next=Next data-last=Last></ul>
+        </div>
+      </div>
+      <div role="main" class="container body-content hide-when-search">
+        <div class="article row grid">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+<h1 id="provostxinference--faq">ProvostXInference — FAQ</h1>
+
+<p>Real questions from development and integration. Answers are contracts, not marketing.</p>
+<h2 id="1-why-not-just-use-llamasharp">1. Why not just use LLamaSharp?</h2>
+<p>LLamaSharp wraps llama.cpp but owns the seams we need to control: batching discipline,
+KV lifecycle, backend safety, and error typing. We link llama.cpp directly behind our own
+flat C API so every one of those surfaces is explicit, fail-closed, and test-pinned. The
+C# layer is strict OOP (one type per file, constructor injection, no statics in product
+code) — that is a deliberate architectural stance, not style.</p>
+<h2 id="2-what-happens-if-the-native-library-version-doesnt-match-the-c-binding">2. What happens if the native library version doesn't match the C# binding?</h2>
+<p>The engine refuses to load. The ABI version is handshake-checked at engine open
+(<code>PVX_ABI_VERSION</code> vs <code>ExpectedAbiVersion</code>); a mismatch is a fail-closed error, never a
+best-effort attempt. Struct layouts are size-pinned by tests (<code>PvxAbiSizeTests</code>) so a
+drift cannot pass silently.</p>
+<h2 id="3-does-one-process-support-multiple-engines-with-different-models">3. Does one process support multiple engines with different models?</h2>
+<p>Yes — that is a first-class scenario. Each engine instance owns its model, contexts,
+pools, and telemetry. Two engines write two independent audit files (per-engine audit,
+ABI v9) and expose two independent <code>GetEngineTelemetry()</code> streams. Nothing is shared
+except the process-wide DEBUG log stream (<code>EngineLogging</code>), which is a single native
+log sink by design.</p>
+<h2 id="4-does-the-audit-trail-record-prompt-text">4. Does the audit trail record prompt text?</h2>
+<p>No — by policy. The audit trail records lifecycle and operation events
+(model/context lifecycle, spec enable/disable, destructive KV ops) and optionally prompt
+token COUNTS (<code>AuditIncludePrompts</code>). Prompt text is never written: audit logs must not
+become a content sink. If you need content, that belongs in your service layer.</p>
+<h2 id="5-what-does-the-audit-feature-cost-when-i-dont-configure-it">5. What does the audit feature cost when I don't configure it?</h2>
+<p>One branch per commit. Every counter bump and every file write is gated behind
+<code>audit.enabled</code>; an unconfigured engine executes no counters and no I/O. The feature is
+dead when not actively set up.</p>
+<h2 id="6-a-capability-reports-supported-but-i-get-a-not_supported-exception--why">6. A capability reports &quot;supported&quot; but I get a NOT_SUPPORTED exception — why?</h2>
+<p>You are likely outside a documented lane boundary. Speculation, for example,
+self-reports capability per MODEL, but some modes are sequential-executor-lane only
+(the batched/pool conversation lane refuses typed). Every refusal names its boundary
+(e.g. <code>spec-engine/mtp-wiring</code>, <code>spec-engine/session</code>). The refusal is the contract:
+the engine never silently falls back to plain generation.</p>
+<h2 id="7-which-specialist-backend-is-actually-running">7. Which specialist backend is actually running?</h2>
+<p>Ask the engine: <code>ops.Backend</code> reports the active specialist, effective vs requested GPU
+layers, and whether the load was reduced. The probe never misreports an active
+accelerator as CPU (a historic bug, fixed and pinned by tests). On macOS the metal
+specialist is the default; Linux/Windows default to cuda → vulkan → cpu in order of
+availability.</p>
+<h2 id="8-how-do-i-get-throughput-numbers-tokenssecond">8. How do I get throughput numbers (tokens/second)?</h2>
+<p>Telemetry is pull-based and stateless: take two <code>GetEngineTelemetry()</code> snapshots around
+your workload and derive rates in your code (<code>DecodeSteps</code> or <code>CommittedTokens</code> divided
+by elapsed time). The native side deliberately keeps no rate state — snapshots stay
+cheap and allocation-free.</p>
+<h2 id="9-can-i-resume-a-conversation-after-a-process-restart">9. Can I resume a conversation after a process restart?</h2>
+<p>Yes — <code>ExportCheckpoint()</code> produces a byte blob (cells + K/V rows) that
+<code>ImportCheckpoint()</code> restores on a fresh engine, with token counts matching exactly.
+Verified across dense and hybrid architectures up to the largest test models.</p>
+<h2 id="10-why-are-model-files-not-in-the-repository-and-why-do-live-tests-skip">10. Why are model files not in the repository, and why do live tests &quot;skip&quot;?</h2>
+<p>Models are gigabyte-scale artifacts; the repo ships none (and no native binaries —
+CI builds every platform slice). Live test lanes discover models via
+<code>PVX_SMALL_*_PATH</code> env vars or repo-relative fixture locations; when a fixture is
+absent the lane skips with a named reason instead of failing. The suite is fully green
+with zero fixtures present (hermetic mode).</p>
+<h2 id="11-is-windows--linux-really-supported-or-just-macos">11. Is Windows / Linux really supported, or just macOS?</h2>
+<p>All three build and test in CI (specialist matrix: osx-arm64 metal, win-arm64 cpu,
+win-x64/linux-x64 cuda+vulkan, plus a full Windows MSVC lane). The real-model journey
+tier has been verified live on ARM64 Linux and Windows lab VMs. CUDA/Vulkan
+specialists are CI-built but their real-model verification awaits a GPU host with
+models — that is stated openly in the backlog, not hidden.</p>
+<h2 id="12-what-does-fail-closed-mean-in-practice">12. What does &quot;fail-closed&quot; mean in practice?</h2>
+<p>A failure or an unknown state produces a typed error that names what happened and
+where — it never produces a guessed result. Examples: unknown engine id → refusal
+listing known specialists; grammar with an unsupported JSON-schema keyword →
+<code>NOT_SUPPORTED</code> naming the keyword; rewind on a hybrid architecture →
+<code>REWIND_UNSUPPORTED</code>. We consider a silent wrong answer worse than a loud refusal.</p>
+
+</article>
+          </div>
+
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In this article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="../index.html">Home</a>&ensp;&middot;&ensp;<a href="#top">Back to top</a>
+            </span>
+      ProvostXInference — MIT
+      
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script type="text/javascript" src="../styles/docfx.vendor.min.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>
