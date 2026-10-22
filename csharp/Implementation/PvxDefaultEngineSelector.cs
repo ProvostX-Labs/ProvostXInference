@@ -6,15 +6,16 @@ namespace ProvostXInference.Implementation;
 /// <summary>
 /// Platform default engine selection — used when the model config leaves the
 /// engine field unset: macOS resolves to the metal specialist; Windows/Linux
-/// prefer cuda when its specialist file ships, else vulkan; fail-closed
-/// (typed error, no silent fallback) when neither is installed. The OS identity
+/// prefer cuda when its specialist file ships, else vulkan, else the cpu
+/// engine (every platform can build a CPU specialist); fail-closed
+/// (typed error, no silent fallback) when none is installed. The OS identity
 /// is constructor-injected (same probe family the selector matrix consults —
 /// no hidden environment dependence). Stateless utility — no mutable state.
 /// </summary>
 public sealed class PvxDefaultEngineSelector
 {
     // Stateless utility — no mutable state (immutable candidate order, not state).
-    private static readonly string[] PreferOrder = { "cuda", "vulkan" };
+    private static readonly string[] PreferOrder = { "cuda", "vulkan", "cpu" };
 
     private readonly IOSProbe _os;
 
@@ -35,7 +36,7 @@ public sealed class PvxDefaultEngineSelector
             if (available.Contains(candidate)) return candidate;
         }
         throw new DllNotFoundException(
-            "No inference specialist found (expected pvx-cuda or pvx-vulkan in runtimes/<rid>/native/). " +
+            "No inference specialist found (expected pvx-cuda, pvx-vulkan or pvx-cpu in runtimes/<rid>/native/). " +
             "Reinstall the runtime package for this platform.");
     }
 }

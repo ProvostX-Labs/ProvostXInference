@@ -20,6 +20,7 @@ public class PvxEngineFileResolverTests
     [Theory]
     [InlineData("cuda", "pvx-cuda.dll")]
     [InlineData("vulkan", "pvx-vulkan.dll")]
+    [InlineData("cpu", "pvx-cpu.dll")]
     public void Cuda_VulkanFileNames_OnWindows(string engine, string expected)
     {
         var resolver = new PvxEngineFileResolver(FakeOsProbe.Windows());
@@ -29,6 +30,7 @@ public class PvxEngineFileResolverTests
     [Theory]
     [InlineData("cuda", "libpvx-cuda.so")]
     [InlineData("vulkan", "libpvx-vulkan.so")]
+    [InlineData("cpu", "libpvx-cpu.so")]
     public void Cuda_VulkanFileNames_OnLinux(string engine, string expected)
     {
         var resolver = new PvxEngineFileResolver(FakeOsProbe.Linux());

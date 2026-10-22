@@ -7,14 +7,14 @@ namespace ProvostXInference.Models;
 /// OS-aware resolver from validated engine id to the specialist module file
 /// name under this assembly's runtimes/&lt;rid&gt;/native/ directory (BL-43:
 /// Linux rid = linux-&lt;arch&gt; from the process architecture). metal =
-/// macOS (.dylib); cuda/vulkan = Windows (.dll) / Linux (.so). Fail-closed:
+/// macOS (.dylib); cuda/vulkan/cpu = Windows (.dll) / Linux (.so). Fail-closed:
 /// any (engine, OS) pair outside the matrix throws rather than guessing.
 /// Stateless utility — no mutable state.
 /// </summary>
 internal sealed class PvxEngineFileResolver : IPvxEngineFileResolver
 {
     // Stateless utility — no mutable state (immutable matrix data, not state).
-    private static readonly string[] KnownEngineIds = { "metal", "cuda", "vulkan" };
+    private static readonly string[] KnownEngineIds = { "metal", "cuda", "vulkan", "cpu" };
 
     private readonly IOSProbe _os;
 
@@ -30,9 +30,11 @@ internal sealed class PvxEngineFileResolver : IPvxEngineFileResolver
         "cuda" when _os.IsLinux() => "libpvx-cuda.so",
         "vulkan" when _os.IsWindows() => "pvx-vulkan.dll",
         "vulkan" when _os.IsLinux() => "libpvx-vulkan.so",
+        "cpu" when _os.IsWindows() => "pvx-cpu.dll",
+        "cpu" when _os.IsLinux() => "libpvx-cpu.so",
         _ => throw new DllNotFoundException(
             $"engine '{validatedEngine}' is not a specialist on this OS " +
-            "(metal = macOS only; cuda/vulkan = Windows/Linux only)")
+            "(metal = macOS only; cuda/vulkan/cpu = Windows/Linux only)")
     };
 
     public bool FileExists(string validatedEngine)
