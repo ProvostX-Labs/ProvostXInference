@@ -32,7 +32,7 @@ composes backend adapters into one uniform engine object; nothing below leaks up
 
 ## Native core (src/, include/)
 
-### C API (pvxinference.h) — ABI v8
+### C API (pvxinference.h) — ABI v9
 Flat C API, 90+ exports. Opaque handles: `pvx_model_t`, `pvx_context_t`, `pvx_pool_t`,
 `pvx_conversation_t`, `pvx_executor_t`, `pvx_state_t`, `pvx_grammar_t`, mmproj wrapper,
 `pvx_adapter_t` (LoRA), `pvx_cvec_t` (control vectors), `pvx_tts_session_t` (gen-audio).
@@ -72,6 +72,23 @@ nextn projections from the SAME GGUF, named at the LAST TRUNK layer index
 the nextn layer). See memory/2026-10-19-mtp-merge-fix.md for the merge tooling.
 The stats export remains a snapshot (`pvx_executor_stats`/`pvx_conversation_stats`,
 `pvx_stats_t` copy-out counters, spec telemetry mirrors the spec stats).
+
+### Per-engine audit + telemetry (ABI v9, owner order 2026-10-22)
+Append-only wave: `pvx_model_params_t` gains `audit_path` + `audit_include_prompts`
+(zeroed struct = disabled, bit-identical loads). The audit sink is PER-MODEL — own
+`FILE*` + own mutex, opened at load, closed at free; NEVER process globals (an LLM
+array of engines yields one audit trail per engine instance). Events are JSON lines
+(`ts`, monotonic `seq`, `event`, optional `detail`), flushed per line (survives hard
+kill): model_loaded/model_freed, context_created/freed, spec_enabled/disabled,
+kv_cleared/kv_shifted. Prompt TEXT is never recorded — token counts only when
+`audit_include_prompts=1` (audit must not become a content sink). Model-wide
+telemetry counters ride the same struct (plain int64 bumps at the existing commit
+sites under the infer mutex) and are exported via `pvx_engine_telemetry`
+(`pvx_engine_telemetry_t`: prompt/decode/committed tokens, spec drafted/accepted,
+errors, contexts alive). ZERO COST when not configured: every counter bump and file
+write is gated behind `audit.enabled` — an unconfigured engine executes one branch
+per commit and nothing else (owner directive 10:42). Rates are derived by the caller
+between two snapshots; the native side stays stateless.
 
 - **`pvxinference.cpp`** — core: model load, tokenize, chat template, context, conversation
   pool, batched + executor inference, sampling, KV ops (save/restore/copy/rewind/shift),
@@ -328,7 +345,7 @@ to the context-scoped function). `PVX_LOG` structured logging: zero-overhead whe
 | `Implementation` | Native* wrappers; `StandardEngineActivator`, `PvxDefaultEngineSelector`, stall-safe prefill classes |
 | `Engines` | Caller-facing facade: `IInferenceEngine`, `InferenceEngine(Builder/Factory)`, request records + ops views + the black-box helper facades `EngineLogging` (native log routing), `EngineMaintenance` (GGUF EOG metadata repair), `StallWatchdogOps` (sole construction seam for detector/ladder/wall-clock) |
 | `Decision` | ONNX judge execution — `DecisionSession`, `IDecisionSessionFactory`, `JudgeTokenizer`, `JudgeSequenceEncoder`, `JudgeNumericsGate`, `ExecutionProviderChain` |
-| `Models` | Config records: `ModelConfig`, `ContextConfig`, `SamplingConfig`, `SpeculativeConfig`, `StallWatchdogConfig`, `BackendInfo`, engine selection types |
+| `Models` | Config records: `ModelConfig` (incl. `AuditPath`/`AuditIncludePrompts`, ABI v9), `ContextConfig`, `SamplingConfig`, `SpeculativeConfig`, `StallWatchdogConfig`, `BackendInfo`, `EngineStats` (per-lane), `EngineTelemetry` (model-wide, ABI v9), engine selection types |
 | `Exceptions` | `InferenceException`, `InvalidEngineRequestException`, `EngineKindMismatchException`, `PrefillStallUnrecoveredException`, `PvxResultExtensions` |
 | `Logging` | `IInferenceLogger`, `NativeLogBridge` (pinned delegate, UTF-8) |
 
@@ -343,7 +360,9 @@ InferenceEngineBuilder.Gguf(path) / .Decision(path) / .Encoder(path)
   `EngineKindMismatchException`. Views WRAP the underlying graph, never duplicate it.
 - `IGgufEngineOps` exposes the model/context/pool graph: chat template, tokenize, sampling
   knobs, live context rebuild, KV copy/clear, checkpoints, rewind, speculation
-  (validate/enable/disable, `ActiveSpeculation` mirror), live `Backend` probe.
+  (validate/enable/disable, `ActiveSpeculation` mirror), live `Backend` probe,
+  per-lane stats (`GetExecutorStats`/`GetConversationStats`) and model-wide telemetry
+  (`GetEngineTelemetry`, ABI v9 — per-engine snapshot, never process-wide).
 - `IDecisionEngineOps` exposes the judge session; `IEncoderEngineOps` the vision/image
   embedding route.
 - Load failure leaves the engine unloaded and disposable — no partial state leaks.
@@ -444,10 +463,10 @@ static-lib symbols).
 - `CMakeLists.txt`, `.github/workflows/` — build + CI
 
 **Status:** as-is — native ctest green (Release build), C# suite green, LDC PASS.
-Latest gates: native 48/48 + ngram 27/27 + stress 31/31; C# 251/251 (also verified
+Latest gates: native 48/48 + ngram 27/27 + stress 31/31; C# 252/252 (also verified
 249+2 skips on the ARM64 Linux and Windows lab VMs, BL-47/48); the real-model journey
-tier (10 lanes) is green with and without fixtures; no native binaries in the repo
-(BL-49, CI-built payloads).
+tier (11 lanes incl. BL-50 audit/telemetry) is green with and without fixtures; no
+native binaries in the repo (BL-49, CI-built payloads); ABI v9 handshake-locked.
 
 ## Black-box consumption contract
 
@@ -463,7 +482,18 @@ consumable without leaking internals, three facade views live in `csharp/Engines
 - `EngineMaintenance` — file-level engine-bound maintenance (GGUF EOG/special-token
   metadata repair) without a loaded engine object in hand.
 - `EngineLogging` — process-wide native log routing (file sink / managed handler /
-  level), previously reachable only via the `Logging` namespace.
+  level), previously reachable only via the `Logging` namespace. NOTE (BL-50): this is
+  the DEBUG/llama.cpp stream — process-wide by nature (one specialist module owns the
+  log state). For PER-ENGINE trails, use the audit surface below.
+- **Per-engine audit + telemetry (ABI v9, BL-50)** — consumer-relevant contract:
+  - `ModelConfig.AuditPath` + `AuditIncludePrompts` at engine build time: each engine
+    instance writes its OWN JSON-lines audit trail (lifecycle/operation events; never
+    prompt text). Unconfigured = the feature is dead (one branch per commit, no I/O).
+  - `IGgufEngineOps.GetEngineTelemetry()` — model-wide counter snapshot for THAT engine
+    instance (`EngineTelemetry` record). Pull-based: derive rates between two snapshots
+    in the caller. Per-lane detail remains on `GetExecutorStats`/`GetConversationStats`.
+  - Two engines in one process → two independent audit files and two independent
+    telemetry streams; nothing is shared (verified by Journey10's isolation leg).
 
 Effect: callers never reference `Implementation`, `Interop`, `SafeHandles`, or `Logging`
 namespaces at all. The native tree is untouched by this contract (the C API surface is
