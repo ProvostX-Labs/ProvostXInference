@@ -187,6 +187,11 @@ struct pvx_conversation_s {
     int n_tokens = 0;
     int n_kv_pos = 0;
     bool has_pending_prompt = false;
+    // Audit 2026-10-22: lease-state flag — a second pvx_pool_return for the
+    // same conversation previously pushed it into `available` TWICE, so two
+    // callers could lease the same conv and race its KV (data corruption).
+    // Fail-closed: return refuses typed, lease clears the flag.
+    bool leased = false;
     std::vector<llama_token> pending_tokens;
     int last_batch_idx = -1;
 

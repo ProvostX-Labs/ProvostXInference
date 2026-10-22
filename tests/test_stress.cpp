@@ -206,30 +206,16 @@ static void test_pool_return_double() {
     pvx_conversation_t* conv = nullptr;
     ASSERT_EQ(pvx_pool_lease(pool, &conv), PVX_OK);
     ASSERT_EQ(pvx_pool_return(pool, conv), PVX_OK);
-    // Return again — the conv is already in the available stack
-    // This is a bug-detection test: if we push it twice, a future lease
-    // could get a stale pointer. We accept either OK (naive) or error (strict).
-    pvx_result_t r = pvx_pool_return(pool, conv);
-    ASSERT(r == PVX_OK || r == PVX_ERR_INVALID_ARG);  // document current behavior
-
-    // If it returned OK, we have 2 entries in available but only 1 real conv
-    // Lease twice and check both are valid
-    pvx_conversation_t* c1 = nullptr, *c2 = nullptr;
+    // Audit 2026-10-22: double-return is now FAIL-CLOSED (typed INVALID_ARG).
+    // Previously the conv was pushed into `available` TWICE, so two leasers
+    // could share one seq_id and race each other's KV (corruption). The
+    // leased-guard refuses the second return; the stress WARN is obsolete.
+    ASSERT_EQ(pvx_pool_return(pool, conv), PVX_ERR_INVALID_ARG);
+    // And the conv is NOT re-added: a fresh lease yields a valid conv, and the
+    // pool never hands the same conv to two callers simultaneously.
+    pvx_conversation_t* c1 = nullptr;
     ASSERT_EQ(pvx_pool_lease(pool, &c1), PVX_OK);
-    pvx_result_t r2 = pvx_pool_lease(pool, &c2);
-    if (r2 == PVX_OK) {
-        // Both should be the same pointer (double return pushed twice)
-        // This documents the bug — if c1 == c2, leasing "2" conversations gives
-        // the same physical conversation to two callers
-        if (c1 == c2) {
-            fprintf(stderr, "WARN: double-return gives same conv to two callers ");
-        }
-        // Return both to clean up
-        pvx_pool_return(pool, c1);
-        if (c1 != c2) pvx_pool_return(pool, c2);
-    } else {
-        pvx_pool_return(pool, c1);
-    }
+    ASSERT_EQ(pvx_pool_return(pool, c1), PVX_OK);
 
     pvx_pool_free(pool);
     pvx_free_context(ctx);

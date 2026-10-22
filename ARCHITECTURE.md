@@ -260,9 +260,12 @@ produces data — never zeros dressed as an embedding.
 Persistent grammar chain on executor/conversation; grammar FIRST in the sampler chain;
 sampled token accepted once at commit (EOG/control skipped). Prompt tokens are NOT
 grammar-accepted (a per-token accept hook desyncs the stateless feedback loop — removed).
-Known upstream llama.cpp issue: `llama_grammar_accept` crashes on multi-character tokens
-spanning rules with optional whitespace; try/catch fallback yields unconstrained output;
-callers bound array repetition in their grammars as mitigation.
+Known upstream llama.cpp issue: `llama_grammar_accept` can crash on multi-character tokens
+spanning rules with optional whitespace. Mitigation is structural, not a catch-handler: the
+grammar section runs TIERED REJECTION SAMPLING (tier 1 single-token validation → tier 2
+top-k mask → tier 2.5 top-256 mask → tier 3 full grammar-first mask) and every returned
+token has passed a grammar check before accept() is ever called — there is NO path that
+yields unconstrained output, and accept() only ever sees a validated token.
 
 ### Rewind / hybrid-memory guard
 All partial rewinds check `llama_memory_seq_rm`'s return and answer `PVX_ERR_REWIND_UNSUPPORTED`

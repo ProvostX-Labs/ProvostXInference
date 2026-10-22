@@ -1536,6 +1536,7 @@ pvx_result_t pvx_pool_lease(pvx_pool_t* pool, pvx_conversation_t** out_conv) {
     if (pool->available.empty()) return PVX_ERR_NO_SLOT;
     *out_conv = pool->available.top();
     pool->available.pop();
+    (*out_conv)->leased = true;  // audit 2026-10-22: double-return guard anchor
     std::lock_guard<std::mutex> ilock(pool->ctx_ref->infer_mtx);
     pool->ctx_ref->active_conversations.push_back(*out_conv);
     return PVX_OK;
@@ -1555,6 +1556,12 @@ pvx_result_t pvx_pool_return(pvx_pool_t* pool, pvx_conversation_t* conv) {
     // and KV flush additionally MUST hold infer_mtx: a concurrently running
     // pvx_infer (InferAll) on the shared context raced this teardown and
     // corrupted Metal buffers — the sporadic ggml_metal aborts on teardown.
+    // Audit 2026-10-22: double-return fail-closed. A second return previously
+    // pushed the same conv into `available` twice — two leasers share one
+    // seq_id and corrupt each other's KV. Typed refusal instead.
+    if (!conv->leased) return PVX_ERR_INVALID_ARG;
+    conv->leased = false;
+
     std::lock_guard<std::mutex> lock(pool->mtx);
     {
         std::lock_guard<std::mutex> ilock(pool->ctx_ref->infer_mtx);
