@@ -132,7 +132,7 @@ jobs:
             FILE="build-${{ matrix.specialist }}/Release/pvx-${{ matrix.specialist }}.dll"
             # cpu specialist on Windows builds under the generic payload name
             [ -f "$FILE" ] || FILE="build-${{ matrix.specialist }}/Release/pvxinference.dll"
-          elif [ "${{ matrix.os }}" = "macos-14" ]; then
+          elif [[ "${{ matrix.os }}" == macos-* ]]; then
             FILE="build-${{ matrix.specialist }}/libpvx-metal.dylib"
             # metal specialist may build under the generic payload name
             [ -f "$FILE" ] || FILE="build-${{ matrix.specialist }}/libpvxinference.dylib"
