@@ -358,15 +358,14 @@ binaries are checked in — every RID slice (osx-arm64 metal + generic, win-arm6
 generic, win-x64/linux-x64 cuda+vulkan) is built by the CI specialist matrix at
 NuGet-pack time. This keeps compiler-baked build paths out of the repository
 (anonymity rule — MSVC/ld embed absolute paths in debug strings); local payloads
-remain gitignored working-tree artifacts for VM testing only. linux-arm64 has
-NO checked-in payload — source-build the native engine (cmake) and ONNX Runtime for
-arm64 (no official ORT arm64 payload exists), and the resolver looks in
-`runtimes/linux-arm64/native/` for the source-built artifacts. NO native binaries are
-checked in — every RID slice (osx-arm64 metal, win-arm64 cpu, win-x64/linux-x64
-cuda+vulkan) is built by the CI specialist matrix at NuGet-pack time; this also keeps
-MSVC/ldld-baked build paths out of the repository (anonymity rule). `PvxEngineHandle.Open`: resolve file →
-calls go through per-handle tables). Ownership chain is constructor-injected:
-Model → Context → Pool/Executor → Conversation.
+remain gitignored working-tree artifacts for VM testing only. linux-arm64 has no
+CI payload — source-build the native engine (cmake) and ONNX Runtime for arm64
+(no official ORT arm64 payload exists); the resolver looks in
+`runtimes/linux-arm64/native/` for the source-built artifacts. `PvxEngineHandle.Open`:
+resolve file → load image → resolve per-image entry-point tables → ABI handshake →
+router bundle; the process-wide `PvxDispatchRegistry` routes only the
+activation-window DllImports (steady-state calls go through per-handle tables).
+Ownership chain is constructor-injected: Model → Context → Pool/Executor → Conversation.
 
 ### Stall-safe chunked prefill layer
 Engine-level, backend-independent, above the native seam (no ABI surface):
@@ -388,7 +387,7 @@ Watchdog disabled = single plain commit, zero overhead. Config: `stall_watchdog`
   model-agnostic — dims/path fixtures derive from the loaded GGUF at runtime (e.g. the
   control-vector test scans `<arch>.embedding_length`/`.block_count`), never hardcoded
   per-model constants; live legs are env-gated (typed skip when the fixture env is unset).
-- **C#:** full suite green (247/247 at last run), one test class per type, all native seams
+- **C#:** full suite green (251/251 at last run), one test class per type, all native seams
   faked (`FakeModuleLoader`, fakes) — no test touches a real dylib except env-guarded
   live smoke/journey tests. Decision tests run on tiny real ONNX fixtures.
 - **Real-model journey tier (BL-47):** `csharp/Tests/RealModelJourneyTests.cs` +
@@ -420,15 +419,17 @@ restores the macOS-parity export surface + import lib), and WIN32 test executabl
 link llama/ggml/ggml-base directly (Windows import libs don't re-export transitive
 static-lib symbols).
 
-- CI workflow builds native + C# (Debug + Release, 0 warnings) + runs tests; does NOT
-  publish or tag. Planned 5-specialist matrix: osx-arm64 metal/cpu, linux-x64 cpu/cuda/vulkan,
-  win-x64 cpu/cuda/vulkan. A dedicated `windows` CI lane (ci.yml `windows` job,
-  windows-latest) builds the native engine with MSVC (Release) + runs ctest (model-gated
-  legs typed-skip without model files) + runs the C# suite with the fresh x64 dll staged
-  into `csharp/runtimes/win-x64/native/` so the arch-aware resolver finds it. The existing
-  specialist/csharp-build/nuget-pack lanes are untouched.
-- Package `ProvostXInference` prepared (native binaries as `runtimes/{RID}/native/`), not
-  shipped. All work stays local — no push, no tags without explicit owner order.
+- CI workflow builds native + C# + runs tests; does NOT publish or tag. Specialist
+  matrix (6 lanes): osx-arm64 metal, linux-x64 cuda + vulkan, win-x64 cuda + vulkan,
+  win-arm64 cpu (BL-49 — the win-arm64 cpu lane replaces the former checked-in payload).
+  A dedicated `windows` lane (ci.yml `windows` job, windows-latest) builds the native
+  engine with MSVC (Release) + runs ctest (model-gated legs typed-skip without model
+  files) + runs the C# suite with the fresh x64 dll staged into
+  `csharp/runtimes/win-x64/native/` so the arch-aware resolver finds it.
+- Package `ProvostXInference` packs all CI-built RID slices into `runtimes/{RID}/native/`.
+  Pack verified end-to-end locally (private nupkg, consumer project resolved the
+  package and ran a Metal-backed generation). All work stays local — no push, no tags
+  without explicit owner order.
 
 ## Files
 - `include/pvxinference.h`, `include/pvx_internal.h` — public C API + internal structs
@@ -440,7 +441,10 @@ static-lib symbols).
 - `CMakeLists.txt`, `.github/workflows/` — build + CI
 
 **Status:** as-is — native ctest green (Release build), C# suite green, LDC PASS.
-Latest gates: native 48/48 + ngram 27/27 + stress 31/31; C# 235/235; Windows CI lane live.
+Latest gates: native 48/48 + ngram 27/27 + stress 31/31; C# 251/251 (also verified
+249+2 skips on the ARM64 Linux and Windows lab VMs, BL-47/48); the real-model journey
+tier (10 lanes) is green with and without fixtures; no native binaries in the repo
+(BL-49, CI-built payloads).
 
 ## Black-box consumption contract
 
