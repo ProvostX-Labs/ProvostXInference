@@ -22,12 +22,13 @@ jobs:
   # ── 5-specialist build matrix ──
   specialist-build:
     name: ${{ matrix.name }}
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
         include:
           - name: osx-arm64-metal
-            os: macos-14
+            os: macos-15
             backend: METAL
             rid: osx-arm64
             specialist: metal
