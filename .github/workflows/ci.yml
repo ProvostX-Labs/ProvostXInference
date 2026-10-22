@@ -133,7 +133,9 @@ jobs:
             # cpu specialist on Windows builds under the generic payload name
             [ -f "$FILE" ] || FILE="build-${{ matrix.specialist }}/Release/pvxinference.dll"
           elif [[ "${{ matrix.os }}" == macos-* ]]; then
-            FILE="build-${{ matrix.specialist }}/libpvx-metal.dylib"
+            # macOS: CMake prefixes the target name with 'lib', producing 'liblibpvx-metal.dylib'
+            FILE="build-${{ matrix.specialist }}/liblibpvx-metal.dylib"
+            [ -f "$FILE" ] || FILE="build-${{ matrix.specialist }}/libpvx-metal.dylib"
             # metal specialist may build under the generic payload name
             [ -f "$FILE" ] || FILE="build-${{ matrix.specialist }}/libpvxinference.dylib"
           else
