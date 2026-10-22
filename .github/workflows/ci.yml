@@ -9,6 +9,11 @@ name: CI
 # loads (metal .dylib / cuda+cuda .so|.dll / vulkan .so|.dll).
 on:
   workflow_dispatch:
+    inputs:
+      package_version:
+        description: 'NuGet package version to pack and publish'
+        required: false
+        default: '0.1.0'
 
 env:
   CMAKE_BUILD_TYPE: Release
@@ -205,10 +210,47 @@ jobs:
       - name: Pack NuGet
         run: |
           cd csharp
-          dotnet pack ProvostXInference.csproj -c Release -o ../nupkg /p:Version=0.1.0
+          dotnet pack ProvostXInference.csproj -c Release -o ../nupkg /p:Version=${{ github.event.inputs.package_version || '0.1.0' }}
 
       - name: Upload NuGet package
         uses: actions/upload-artifact@v4
         with:
           name: nuget-package
           path: nupkg/*.nupkg
+
+  # Trusted publishing (OIDC, NO stored API key) - explicit dispatch only.
+  # Requires a matching Trusted Publisher policy on nuget.org:
+  #   package owner = your nuget.org account, package ID = ProvostXInference,
+  #   repository owner = ProvostX-Labs, repository name = ProvostXInference,
+  #   workflow filename = ci.yml (must match EXACTLY), environment = empty.
+  # Setup checklist: docs/trusted-publishing.md
+  nuget-publish:
+    needs: nuget-pack
+    runs-on: ubuntu-22.04
+    permissions:
+      id-token: write   # OIDC token exchange - the ONLY permission needed
+      contents: read
+    steps:
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Download packed package
+        uses: actions/download-artifact@v4
+        with:
+          name: nuget-package
+          path: nupkg
+
+      - name: NuGet login (OIDC -> short-lived key)
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      - name: Push to nuget.org (trusted publish)
+        run: |
+          dotnet nuget push "nupkg/*.nupkg" \
+            --api-key "${{ steps.login.outputs.nugetApiKey }}" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
